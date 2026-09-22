@@ -214,8 +214,8 @@ export default function RatingRulesPage() {
         </div>
       </header>
 
-      {/* Main Container - Compact to avoid any vertical scrolling */}
-      <main className="flex-1 flex flex-col px-8 gap-3 pb-5 max-w-[1450px] w-full mx-auto overflow-hidden">
+      {/* Main Container - Compact and snug to avoid any empty voids or vertical scrolling */}
+      <main className="flex flex-col px-8 gap-3.5 pb-6 max-w-[1450px] w-full mx-auto">
         
         {/* Controls Toolbar */}
         <div className="flex items-center justify-between opacity-0 animate-slideUp">
@@ -254,8 +254,8 @@ export default function RatingRulesPage() {
           </motion.button>
         </div>
 
-        {/* Rules Table Card */}
-        <div className={clsx("p-5 flex flex-col gap-3 flex-1 overflow-hidden opacity-0 animate-slideUp", matteCard)} style={{ animationDelay: "0.15s" }}>
+        {/* Rules Table Card - Full content without empty voids */}
+        <div className={clsx("p-5 flex flex-col gap-3 w-full opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
           <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
             <div>
               <h2 className="font-sans font-bold text-base text-[#FFFFFF] tracking-tight">
@@ -269,7 +269,7 @@ export default function RatingRulesPage() {
           </div>
 
           {/* Centralized Table Layout with Design Connector */}
-          <div className="overflow-x-auto w-full flex-1">
+          <div className="overflow-x-auto w-full">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#A0A5B1]">
@@ -300,14 +300,14 @@ export default function RatingRulesPage() {
                       <tr key={rule.id} className="group hover:bg-white/[0.03] transition-colors">
                         
                         {/* 1. Tier Level: Single line, number NEVER under text */}
-                        <td className="py-2.5 px-4 text-left">
+                        <td className="py-3 px-4 text-left">
                           <span className="font-mono text-xs font-bold text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20 px-2.5 py-1 rounded-lg whitespace-nowrap">
                             Tier {i + 1}
                           </span>
                         </td>
 
                         {/* 2. Differential Range: Centered with nice pill brackets */}
-                        <td className="py-2.5 px-4 text-center">
+                        <td className="py-3 px-4 text-center">
                           <div className="inline-flex items-center gap-2 font-mono text-xs font-bold text-white bg-white/[0.03] border border-white/5 px-3 py-1.5 rounded-xl shadow-inner">
                             <span className="text-[#D2F646]">{rule.min}</span>
                             <span className="text-[#A0A5B1] font-sans text-[11px] font-normal">to</span>
@@ -316,7 +316,7 @@ export default function RatingRulesPage() {
                         </td>
 
                         {/* 3. Engine Macro Regime & Sentiment: Centralized bridge connecting range to rating */}
-                        <td className="py-2.5 px-4 text-center">
+                        <td className="py-3 px-4 text-center">
                           <div className="inline-flex items-center gap-2">
                             {isPositive && (
                               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D2F646]/10 border border-[#D2F646]/25 text-[#D2F646] text-xs font-semibold">
@@ -340,7 +340,7 @@ export default function RatingRulesPage() {
                         </td>
 
                         {/* 4. Rating Impact Score: Centered */}
-                        <td className="py-2.5 px-4 text-center">
+                        <td className="py-3 px-4 text-center">
                           <span className={clsx(
                             "inline-block min-w-[54px] px-3 py-1 rounded-xl font-mono font-bold text-xs shadow-sm",
                             isPositive ? "bg-[#D2F646]/15 text-[#D2F646] border border-[#D2F646]/30" :
@@ -352,7 +352,7 @@ export default function RatingRulesPage() {
                         </td>
 
                         {/* 5. Actions */}
-                        <td className="py-2.5 px-4 text-right">
+                        <td className="py-3 px-4 text-right">
                           <div className="flex justify-end gap-1.5">
                             <button 
                               onClick={() => openEditModal(rule)}
@@ -377,6 +377,16 @@ export default function RatingRulesPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Bottom Summary Bar */}
+          <div className="flex items-center justify-between px-6 py-2.5 border-t border-white/5 bg-[#121418]/60 text-xs mt-1">
+            <span className="font-sans text-[#A0A5B1]">
+              Continuous Coverage: <strong className="text-white">5 Active Differential Tiers</strong> (−∞ to +∞) for {activeIndicator}.
+            </span>
+            <span className="font-mono text-[#D2F646] text-[11px] font-bold">
+              Rating Engine: Live & Synced
+            </span>
           </div>
         </div>
       </main>

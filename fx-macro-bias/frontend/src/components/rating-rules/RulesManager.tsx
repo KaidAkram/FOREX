@@ -1,11 +1,10 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { rulesApi } from "@/lib/api";
 import { useAdminStore } from "@/store/adminStore";
 import type { RulesResponse, RatingRule } from "@/types";
-import { animateTableRows } from "@/lib/animations/gsap.config";
 import { RuleFormModal } from "./RuleFormModal";
 import { Edit2, Trash2 } from "lucide-react";
 import { clsx } from "clsx";
@@ -43,17 +42,6 @@ export function RulesManager() {
       queryClient.invalidateQueries({ queryKey: ["rules", activeIndicator] });
     },
   });
-
-  const tbodyRef = useRef<HTMLTableSectionElement>(null);
-
-  useEffect(() => {
-    if (!isLoading && data?.rules && data.rules.length > 0 && tbodyRef.current) {
-      const rows = tbodyRef.current.querySelectorAll(".table-row");
-      if (rows.length > 0) {
-        animateTableRows(Array.from(rows));
-      }
-    }
-  }, [isLoading, data]);
 
   const handleEdit = (rule: RatingRule) => {
     setEditingRule(rule);
@@ -148,7 +136,7 @@ export function RulesManager() {
                 </tr>
               </tbody>
             ) : (
-              <tbody ref={tbodyRef}>
+              <tbody>
                 {data?.rules.map((rule) => (
                   <tr key={rule.id} className="table-row opacity-0">
                     <td className="py-4 pr-6 font-poppins text-sm text-text-primary">

@@ -4,8 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { dashboardApi } from "@/lib/api";
 import type { KpiResponse } from "@/types";
-import { animateCountUp } from "@/lib/animations/anime.config";
-import { animateSectionIn } from "@/lib/animations/gsap.config";
+
 
 interface KpiCardProps {
   title: string;
@@ -14,25 +13,16 @@ interface KpiCardProps {
 }
 
 function KpiCard({ title, value, isNumeric = true }: KpiCardProps) {
-  const numRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (isNumeric && typeof value === "number" && numRef.current) {
-      animateCountUp(numRef.current, 0, value, 1000);
-    }
-  }, [value, isNumeric]);
 
   return (
-    <div className="kpi-card min-h-[120px] gsap-kpi-card opacity-0 translate-y-4">
+    <div className="kpi-card min-h-[120px]">
       <h3 className="font-sfpro text-xs font-semibold text-text-muted uppercase tracking-widest">
         {title}
       </h3>
       <div className="mt-auto">
         {isNumeric ? (
-          <div
-            ref={numRef}
-            className="font-clash text-kpi-md text-text-primary"
-          >
+          <div className="font-clash text-kpi-md text-text-primary">
             {value ?? "—"}
           </div>
         ) : (
@@ -56,14 +46,7 @@ export function KpiGrid() {
 
   const gridRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isLoading && gridRef.current) {
-      const cards = gridRef.current.querySelectorAll(".gsap-kpi-card");
-      if (cards.length > 0) {
-        animateSectionIn(Array.from(cards));
-      }
-    }
-  }, [isLoading, data]);
+
 
   if (isLoading) {
     return (

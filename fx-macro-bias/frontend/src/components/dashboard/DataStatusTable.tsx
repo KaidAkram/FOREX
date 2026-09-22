@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { dashboardApi } from "@/lib/api";
 import type { DataStatusRow } from "@/types";
-import { animateTableRows } from "@/lib/animations/gsap.config";
+
 
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
@@ -30,16 +30,7 @@ export function DataStatusTable() {
     },
   });
 
-  const tbodyRef = useRef<HTMLTableSectionElement>(null);
 
-  useEffect(() => {
-    if (!isLoading && data && data.length > 0 && tbodyRef.current) {
-      const rows = tbodyRef.current.querySelectorAll(".table-row");
-      if (rows.length > 0) {
-        animateTableRows(Array.from(rows));
-      }
-    }
-  }, [isLoading, data]);
 
   if (isLoading) {
     return (
@@ -73,7 +64,7 @@ export function DataStatusTable() {
             <th className="th-label py-3 text-right">Status</th>
           </tr>
         </thead>
-        <tbody ref={tbodyRef}>
+        <tbody >
           {data.map((row, i) => (
             <tr key={i} className="table-row opacity-0">
               <td className="py-3 pr-4 font-poppins text-sm font-medium text-text-primary">

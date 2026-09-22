@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { macroDataApi } from "@/lib/api";
-import { animateModalIn, animateModalOut } from "@/lib/animations/gsap.config";
+
 import { X } from "lucide-react";
 
 interface CellEditModalProps {
@@ -64,12 +64,7 @@ export function CellEditModal({
   };
 
   const handleClose = () => {
-    const el = document.getElementById("cell-edit-modal");
-    if (el) {
-      animateModalOut(el, onClose);
-    } else {
-      onClose();
-    }
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -79,9 +74,6 @@ export function CellEditModal({
       <div
         id="cell-edit-modal"
         className="w-full max-w-md bg-surface border border-border-glass rounded-card shadow-2xl p-6 relative"
-        ref={(el) => {
-          if (el) animateModalIn(el);
-        }}
       >
         <button
           onClick={handleClose}

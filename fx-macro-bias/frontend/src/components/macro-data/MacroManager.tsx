@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { macroDataApi } from "@/lib/api";
 import { useAdminStore } from "@/store/adminStore";
 import type { MacroMatrixResponse } from "@/types";
-import { animateTableRows } from "@/lib/animations/gsap.config";
 import { CellEditModal } from "./CellEditModal";
 import { clsx } from "clsx";
 
@@ -43,16 +42,9 @@ export function MacroManager() {
     enabled: activeView === "matrix",
   });
 
-  const tbodyRef = useRef<HTMLTableSectionElement>(null);
 
-  useEffect(() => {
-    if (!isLoading && data?.rows && data.rows.length > 0 && tbodyRef.current) {
-      const rows = tbodyRef.current.querySelectorAll(".table-row");
-      if (rows.length > 0) {
-        animateTableRows(Array.from(rows));
-      }
-    }
-  }, [isLoading, data]);
+
+
 
   const handleCellClick = (
     countryIso: string,
@@ -168,7 +160,7 @@ export function MacroManager() {
                   </tr>
                 </tbody>
               ) : (
-                <tbody ref={tbodyRef}>
+                <tbody>
                   {data?.rows.map((row) => (
                     <tr key={row.iso} className="table-row border-b border-white/5 opacity-0">
                       <td className="py-3 pr-4 font-poppins text-sm text-text-primary sticky left-0 bg-surface/90 backdrop-blur z-10">
@@ -190,7 +182,7 @@ export function MacroManager() {
                               )}
                               title={cell ? `Source: ${cell.source} | Status: ${cell.status}` : "Missing Data"}
                             >
-                              {cell?.value !== null ? cell.value : "—"}
+                              {cell && cell.value !== null ? cell.value : "—"}
                             </button>
                           </td>
                         );

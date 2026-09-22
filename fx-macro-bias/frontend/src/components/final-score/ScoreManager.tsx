@@ -5,10 +5,9 @@ import { useEffect, useRef } from "react";
 import { finalScoreApi, macroDataApi } from "@/lib/api";
 import { useAdminStore } from "@/store/adminStore";
 import type { ScoreMatrixResponse } from "@/types";
-import { animateTableRows } from "@/lib/animations/gsap.config";
-import { DrilldownPanel } from "./DrilldownPanel";
 import { clsx } from "clsx";
 import { RefreshCw } from "lucide-react";
+import { DrilldownPanel } from "./DrilldownPanel";
 
 export function ScoreManager() {
   const queryClient = useQueryClient();
@@ -36,16 +35,9 @@ export function ScoreManager() {
     onError: () => setIsRecalculating(false),
   });
 
-  const tbodyRef = useRef<HTMLTableSectionElement>(null);
 
-  useEffect(() => {
-    if (!isLoading && data?.rows && data.rows.length > 0 && tbodyRef.current) {
-      const rows = tbodyRef.current.querySelectorAll(".table-row");
-      if (rows.length > 0) {
-        animateTableRows(Array.from(rows));
-      }
-    }
-  }, [isLoading, data]);
+
+
 
   const handleCellClick = (pair: string, month: string) => {
     openDrilldown(pair, month);
@@ -127,7 +119,7 @@ export function ScoreManager() {
                 </tr>
               </tbody>
             ) : (
-              <tbody ref={tbodyRef}>
+              <tbody>
                 {data?.rows.map((row) => (
                   <tr key={row.pair} className="table-row border-b border-white/5 opacity-0">
                     <td className="py-3 pr-4 font-sfpro text-sm font-semibold text-text-primary sticky left-0 bg-surface z-10">
@@ -137,7 +129,7 @@ export function ScoreManager() {
                       const cell = row.cells[month];
                       return (
                         <td key={month} className="py-3 px-2">
-                          {cell?.final_score !== null ? (
+                          {cell && cell.final_score !== null ? (
                             <button
                               onClick={() => handleCellClick(row.pair, month)}
                               className={clsx(

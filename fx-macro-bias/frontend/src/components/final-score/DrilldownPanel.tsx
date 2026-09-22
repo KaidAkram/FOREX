@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { finalScoreApi } from "@/lib/api";
 import { useAdminStore } from "@/store/adminStore";
 import type { DrilldownResponse } from "@/types";
-import { animateDrawerIn, animateDrawerOut } from "@/lib/animations/gsap.config";
+
 import { X, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -34,16 +34,8 @@ export function DrilldownPanel() {
   });
 
   const handleClose = () => {
-    const el = document.getElementById("drilldown-drawer");
-    if (el) {
-      animateDrawerOut(el, () => {
-        close();
-        setShouldRender(false);
-      });
-    } else {
-      close();
-      setShouldRender(false);
-    }
+    close();
+    setShouldRender(false);
   };
 
   if (!shouldRender) return null;
@@ -60,9 +52,6 @@ export function DrilldownPanel() {
       <div
         id="drilldown-drawer"
         className="fixed top-0 right-0 h-full w-full max-w-lg bg-surface border-l border-border-glass shadow-2xl z-50 flex flex-col translate-x-full"
-        ref={(el) => {
-          if (el && isOpen) animateDrawerIn(el);
-        }}
       >
         <div className="flex items-center justify-between p-6 border-b border-white/5">
           <div>

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: shiftfx-admin
+    env: node
+    buildCommand: cd fx-macro-bias/frontend && npm install && npm run build
+    startCommand: cd fx-macro-bias/frontend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production

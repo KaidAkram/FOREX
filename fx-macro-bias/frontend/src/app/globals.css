@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-space-grotesk: 'Space Grotesk', sans-serif;
+  --font-jetbrains-mono: 'JetBrains Mono', monospace;
+  --font-inter: 'Inter', sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: theme('colors.void');
+    background-image: radial-gradient(circle at 50% -10%, rgba(37,99,235,0.12) 0%, transparent 60%);
+    color: theme('colors.text-primary');
+    font-family: var(--font-inter);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+}
+
+@layer components {
+  /* Glass card base */
+  .glass-card {
+    @apply bg-surface border border-white/[0.07] rounded-card backdrop-blur-xl shadow-card;
+  }
+
+  /* Typography shortcuts */
+  .kpi-title {
+    @apply font-hero text-kpi-xl text-white tracking-tight;
+  }
+  .data-cell {
+    @apply font-mono text-data font-medium;
+  }
+  .table-header {
+    @apply font-sans text-th uppercase tracking-wider text-text-muted;
+  }
+
+  /* Badge variants */
+  .badge {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-pill text-xs font-semibold;
+  }
+  .badge-bullish {
+    @apply badge bg-mint/10 text-mint border border-mint/40 shadow-glow-mint;
+  }
+  .badge-bearish {
+    @apply badge bg-coral/10 text-coral border border-coral/40 shadow-glow-coral;
+  }
+  .badge-neutral {
+    @apply badge bg-cyan/10 text-cyan border border-cyan/40;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-panel text-sm font-semibold font-sans
+           bg-mint text-void transition-all duration-200
+           hover:brightness-110 hover:shadow-glow-mint active:scale-95;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-panel text-sm font-medium font-sans
+           text-text-muted border border-white/[0.07] transition-all duration-200
+           hover:text-text-primary hover:border-white/20 hover:bg-white/5 active:scale-95;
+  }
+}

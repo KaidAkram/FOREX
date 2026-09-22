@@ -47,7 +47,7 @@ export default function SignUpPage() {
       });
 
       if (res.success) {
-        router.push("/portal");
+        window.location.href = "/portal";
       } else {
         setErrorMessage(res.error || "Failed to create account.");
       }

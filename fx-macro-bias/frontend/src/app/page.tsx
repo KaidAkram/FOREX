@@ -11,14 +11,14 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading) {
       if (user?.role === "admin") {
-        router.replace("/admin/dashboard");
+        window.location.href = "/admin/dashboard";
       } else if (user?.role === "user") {
-        router.replace("/portal");
+        window.location.href = "/portal";
       } else {
-        router.replace("/login");
+        window.location.href = "/login";
       }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading]);
 
   return (
     <div className="min-h-screen bg-[#0B0D12] flex items-center justify-center">

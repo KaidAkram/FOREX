@@ -31,25 +31,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Load user session on mount
+  // Load user session on mount: do NOT default to admin automatically so unauthenticated visitors see Login
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         setUser(JSON.parse(stored));
       } else {
-        // Default to demo admin on fresh session if preferred, or leave unauthenticated for login
-        const defaultAdmin: User = {
-          username: "admin",
-          role: "admin",
-          name: "Quant Administrator",
-          email: "admin@shiftfx.io"
-        };
-        setUser(defaultAdmin);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultAdmin));
+        setUser(null);
       }
     } catch {
-      // Fallback
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -58,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     // Artificial latency for smooth UI micro-interaction
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 400));
 
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = password.trim();
@@ -130,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role?: "admin" | "user";
     strategy?: string;
   }): Promise<{ success: boolean; error?: string }> => {
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 400));
 
     if (!data.name || !data.email || !data.password) {
       return { success: false, error: "Please fill in all required fields." };
@@ -164,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {}
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   return (

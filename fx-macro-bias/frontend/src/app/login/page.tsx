@@ -52,9 +52,9 @@ export default function LoginPage() {
       const res = await login(username, password);
       if (res.success) {
         if (activeTab === "admin" || username.toLowerCase() === "admin") {
-          router.push("/admin/dashboard");
+          window.location.href = "/admin/dashboard";
         } else {
-          router.push("/portal");
+          window.location.href = "/portal";
         }
       } else {
         setErrorMessage(res.error || "Authentication failed.");

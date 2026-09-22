@@ -34,16 +34,33 @@ const PAIR_SIGNALS = [
 ];
 
 export default function TraderPortalPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const router = useRouter();
   const [filterBias, setFilterBias] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  React.useEffect(() => {
+    if (!isLoading && !user) {
+      window.location.href = "/login";
+    }
+  }, [user, isLoading]);
 
   const filteredPairs = PAIR_SIGNALS.filter((p) => {
     const matchesBias = filterBias === "ALL" || p.bias === filterBias;
     const matchesSearch = p.pair.toLowerCase().includes(searchQuery.toLowerCase()) || p.driver.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesBias && matchesSearch;
   });
+
+  if (isLoading || !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-[#0B0D12] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-[#D2F646] border-t-transparent animate-spin" />
+          <span className="font-mono text-xs text-[#A0A5B1] tracking-wider">Verifying Trader Session...</span>
+        </div>
+      </div>
+    );
+  }
 
   const containerVariants = {
     hidden: { opacity: 0 },

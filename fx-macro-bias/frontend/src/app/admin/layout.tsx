@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 
 export default function AdminLayout({
@@ -5,6 +9,40 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (!user) {
+        window.location.href = "/login";
+      } else if (user.role !== "admin") {
+        window.location.href = "/portal";
+      }
+    }
+  }, [user, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-[#0B0D12] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-[#D2F646] border-t-transparent animate-spin" />
+          <span className="font-mono text-xs text-[#A0A5B1] tracking-wider">Verifying Admin Session...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || user.role !== "admin") {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-[#0B0D12] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-[#D2F646] border-t-transparent animate-spin" />
+          <span className="font-mono text-xs text-[#A0A5B1] tracking-wider">Redirecting to Login...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-[#121418] text-white overflow-hidden font-sans antialiased relative z-0">
       
@@ -23,7 +61,6 @@ export default function AdminLayout({
 
       {/* 3. Bottom-Right Glowing Orb (Ocean Blue/Cyan for depth) */}
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#00E5FF]/5 blur-[140px] pointer-events-none z-[-1] animate-breathe" style={{ animationDelay: "1.5s" }} />
-
 
       {/* --- Main Content --- */}
       <AdminSidebar />

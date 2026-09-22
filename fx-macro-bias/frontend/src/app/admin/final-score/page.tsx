@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ChevronDown, Info } from "lucide-react";
 import { clsx } from "clsx";
 import { useQuery } from "@tanstack/react-query";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 
 const PAIRS = [
   { name: "EUR/USD", base: "eu", quote: "us" },
@@ -90,23 +91,26 @@ export default function FinalScorePage() {
             Final Score Matrix
           </h1>
         </div>
-        <div className="relative group flex items-center bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[16px] px-[16px] py-[10px] shadow-lg cursor-pointer">
-          <span className="font-sans font-bold text-[15px] text-white mr-[8px]">{selectedYear}</span>
-          <ChevronDown size={18} className="text-[#A0A5B1] transition-transform group-hover:rotate-180" />
-          
-          <div className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#121418] border border-white/5 rounded-[16px] overflow-hidden shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-            {YEARS.map(year => (
-              <button
-                key={year}
-                onClick={() => setSelectedYear(year)}
-                className={clsx(
-                  "w-full px-[16px] py-[12px] text-left font-sans font-bold text-[14px] transition-colors",
-                  selectedYear === year ? "bg-white/10 text-white" : "text-[#A0A5B1] hover:bg-white/5 hover:text-white"
-                )}
-              >
-                {year}
-              </button>
-            ))}
+        <div className="flex items-center gap-[16px]">
+          <GlobalSearch />
+          <div className="relative group flex items-center bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[16px] px-[16px] py-[10px] shadow-lg cursor-pointer">
+            <span className="font-sans font-bold text-[15px] text-white mr-[8px]">{selectedYear}</span>
+            <ChevronDown size={18} className="text-[#A0A5B1] transition-transform group-hover:rotate-180" />
+            
+            <div className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#121418] border border-white/5 rounded-[16px] overflow-hidden shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              {YEARS.map(year => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year)}
+                  className={clsx(
+                    "w-full px-[16px] py-[12px] text-left font-sans font-bold text-[14px] transition-colors",
+                    selectedYear === year ? "bg-white/10 text-white" : "text-[#A0A5B1] hover:bg-white/5 hover:text-white"
+                  )}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </header>

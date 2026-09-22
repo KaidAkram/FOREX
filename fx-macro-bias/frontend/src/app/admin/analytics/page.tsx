@@ -6,6 +6,7 @@ import { SparkAreaChart } from "@tremor/react";
 import { createChart, ColorType, CrosshairMode, LineSeries, AreaSeries } from "lightweight-charts";
 import { ChevronDown, Check } from "lucide-react";
 import { clsx } from "clsx";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 
 // --- Constants ---
 const INDICATORS = ["Interest Rates", "GDP Growth", "Inflation", "Unemployment", "Retail Sales"];
@@ -219,6 +220,7 @@ export default function AnalyticsPage() {
             Analytics Dashboard
           </h1>
         </div>
+        <GlobalSearch />
       </header>
 
       <main className="flex flex-col px-[48px] gap-[24px] pb-[64px] max-w-[1600px] w-full mx-auto">

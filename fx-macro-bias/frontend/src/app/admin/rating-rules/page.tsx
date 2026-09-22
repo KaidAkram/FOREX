@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, ArrowUpDown, Loader2, ShieldCheck } from "lucide-r
 import { clsx } from "clsx";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 
 const INDICATORS = ["GDP", "Current Account", "CPI", "Interest Rate", "FX Reserves", "Equity"];
 const matteCard = "bg-[#1E2028]/80 backdrop-blur-2xl border border-white/5 rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]";
@@ -85,9 +86,12 @@ export default function RatingRulesPage() {
             Rating Rules
           </h1>
         </div>
-        <div className="flex items-center gap-[12px] bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[16px] px-[20px] py-[12px] shadow-lg">
-           <ShieldCheck size={20} className="text-[#D2F646]" />
-           <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Engine: <span className="text-white font-bold">Live</span></span>
+        <div className="flex items-center gap-[16px]">
+          <GlobalSearch />
+          <div className="flex items-center gap-[12px] bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[16px] px-[20px] py-[12px] shadow-lg">
+             <ShieldCheck size={20} className="text-[#D2F646]" />
+             <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Engine: <span className="text-white font-bold">Live</span></span>
+          </div>
         </div>
       </header>
 

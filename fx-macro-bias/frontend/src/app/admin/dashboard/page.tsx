@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { Search, Clock, Database } from "lucide-react";
+import { Clock, Database } from "lucide-react";
 import { clsx } from "clsx";
 import { useQuery } from "@tanstack/react-query";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 
 const matteCard = "bg-[#1E2028]/80 backdrop-blur-2xl border border-white/5 rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]";
 
@@ -74,7 +75,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex items-center gap-[16px]">
-
+          <GlobalSearch onSearch={(q) => setSearchQuery(q)} />
           
           <div className="flex items-center gap-[12px] bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[16px] px-[24px] py-[14px] shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
             <Clock size={20} className="text-[#A0A5B1]" />

@@ -4,6 +4,7 @@ import { AlertCircle, ChevronDown, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { clsx } from "clsx";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 
 const TABS = ["Macro Data Matrix", "Differential & Rating"];
 const INDICATORS = ["GDP", "Current Account", "CPI", "Interest Rate", "FX Reserves", "Equity"];
@@ -117,19 +118,22 @@ export default function MacroDataPage() {
           </h1>
         </div>
         
-        <div className="flex items-center bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 p-[8px] rounded-[20px] shadow-lg">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={clsx(
-                "px-[20px] py-[10px] rounded-[14px] font-sans text-[15px] font-bold transition-all duration-300 relative",
-                activeTab === tab ? "bg-white/5 text-[#D2F646] shadow-sm" : "text-[#A0A5B1] hover:text-[#FFFFFF] hover:bg-white/5"
-              )}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex items-center gap-[16px]">
+          <GlobalSearch />
+          <div className="flex items-center bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 p-[8px] rounded-[20px] shadow-lg">
+            {TABS.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={clsx(
+                  "px-[20px] py-[10px] rounded-[14px] font-sans text-[15px] font-bold transition-all duration-300 relative",
+                  activeTab === tab ? "bg-white/5 text-[#D2F646] shadow-sm" : "text-[#A0A5B1] hover:text-[#FFFFFF] hover:bg-white/5"
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 

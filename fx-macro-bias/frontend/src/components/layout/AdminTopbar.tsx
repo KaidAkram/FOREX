@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { GlobalSearch } from "./GlobalSearch";
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin/dashboard":    { title: "Dashboard",    subtitle: "System overview & data status" },
@@ -30,6 +31,11 @@ export function AdminTopbar() {
         {page.subtitle && (
           <p className="text-xs font-poppins text-text-muted mt-0.5">{page.subtitle}</p>
         )}
+      </div>
+
+      {/* Center: Global Search Overlay Trigger */}
+      <div className="absolute left-1/2 -translate-x-1/2">
+        <GlobalSearch />
       </div>
 
       {/* Right: dev mode indicator + mock user */}

@@ -74,16 +74,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex items-center gap-[16px]">
-          <div className="flex items-center gap-[12px] bg-[#1E2028]/80 backdrop-blur-md border border-white/5 rounded-[16px] px-[24px] py-[16px] w-[320px] transition-all focus-within:ring-2 focus-within:ring-[#D2F646]/50">
-            <Search size={18} className="text-[#A0A5B1]" />
-            <input 
-              type="text" 
-              placeholder="Search indicators, countries, sources..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none outline-none text-[#FFFFFF] font-sans text-[15px] placeholder:text-[#A0A5B1] w-full"
-            />
-          </div>
+
           
           <div className="flex items-center gap-[12px] bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[16px] px-[24px] py-[14px] shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
             <Clock size={20} className="text-[#A0A5B1]" />

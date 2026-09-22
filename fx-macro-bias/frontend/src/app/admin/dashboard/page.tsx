@@ -38,6 +38,31 @@ export default function DashboardPage() {
     queryFn: fetchDashboardData
   });
 
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const filteredLatestPublished = React.useMemo(() => {
+    if (!dashboard?.latestPublished) return [];
+    if (!searchQuery) return dashboard.latestPublished;
+    const q = searchQuery.toLowerCase();
+    return dashboard.latestPublished.filter((row: any) => 
+      row.ind.toLowerCase().includes(q) || 
+      row.country.toLowerCase().includes(q) || 
+      row.src.toLowerCase().includes(q) ||
+      row.month.toLowerCase().includes(q)
+    );
+  }, [dashboard, searchQuery]);
+
+  const filteredDataStatus = React.useMemo(() => {
+    if (!dashboard?.dataStatus) return [];
+    if (!searchQuery) return dashboard.dataStatus;
+    const q = searchQuery.toLowerCase();
+    return dashboard.dataStatus.filter((row: any) => 
+      row.ind.toLowerCase().includes(q) || 
+      row.status.toLowerCase().includes(q) ||
+      row.last.toLowerCase().includes(q)
+    );
+  }, [dashboard, searchQuery]);
+
   return (
     <div className="flex flex-col w-full h-full bg-transparent relative">
       <header className="w-full flex items-center justify-between p-[40px_48px] pb-[32px] opacity-0 animate-fadeIn" style={{ animationDelay: "0.1s" }}>
@@ -53,7 +78,9 @@ export default function DashboardPage() {
             <Search size={18} className="text-[#A0A5B1]" />
             <input 
               type="text" 
-              placeholder="Search" 
+              placeholder="Search indicators, countries, sources..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-transparent border-none outline-none text-[#FFFFFF] font-sans text-[15px] placeholder:text-[#A0A5B1] w-full"
             />
           </div>
@@ -163,7 +190,7 @@ export default function DashboardPage() {
                       </tr>
                     ))
                   ) : (
-                    dashboard?.latestPublished.map((row: any, i: number) => (
+                    filteredLatestPublished.map((row: any, i: number) => (
                       <tr key={i} className="group border-b border-white/5 last:border-0 cursor-pointer hover:bg-white/5 transition-colors">
                         <td colSpan={6} className="p-0">
                           <div className="flex items-center w-full px-[20px] py-[20px] transition-colors duration-200">
@@ -195,7 +222,7 @@ export default function DashboardPage() {
                   <div key={i} className="flex flex-col gap-[12px] p-[20px] rounded-[24px] bg-[#242731]/50 border border-white/5"><div className="w-full h-[24px] bg-white/5 rounded-md animate-pulse" /><div className="w-[60%] h-[16px] bg-white/5 rounded-md animate-pulse" /></div>
                 ))
               ) : (
-                dashboard?.dataStatus.map((row: any, i: number) => (
+                filteredDataStatus.map((row: any, i: number) => (
                   <div key={i} className="flex flex-col gap-[12px] p-[20px] rounded-[24px] bg-[#242731]/50 border border-white/5 hover:bg-[#2A2D38]/80 transition-all duration-300 cursor-pointer">
                     <div className="flex items-center justify-between">
                       <span className="font-sans font-bold text-[16px] text-[#FFFFFF]">{row.ind}</span>

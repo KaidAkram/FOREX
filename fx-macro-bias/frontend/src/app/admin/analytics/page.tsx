@@ -226,14 +226,17 @@ export default function AnalyticsPage() {
       <main className="flex flex-col px-[48px] gap-[24px] pb-[64px] max-w-[1600px] w-full mx-auto">
         
         {/* KPI Sparkline Row (Tremor) */}
-        <div className="grid grid-cols-3 gap-[24px]">
-          <motion.div className="bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col justify-between h-[160px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-[24px]">
+          <motion.div 
+            whileHover={{ y: -3, transition: { duration: 0.2 } }}
+            className="bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col justify-between h-[170px]"
+          >
             <div className="flex justify-between items-start">
               <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Bullish Bias Confidence</span>
-              <span className="bg-[#6FF542]/10 text-[#6FF542] px-[8px] py-[4px] rounded-[8px] font-bold text-[12px]">+14.2%</span>
+              <span className="bg-[#6FF542]/10 text-[#6FF542] border border-[#6FF542]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px]">+14.2%</span>
             </div>
             <div className="flex items-end gap-[16px] h-[60px] w-full">
-              <span className="font-sans font-bold text-[32px] text-white leading-none">82.4%</span>
+              <span className="font-sans font-bold text-[36px] text-white leading-none font-mono">82.4%</span>
               <div className="h-full flex-1 w-full ml-auto">
                 <SparkAreaChart
                   data={tremorData1}
@@ -246,13 +249,16 @@ export default function AnalyticsPage() {
             </div>
           </motion.div>
 
-          <motion.div className="bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col justify-between h-[160px]">
+          <motion.div 
+            whileHover={{ y: -3, transition: { duration: 0.2 } }}
+            className="bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col justify-between h-[170px]"
+          >
             <div className="flex justify-between items-start">
               <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Bearish Divergence Rate</span>
-              <span className="bg-[#FF4444]/10 text-[#FF4444] px-[8px] py-[4px] rounded-[8px] font-bold text-[12px]">-5.1%</span>
+              <span className="bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px]">-5.1%</span>
             </div>
             <div className="flex items-end gap-[16px] h-[60px] w-full">
-              <span className="font-sans font-bold text-[32px] text-white leading-none">14.1%</span>
+              <span className="font-sans font-bold text-[36px] text-white leading-none font-mono">14.1%</span>
               <div className="h-full flex-1 w-full ml-auto">
                 <SparkAreaChart
                   data={tremorData2}
@@ -265,13 +271,16 @@ export default function AnalyticsPage() {
             </div>
           </motion.div>
 
-          <motion.div className="bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col justify-between h-[160px]">
+          <motion.div 
+            whileHover={{ y: -3, transition: { duration: 0.2 } }}
+            className="bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col justify-between h-[170px]"
+          >
             <div className="flex justify-between items-start">
               <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Macro Data Ingestion</span>
-              <span className="bg-[#D2F646]/10 text-[#D2F646] px-[8px] py-[4px] rounded-[8px] font-bold text-[12px]">Stable</span>
+              <span className="bg-[#D2F646]/10 text-[#D2F646] border border-[#D2F646]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px]">Stable</span>
             </div>
             <div className="flex items-end gap-[16px] h-[60px] w-full">
-              <span className="font-sans font-bold text-[32px] text-white leading-none">99.9%</span>
+              <span className="font-sans font-bold text-[36px] text-white leading-none font-mono">99.9%</span>
               <div className="h-full flex-1 w-full ml-auto opacity-70">
                 <SparkAreaChart
                   data={tremorData3}
@@ -286,7 +295,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* TradingView Heavy Chart Row 1 - MACRO METRIC */}
-        <div className="bg-[#151515] border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col h-[400px] relative overflow-hidden z-20">
+        <div className="bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] p-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col h-[420px] relative overflow-hidden z-20">
           <div className="flex justify-between items-start z-10 mb-[16px]">
             <div className="flex flex-col">
               <h3 className="font-sans font-bold text-[20px] text-white mb-[8px]">Historical Macro Metric</h3>
@@ -295,17 +304,24 @@ export default function AnalyticsPage() {
                 <CustomDropdown options={INDICATORS} value={activeIndicator} onChange={setActiveIndicator} label="Metric" />
               </div>
             </div>
-            <div className="flex gap-[8px]">
+            <div className="flex items-center bg-[#1D202B]/80 p-1.5 rounded-2xl border border-white/5">
               {["1W", "1M", "1Y"].map((range) => (
                 <button 
                   key={range}
                   onClick={() => setTimeRange(range)}
                   className={clsx(
-                    "px-[16px] py-[8px] rounded-[12px] text-[13px] font-bold transition-colors",
-                    timeRange === range ? "bg-white/10 text-[#D2F646]" : "bg-white/5 hover:bg-white/10 text-white"
+                    "relative px-[16px] py-[6px] rounded-xl text-[12px] font-bold font-mono transition-colors z-10",
+                    timeRange === range ? "text-[#121418]" : "text-[#A0A5B1] hover:text-white"
                   )}
                 >
                   {range}
+                  {timeRange === range && (
+                    <motion.div
+                      layoutId="activeRangePill"
+                      className="absolute inset-0 bg-[#D2F646] rounded-xl z-[-1] shadow-[0_0_12px_rgba(210,246,70,0.4)]"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
                 </button>
               ))}
             </div>
@@ -316,7 +332,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* TradingView Heavy Chart Row 2 - FINAL SCORE */}
-        <div className="bg-[#151515] border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col h-[400px] relative overflow-hidden z-10">
+        <div className="bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] p-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col h-[420px] relative overflow-hidden z-10">
           <div className="flex justify-between items-start z-10 mb-[16px]">
             <div className="flex flex-col">
               <h3 className="font-sans font-bold text-[20px] text-white mb-[8px]">Final Score Trajectory</h3>

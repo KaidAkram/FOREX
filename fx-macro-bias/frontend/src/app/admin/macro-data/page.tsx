@@ -4,6 +4,7 @@ import { AlertCircle, ChevronDown, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { clsx } from "clsx";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 
 const TABS = ["Macro Data Matrix", "Differential & Rating"];
@@ -20,8 +21,8 @@ const PAIRS = [
 ];
 const YEARS = Array.from({ length: new Date().getFullYear() - 2020 + 1 }).map((_, i) => new Date().getFullYear() - i);
 
-// Translucent Glass Cards
-const matteCard = "bg-[#1E2028]/80 backdrop-blur-2xl border border-white/5 rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]";
+// Translucent Glass Cards with Specular Highlight
+const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
 
 // API Fetchers
 const fetchMatrixData = async (indicator: string, year: number) => {
@@ -120,17 +121,24 @@ export default function MacroDataPage() {
         
         <div className="flex items-center gap-[16px]">
           <GlobalSearch />
-          <div className="flex items-center bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 p-[8px] rounded-[20px] shadow-lg">
+          <div className="flex items-center bg-[#1D202B]/85 p-1.5 rounded-2xl border border-white/5 shadow-lg">
             {TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={clsx(
-                  "px-[20px] py-[10px] rounded-[14px] font-sans text-[15px] font-bold transition-all duration-300 relative",
-                  activeTab === tab ? "bg-white/5 text-[#D2F646] shadow-sm" : "text-[#A0A5B1] hover:text-[#FFFFFF] hover:bg-white/5"
+                  "relative px-[20px] py-[10px] rounded-xl font-sans text-[14px] font-bold transition-all duration-200 z-10",
+                  activeTab === tab ? "text-[#121418]" : "text-[#A0A5B1] hover:text-white"
                 )}
               >
                 {tab}
+                {activeTab === tab && (
+                  <motion.div
+                    layoutId="activeMacroDataTab"
+                    className="absolute inset-0 bg-[#D2F646] rounded-xl z-[-1] shadow-[0_0_16px_rgba(210,246,70,0.35)]"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
               </button>
             ))}
           </div>

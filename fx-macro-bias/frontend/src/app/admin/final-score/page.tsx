@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ChevronDown, Info } from "lucide-react";
 import { clsx } from "clsx";
 import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 
 const PAIRS = [
@@ -18,7 +19,8 @@ const PAIRS = [
 
 const YEARS = Array.from({ length: new Date().getFullYear() - 2020 + 1 }).map((_, i) => new Date().getFullYear() - i);
 
-const matteCard = "bg-[#1E2028]/80 backdrop-blur-2xl border border-white/5 rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]";
+// Translucent Glass Cards with Specular Highlight
+const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
 
 const fetchFinalScores = async (year: number) => {
   await new Promise(r => setTimeout(r, 800));
@@ -224,15 +226,23 @@ export default function FinalScorePage() {
           )}
         </div>
 
-        {selectedCell && (
-          <>
-            <div 
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 animate-fadeIn" 
-              onClick={() => setSelectedCell(null)}
-            />
-            <div 
-              className="fixed top-0 right-0 h-full w-[460px] bg-[#1E2028]/95 backdrop-blur-3xl border-l border-white/10 shadow-[-30px_0_60px_rgba(0,0,0,0.8)] p-[40px] z-50 overflow-y-auto flex flex-col gap-[32px] transition-transform duration-500 animate-in slide-in-from-right" 
-            >
+        <AnimatePresence>
+          {selectedCell && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-md z-40" 
+                onClick={() => setSelectedCell(null)}
+              />
+              <motion.div 
+                initial={{ opacity: 0, x: 300 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 300 }}
+                transition={{ type: "spring", stiffness: 350, damping: 32 }}
+                className="fixed top-0 right-0 h-full w-[480px] bg-[#161822]/95 backdrop-blur-3xl border-l border-white/10 shadow-[-30px_0_70px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.08)] p-[40px] z-50 overflow-y-auto flex flex-col gap-[32px]" 
+              >
               <div className="flex items-center justify-between">
                 <div className="flex flex-col gap-[8px]">
                   <h3 className="font-sans font-bold text-[28px] text-[#FFFFFF] tracking-tight">Score Details</h3>
@@ -315,9 +325,10 @@ export default function FinalScorePage() {
                 Score is complete. All 6 required indicators are active and published. Computed on Oct 24, 2025 at 14:02 UTC.
               </p>
             </div>
-          </div>
+            </motion.div>
           </>
         )}
+      </AnimatePresence>
       </main>
     </div>
   );

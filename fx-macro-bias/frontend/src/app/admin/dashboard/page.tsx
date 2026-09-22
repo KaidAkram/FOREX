@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
+import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
 const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] shadow-[0_12px_36px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.08)] transition-all";
 
@@ -115,6 +116,8 @@ export default function DashboardPage() {
               <span className="font-mono font-bold text-[14px] text-white leading-none">Oct 24, 14:02 UTC</span>
             </div>
           </div>
+
+          <AuthHeaderWidget />
         </div>
       </motion.header>
 

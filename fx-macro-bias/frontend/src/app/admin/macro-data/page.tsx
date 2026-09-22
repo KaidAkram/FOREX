@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
+import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
 const TABS = ["Macro Data Matrix", "Differential & Rating"];
 const INDICATORS = ["GDP", "Current Account", "CPI", "Interest Rate", "FX Reserves", "Equity"];
@@ -142,6 +143,7 @@ export default function MacroDataPage() {
               </button>
             ))}
           </div>
+          <AuthHeaderWidget />
         </div>
       </header>
 

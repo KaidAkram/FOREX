@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
+import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
 const PAIRS = [
   { name: "EUR/USD", base: "eu", quote: "us" },
@@ -114,6 +115,7 @@ export default function FinalScorePage() {
               ))}
             </div>
           </div>
+          <AuthHeaderWidget />
         </div>
       </header>
 

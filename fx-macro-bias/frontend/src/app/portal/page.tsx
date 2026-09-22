@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
+import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 import { clsx } from "clsx";
 
 const PAIR_SIGNALS = [
@@ -108,44 +109,7 @@ export default function TraderPortalPage() {
         <div className="flex items-center gap-4">
           <GlobalSearch placeholder="Search pairs, macro indicators..." />
 
-          {/* User Profile & Actions */}
-          <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#D2F646]/10 border border-[#D2F646]/20 flex items-center justify-center text-[#D2F646] font-sans font-bold text-sm">
-                {user?.name ? user.name.charAt(0).toUpperCase() : "T"}
-              </div>
-              <div className="hidden sm:flex flex-col">
-                <span className="text-xs font-bold text-white leading-none">{user?.name || "Trader Client"}</span>
-                <span className="text-[10px] font-mono text-[#D2F646] mt-0.5 uppercase tracking-wider">{user?.role === "admin" ? "Admin Privileges" : "Trader Account"}</span>
-              </div>
-            </div>
-
-            {user?.role === "admin" ? (
-              <Link 
-                href="/admin/dashboard" 
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D2F646] text-[#121418] text-xs font-bold hover:brightness-110 transition-all"
-              >
-                <ShieldCheck size={14} />
-                <span>Admin Suite</span>
-              </Link>
-            ) : (
-              <Link 
-                href="/login" 
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-[#A0A5B1] hover:text-white transition-all"
-              >
-                <Lock size={12} />
-                <span>Admin Switch</span>
-              </Link>
-            )}
-
-            <button
-              onClick={logout}
-              className="p-2 rounded-xl text-[#A0A5B1] hover:text-[#FF5B5B] hover:bg-[#FF5B5B]/10 transition-colors"
-              title="Log Out"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
+          <AuthHeaderWidget />
         </div>
       </header>
 

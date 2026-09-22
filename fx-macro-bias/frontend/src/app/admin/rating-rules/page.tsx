@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
+import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
 const INDICATORS = ["GDP", "Current Account", "CPI", "Interest Rate", "FX Reserves", "Equity"];
 const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
@@ -124,6 +125,7 @@ export default function RatingRulesPage() {
              <ShieldCheck size={20} className="text-[#D2F646]" />
              <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Engine: <span className="text-white font-bold">Live</span></span>
           </div>
+          <AuthHeaderWidget />
         </div>
       </header>
 

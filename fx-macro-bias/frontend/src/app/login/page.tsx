@@ -51,7 +51,7 @@ export default function LoginPage() {
     try {
       const res = await login(username, password);
       if (res.success) {
-        if (activeTab === "admin" || username.toLowerCase() === "admin") {
+        if (res.user?.role === "admin" || activeTab === "admin" || username.toLowerCase() === "admin") {
           window.location.href = "/admin/dashboard";
         } else {
           window.location.href = "/portal";

@@ -11,7 +11,9 @@ import {
   LineChart, 
   LogOut,
   ShieldCheck,
-  User as UserIcon
+  User as UserIcon,
+  LogIn,
+  UserPlus
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -122,15 +124,36 @@ export function AdminSidebar() {
           </span>
         </div>
 
+        {/* Quick Account Actions */}
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            href="/login"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 text-[11px] font-semibold text-[#A0A5B1] hover:text-white transition-all text-center"
+            title="Switch Account or Login"
+          >
+            <LogIn size={13} className="text-[#D2F646]" />
+            <span>Switch</span>
+          </Link>
+
+          <Link
+            href="/signup"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-white/[0.03] hover:bg-[#D2F646]/10 border border-white/5 hover:border-[#D2F646]/30 text-[11px] font-semibold text-[#A0A5B1] hover:text-[#D2F646] transition-all text-center"
+            title="Register New Account"
+          >
+            <UserPlus size={13} />
+            <span>Sign Up</span>
+          </Link>
+        </div>
+
         {/* Log Out */}
         <motion.button 
           whileHover={{ x: 2 }}
           whileTap={{ scale: 0.98 }}
           onClick={logout}
-          className="flex items-center gap-[14px] w-full px-[20px] py-[11px] rounded-[14px] text-[#A0A5B1] hover:text-[#FF5B5B] transition-all duration-300 group hover:bg-[#FF5B5B]/10 cursor-pointer"
+          className="flex items-center gap-[14px] w-full px-[16px] py-[10px] rounded-[14px] text-[#A0A5B1] hover:text-[#FF5B5B] transition-all duration-300 group hover:bg-[#FF5B5B]/10 cursor-pointer"
         >
-          <LogOut size={18} className="transition-transform group-hover:-translate-x-1" />
-          <span className="font-sans font-medium text-[14px] tracking-wide">Log Out</span>
+          <LogOut size={16} className="transition-transform group-hover:-translate-x-1" />
+          <span className="font-sans font-medium text-[13px] tracking-wide">Log Out</span>
         </motion.button>
       </div>
 

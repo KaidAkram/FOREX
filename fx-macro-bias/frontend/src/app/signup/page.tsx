@@ -16,9 +16,11 @@ import {
   Sparkles,
   TrendingUp,
   AlertCircle,
-  Briefcase
+  Briefcase,
+  ShieldCheck
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { clsx } from "clsx";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"user" | "admin">("user");
   const [strategy, setStrategy] = useState("Macro Differentials");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,12 +45,16 @@ export default function SignUpPage() {
         name,
         email,
         password,
-        role: "user",
+        role,
         strategy
       });
 
       if (res.success) {
-        window.location.href = "/portal";
+        if (role === "admin") {
+          window.location.href = "/admin/dashboard";
+        } else {
+          window.location.href = "/portal";
+        }
       } else {
         setErrorMessage(res.error || "Failed to create account.");
       }
@@ -129,6 +136,39 @@ export default function SignUpPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {/* Account Role Selector */}
+          <div className="flex flex-col gap-1.5">
+            <label className="font-sans text-xs font-semibold text-[#A0A5B1] ml-1">Account Type & Access Level</label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[#1A1C25]/90 border border-white/10 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setRole("user")}
+                className={clsx(
+                  "flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                  role === "user"
+                    ? "bg-[#D2F646] text-[#121418] shadow-md shadow-[#D2F646]/20"
+                    : "text-[#A0A5B1] hover:text-white"
+                )}
+              >
+                <TrendingUp size={14} />
+                <span>Trader Client</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("admin")}
+                className={clsx(
+                  "flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                  role === "admin"
+                    ? "bg-[#D2F646] text-[#121418] shadow-md shadow-[#D2F646]/20"
+                    : "text-[#A0A5B1] hover:text-white"
+                )}
+              >
+                <ShieldCheck size={14} />
+                <span>Admin Suite</span>
+              </button>
+            </div>
+          </div>
+
           {/* Full Name */}
           <div className="flex flex-col gap-1.5">
             <label className="font-sans text-xs font-semibold text-[#A0A5B1] ml-1">Full Name</label>
@@ -177,7 +217,7 @@ export default function SignUpPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-[#A0A5B1] hover:text-white transition-colors"
+                className="text-[#A0A5B1] hover:text-white transition-colors cursor-pointer"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -215,7 +255,7 @@ export default function SignUpPage() {
             ) : (
               <>
                 <UserPlus size={18} />
-                <span>Create Account & Launch Terminal</span>
+                <span>{role === "admin" ? "Create Admin Account & Launch Suite" : "Create Account & Launch Terminal"}</span>
               </>
             )}
           </motion.button>

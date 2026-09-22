@@ -16,8 +16,8 @@ interface AuthContextType {
   role: "admin" | "user" | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (data: { name: string; email: string; password: string; role?: "admin" | "user"; strategy?: string }) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, password: string) => Promise<{ success: boolean; user?: User; error?: string }>;
+  signup: (data: { name: string; email: string; password: string; role?: "admin" | "user"; strategy?: string }) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
 }
 
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (username: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
     // Artificial latency for smooth UI micro-interaction
     await new Promise((r) => setTimeout(r, 400));
 
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       setUser(adminUser);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(adminUser));
-      return { success: true };
+      return { success: true, user: adminUser };
     }
 
     // 2. Demo Trader verification (trader / 123 or user / 123)
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       setUser(traderUser);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(traderUser));
-      return { success: true };
+      return { success: true, user: traderUser };
     }
 
     // 3. Check registered users in storage
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
           setUser(authenticatedUser);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(authenticatedUser));
-          return { success: true };
+          return { success: true, user: authenticatedUser };
         }
       }
     } catch {
@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string;
     role?: "admin" | "user";
     strategy?: string;
-  }): Promise<{ success: boolean; error?: string }> => {
+  }): Promise<{ success: boolean; user?: User; error?: string }> => {
     await new Promise((r) => setTimeout(r, 400));
 
     if (!data.name || !data.email || !data.password) {
@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setUser(newUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
-    return { success: true };
+    return { success: true, user: newUser };
   };
 
   const logout = () => {

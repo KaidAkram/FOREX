@@ -3,7 +3,7 @@ services:
     name: shiftfx-admin
     env: node
     plan: free
-    buildCommand: cd fx-macro-bias/frontend && npm install && npm run build
+    buildCommand: cd fx-macro-bias/frontend && npm install --include=dev && npm run build
     startCommand: cd fx-macro-bias/frontend && npm start
     envVars:
       - key: NODE_ENV

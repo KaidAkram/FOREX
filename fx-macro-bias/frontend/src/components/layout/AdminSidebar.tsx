@@ -13,16 +13,18 @@ import {
   ShieldCheck,
   User as UserIcon,
   LogIn,
-  UserPlus
+  UserPlus,
+  SlidersHorizontal
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/analytics", label: "Analytics", icon: LineChart },
-  { href: "/admin/rating-rules", label: "Rating Rules", icon: Settings2 },
+  { href: "/admin/rating-rules", label: "Rating Rules", icon: SlidersHorizontal },
   { href: "/admin/macro-data", label: "Macro Data", icon: Database },
   { href: "/admin/final-score", label: "Final Score", icon: LineChart },
+  { href: "/admin/settings", label: "Settings", icon: Settings2 },
 ];
 
 export function AdminSidebar() {

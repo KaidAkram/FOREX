@@ -77,6 +77,15 @@ const SUGGESTIONS: SuggestionItem[] = [
     icon: Settings2,
     badge: "Engine"
   },
+  {
+    id: "nav-settings",
+    category: "Pages",
+    title: "Engine & Scraper Settings",
+    description: "Cron jobs, date ranges, language (EN/FR), scraper sources & model architecture guide",
+    href: "/admin/settings",
+    icon: Settings2,
+    badge: "Config"
+  },
 
   // Indicators
   {

@@ -180,6 +180,7 @@ export default function AnalyticsPage() {
   const [activePairMacro, setActivePairMacro] = useState("EUR/USD");
   const [activeIndicator, setActiveIndicator] = useState("GDP Growth");
   const [activePairScore, setActivePairScore] = useState("EUR/USD");
+  const [timeRange, setTimeRange] = useState("1Y");
 
   // Dynamic state for charts that updates when dropdowns change
   const [macroData, setMacroData] = useState<any[]>([]);
@@ -188,8 +189,9 @@ export default function AnalyticsPage() {
   useEffect(() => {
     // Generate new mock data when indicator changes to simulate fetching
     const seed = Math.random() > 0.5 ? 1 : -1;
-    setMacroData(generateTimeSeriesData(730, 2024, 1.5, 120, seed));
-  }, [activeIndicator, activePairMacro]);
+    const points = timeRange === "1W" ? 7 : timeRange === "1M" ? 30 : 365;
+    setMacroData(generateTimeSeriesData(points, 2024, 1.5, 120, seed));
+  }, [activeIndicator, activePairMacro, timeRange]);
 
   useEffect(() => {
     // Generate new mock score data when pair changes
@@ -223,7 +225,7 @@ export default function AnalyticsPage() {
         
         {/* KPI Sparkline Row (Tremor) */}
         <div className="grid grid-cols-3 gap-[24px]">
-          <motion.div whileHover={{ y: -5 }} transition={springConfig} className="bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col justify-between h-[160px]">
+          <motion.div className="bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col justify-between h-[160px]">
             <div className="flex justify-between items-start">
               <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Bullish Bias Confidence</span>
               <span className="bg-[#6FF542]/10 text-[#6FF542] px-[8px] py-[4px] rounded-[8px] font-bold text-[12px]">+14.2%</span>
@@ -242,7 +244,7 @@ export default function AnalyticsPage() {
             </div>
           </motion.div>
 
-          <motion.div whileHover={{ y: -5 }} transition={springConfig} className="bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col justify-between h-[160px]">
+          <motion.div className="bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col justify-between h-[160px]">
             <div className="flex justify-between items-start">
               <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Bearish Divergence Rate</span>
               <span className="bg-[#FF4444]/10 text-[#FF4444] px-[8px] py-[4px] rounded-[8px] font-bold text-[12px]">-5.1%</span>
@@ -261,7 +263,7 @@ export default function AnalyticsPage() {
             </div>
           </motion.div>
 
-          <motion.div whileHover={{ y: -5 }} transition={springConfig} className="bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col justify-between h-[160px]">
+          <motion.div className="bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[24px] p-[24px] shadow-lg flex flex-col justify-between h-[160px]">
             <div className="flex justify-between items-start">
               <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Macro Data Ingestion</span>
               <span className="bg-[#D2F646]/10 text-[#D2F646] px-[8px] py-[4px] rounded-[8px] font-bold text-[12px]">Stable</span>
@@ -292,9 +294,18 @@ export default function AnalyticsPage() {
               </div>
             </div>
             <div className="flex gap-[8px]">
-              <button className="bg-white/5 hover:bg-white/10 px-[16px] py-[8px] rounded-[12px] text-[13px] font-bold text-white transition-colors">1W</button>
-              <button className="bg-white/5 hover:bg-white/10 px-[16px] py-[8px] rounded-[12px] text-[13px] font-bold text-white transition-colors">1M</button>
-              <button className="bg-white/10 text-[#D2F646] px-[16px] py-[8px] rounded-[12px] text-[13px] font-bold transition-colors">1Y</button>
+              {["1W", "1M", "1Y"].map((range) => (
+                <button 
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={clsx(
+                    "px-[16px] py-[8px] rounded-[12px] text-[13px] font-bold transition-colors",
+                    timeRange === range ? "bg-white/10 text-[#D2F646]" : "bg-white/5 hover:bg-white/10 text-white"
+                  )}
+                >
+                  {range}
+                </button>
+              ))}
             </div>
           </div>
           <div className="flex-1 w-full relative mt-[8px]">

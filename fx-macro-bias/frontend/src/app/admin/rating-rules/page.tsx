@@ -1,7 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Edit2, Trash2, ArrowUpDown, Loader2, ShieldCheck, X, Check, SlidersHorizontal } from "lucide-react";
+import { 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  ShieldCheck, 
+  X, 
+  Check, 
+  SlidersHorizontal,
+  AlertCircle,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Sparkles,
+  Infinity as InfinityIcon
+} from "lucide-react";
 import { clsx } from "clsx";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,17 +23,40 @@ import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
 const INDICATORS = ["GDP", "Current Account", "CPI", "Interest Rate", "FX Reserves", "Equity"];
-const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
+const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[24px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
+
+// Helper to parse numeric or infinity bound
+const parseBound = (val: string): { isValid: boolean; num: number; display: string } => {
+  const clean = val.trim();
+  if (clean === "-∞" || clean.toLowerCase() === "-inf" || clean.toLowerCase() === "-infinity") {
+    return { isValid: true, num: -Infinity, display: "-∞" };
+  }
+  if (
+    clean === "+∞" || 
+    clean === "∞" || 
+    clean.toLowerCase() === "+inf" || 
+    clean.toLowerCase() === "inf" || 
+    clean.toLowerCase() === "+infinity" || 
+    clean.toLowerCase() === "infinity"
+  ) {
+    return { isValid: true, num: Infinity, display: "+∞" };
+  }
+  const n = parseFloat(clean);
+  if (isNaN(n)) {
+    return { isValid: false, num: 0, display: clean };
+  }
+  return { isValid: true, num: n, display: clean };
+};
 
 // API Fetcher
 const fetchRules = async (indicator: string) => {
-  await new Promise(r => setTimeout(r, 600));
+  await new Promise(r => setTimeout(r, 400));
   return [
-    { id: 1, min: "-∞", max: "-2.0", rating: -10 },
-    { id: 2, min: "-2.0", max: "-1.0", rating: -5 },
-    { id: 3, min: "-1.0", max: "1.0", rating: 0 },
-    { id: 4, min: "1.0", max: "2.0", rating: 5 },
-    { id: 5, min: "2.0", max: "+∞", rating: 10 },
+    { id: 1, min: "-∞", max: "-2.0", rating: -10, regime: "Strong Bearish Bias" },
+    { id: 2, min: "-2.0", max: "-1.0", rating: -5, regime: "Moderate Bearish Bias" },
+    { id: 3, min: "-1.0", max: "1.0", rating: 0, regime: "Neutral / Balanced Regime" },
+    { id: 4, min: "1.0", max: "2.0", rating: 5, regime: "Moderate Bullish Bias" },
+    { id: 5, min: "2.0", max: "+∞", rating: 10, regime: "Strong Bullish Advantage" },
   ];
 };
 
@@ -92,54 +129,103 @@ export default function RatingRulesPage() {
     setModalMode("edit");
   };
 
+  // Validation calculations
+  const parsedMin = parseBound(formMin);
+  const parsedMax = parseBound(formMax);
+
+  let validationError = "";
+  if (!formMin.trim()) {
+    validationError = "Minimum boundary value is required.";
+  } else if (!parsedMin.isValid) {
+    validationError = "Min value must be a valid number or -∞.";
+  } else if (!formMax.trim()) {
+    validationError = "Maximum boundary value is required.";
+  } else if (!parsedMax.isValid) {
+    validationError = "Max value must be a valid number or +∞.";
+  } else if (parsedMin.num >= parsedMax.num) {
+    validationError = "Min boundary must be strictly lower than Max boundary (e.g. -2.0 to 1.0).";
+  }
+
+  const isFormValid = validationError === "";
+
+  const handleMinChange = (raw: string) => {
+    const trimmed = raw.trim();
+    if (trimmed.toLowerCase() === "-inf" || trimmed.toLowerCase() === "-infinity") {
+      setFormMin("-∞");
+    } else {
+      setFormMin(raw);
+    }
+  };
+
+  const handleMaxChange = (raw: string) => {
+    const trimmed = raw.trim();
+    if (trimmed.toLowerCase() === "+inf" || trimmed.toLowerCase() === "inf" || trimmed.toLowerCase() === "+infinity" || trimmed.toLowerCase() === "infinity") {
+      setFormMax("+∞");
+    } else {
+      setFormMax(raw);
+    }
+  };
+
   const handleSaveModal = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFormValid) return;
+
+    const computedRegime = 
+      formRating >= 8 ? "Strong Bullish Advantage" :
+      formRating > 0 ? "Moderate Bullish Bias" :
+      formRating === 0 ? "Neutral / Balanced Regime" :
+      formRating > -8 ? "Moderate Bearish Bias" : "Strong Bearish Bias";
+
     if (modalMode === "add") {
       addRuleMutation.mutate({
-        min: formMin,
-        max: formMax,
-        rating: Number(formRating)
+        min: parsedMin.display,
+        max: parsedMax.display,
+        rating: Number(formRating),
+        regime: computedRegime
       });
     } else if (modalMode === "edit" && selectedRule) {
       editRuleMutation.mutate({
         ...selectedRule,
-        min: formMin,
-        max: formMax,
-        rating: Number(formRating)
+        min: parsedMin.display,
+        max: parsedMax.display,
+        rating: Number(formRating),
+        regime: computedRegime
       });
     }
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-transparent relative overflow-y-auto no-scrollbar">
-      <header className="w-full flex items-center justify-between p-[40px_48px] pb-[32px] opacity-0 animate-fadeIn" style={{ animationDelay: "0.1s" }}>
-        <div className="flex flex-col gap-[8px]">
-          <span className="font-sans font-medium text-[16px] text-[#A0A5B1]">Engine Logic Configuration</span>
-          <h1 className="font-sans font-bold text-[40px] text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
+    <div className="flex flex-col w-full h-full bg-transparent relative overflow-hidden justify-between">
+      {/* Header - Compact Spacing */}
+      <header className="w-full flex items-center justify-between px-8 py-5 pb-3 opacity-0 animate-fadeIn">
+        <div className="flex flex-col gap-1">
+          <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine Logic Configuration</span>
+          <h1 className="font-sans font-bold text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
             Rating Rules
           </h1>
         </div>
-        <div className="flex items-center gap-[16px]">
-          <GlobalSearch />
-          <div className="flex items-center gap-[12px] bg-[#161822]/85 backdrop-blur-xl border border-white/5 rounded-[16px] px-[20px] py-[12px] shadow-lg">
-             <ShieldCheck size={20} className="text-[#D2F646]" />
-             <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Engine: <span className="text-white font-bold">Live</span></span>
+        <div className="flex items-center gap-3">
+          <GlobalSearch placeholder="Search rating rules, thresholds..." />
+          <div className="flex items-center gap-2 bg-[#161822]/85 backdrop-blur-xl border border-white/5 rounded-2xl px-3.5 py-2 shadow-lg">
+             <ShieldCheck size={16} className="text-[#D2F646]" />
+             <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine: <span className="text-white font-bold">Live</span></span>
           </div>
           <AuthHeaderWidget />
         </div>
       </header>
 
-      <main className="flex flex-col px-[48px] gap-[32px] pb-[64px] max-w-[1300px]">
+      {/* Main Container - Compact to avoid any vertical scrolling */}
+      <main className="flex-1 flex flex-col px-8 gap-3 pb-5 max-w-[1450px] w-full mx-auto overflow-hidden">
         
-        {/* Controls */}
-        <div className="flex items-center justify-between opacity-0 animate-slideUp" style={{ animationDelay: "0.2s" }}>
-          <div className="flex items-center bg-[#1D202B]/85 p-1.5 rounded-2xl border border-white/5 shadow-lg">
+        {/* Controls Toolbar */}
+        <div className="flex items-center justify-between opacity-0 animate-slideUp">
+          <div className="flex items-center bg-[#1D202B]/85 p-1 rounded-2xl border border-white/5 shadow-lg">
             {INDICATORS.map((ind) => (
               <button
                 key={ind}
                 onClick={() => setActiveIndicator(ind)}
                 className={clsx(
-                  "relative px-[20px] py-[10px] rounded-xl font-sans text-[14px] font-bold transition-all duration-200 z-10",
+                  "relative px-4 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 z-10 cursor-pointer",
                   activeIndicator === ind
                     ? "text-[#121418]"
                     : "text-[#A0A5B1] hover:text-white"
@@ -149,7 +235,7 @@ export default function RatingRulesPage() {
                 {activeIndicator === ind && (
                   <motion.div
                     layoutId="activeRatingIndicator"
-                    className="absolute inset-0 bg-[#D2F646] rounded-xl z-[-1] shadow-[0_0_16px_rgba(210,246,70,0.35)]"
+                    className="absolute inset-0 bg-[#D2F646] rounded-xl z-[-1] shadow-[0_0_14px_rgba(210,246,70,0.35)]"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -161,95 +247,133 @@ export default function RatingRulesPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={openAddModal}
-            className="flex items-center gap-[8px] px-[28px] py-[13px] rounded-xl bg-[#D2F646] text-[#121418] font-sans font-bold text-[14px] transition-all hover:shadow-[0_0_20px_rgba(210,246,70,0.4)] cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#D2F646] text-[#121418] font-sans font-bold text-xs transition-all hover:shadow-[0_0_16px_rgba(210,246,70,0.35)] cursor-pointer"
           >
-            <Plus size={18} strokeWidth={2.5} />
+            <Plus size={16} strokeWidth={2.5} />
             <span>Add New Rule</span>
           </motion.button>
         </div>
 
-        {/* Rules Table */}
-        <div className={clsx("p-[32px] flex flex-col gap-[24px] opacity-0 animate-slideUp", matteCard)} style={{ animationDelay: "0.3s" }}>
-          <div className="flex items-center justify-between">
+        {/* Rules Table Card */}
+        <div className={clsx("p-5 flex flex-col gap-3 flex-1 overflow-hidden opacity-0 animate-slideUp", matteCard)} style={{ animationDelay: "0.15s" }}>
+          <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
             <div>
-              <h2 className="font-sans font-bold text-[20px] text-[#FFFFFF] tracking-tight">
-                {activeIndicator} Differential Rules
+              <h2 className="font-sans font-bold text-base text-[#FFFFFF] tracking-tight">
+                {activeIndicator} Differential Transformation Table
               </h2>
-              <p className="text-xs text-[#A0A5B1] mt-0.5">Threshold boundaries applied to (Base Country - Quote Country) differentials</p>
+              <p className="text-[11px] text-[#A0A5B1] mt-0.5">Threshold boundaries applied to pairwise economic differentials (Base − Quote)</p>
             </div>
-            <span className="font-sans font-medium text-[13px] font-mono text-[#A0A5B1]">
-              Scale: -10 (Extremely Bearish) to +10 (Extremely Bullish)
+            <span className="font-sans font-medium text-xs font-mono text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20 px-3 py-1 rounded-full">
+              Score Scale: −10 (Bearish) to +10 (Bullish)
             </span>
           </div>
 
-          <div className="overflow-x-auto w-full">
-            <table className="w-full text-left border-collapse">
+          {/* Centralized Table Layout with Design Connector */}
+          <div className="overflow-x-auto w-full flex-1">
+            <table className="w-full border-collapse">
               <thead>
-                <tr>
-                  <th className="px-[24px] py-[18px] pb-[16px] font-sans font-semibold text-[13px] text-[#A0A5B1] border-b border-white/5 w-[140px]">Rule Order</th>
-                  <th className="px-[24px] py-[18px] pb-[16px] font-sans font-semibold text-[13px] text-[#A0A5B1] border-b border-white/5">Differential Range (Base - Quote)</th>
-                  <th className="px-[24px] py-[18px] pb-[16px] font-sans font-semibold text-[13px] text-[#A0A5B1] border-b border-white/5 w-[180px] text-right">Rating Impact</th>
-                  <th className="px-[24px] py-[18px] pb-[16px] font-sans font-semibold text-[13px] text-[#A0A5B1] border-b border-white/5 w-[100px] text-right">Actions</th>
+                <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#A0A5B1]">
+                  <th className="py-2.5 px-4 text-left w-[110px]">Tier Level</th>
+                  <th className="py-2.5 px-4 text-center w-[220px]">Differential Range (Base − Quote)</th>
+                  <th className="py-2.5 px-4 text-center w-[280px]">Engine Sentiment & Macro Regime</th>
+                  <th className="py-2.5 px-4 text-center w-[140px]">Rating Impact</th>
+                  <th className="py-2.5 px-4 text-right w-[90px]">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/[0.03]">
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="border-b border-white/5">
-                      <td className="px-[24px] py-[16px]"><div className="w-[80px] h-[20px] bg-white/5 rounded-md animate-pulse" /></td>
-                      <td className="px-[24px] py-[16px]"><div className="w-[180px] h-[24px] bg-white/5 rounded-md animate-pulse" /></td>
-                      <td className="px-[24px] py-[16px] text-right"><div className="w-[60px] h-[24px] bg-white/5 rounded-md animate-pulse ml-auto" /></td>
-                      <td className="px-[24px] py-[16px]"></td>
+                    <tr key={i}>
+                      <td className="py-3 px-4"><div className="w-[70px] h-[20px] bg-white/5 rounded-md animate-pulse" /></td>
+                      <td className="py-3 px-4"><div className="w-[160px] h-[22px] bg-white/5 rounded-md animate-pulse mx-auto" /></td>
+                      <td className="py-3 px-4"><div className="w-[180px] h-[22px] bg-white/5 rounded-md animate-pulse mx-auto" /></td>
+                      <td className="py-3 px-4"><div className="w-[50px] h-[22px] bg-white/5 rounded-md animate-pulse mx-auto" /></td>
+                      <td className="py-3 px-4"></td>
                     </tr>
                   ))
                 ) : (
-                  rules?.map((rule: any, i: number) => (
-                    <tr key={rule.id} className="group border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors">
-                      <td className="px-[24px] py-[16px]">
-                        <div className="flex items-center gap-[12px]">
-                          <span className="font-mono text-xs text-[#A0A5B1]">#{i + 1}</span>
-                          <span className="font-sans font-bold text-[15px] text-white">Rule Tier {i + 1}</span>
-                        </div>
-                      </td>
-                      <td className="px-[24px] py-[16px]">
-                        <div className="flex items-center gap-[12px]">
-                          <span className="font-mono text-[15px] text-white bg-white/5 border border-white/10 px-[12px] py-[5px] rounded-[8px]">{rule.min}</span>
-                          <span className="text-[#A0A5B1] font-sans text-[13px]">to</span>
-                          <span className="font-mono text-[15px] text-white bg-white/5 border border-white/10 px-[12px] py-[5px] rounded-[8px]">{rule.max}</span>
-                        </div>
-                      </td>
-                      <td className="px-[24px] py-[16px]">
-                        <div className="flex justify-end">
-                          <span className={clsx(
-                            "px-[16px] py-[6px] rounded-[10px] font-mono font-bold text-[14px] shadow-sm",
-                            rule.rating > 0 ? "bg-[#D2F646]/10 text-[#D2F646] border border-[#D2F646]/30" :
-                            rule.rating < 0 ? "bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/30" :
-                            "bg-[#A0A5B1]/10 text-[#A0A5B1] border border-white/10"
-                          )}>
-                            {rule.rating > 0 ? `+${rule.rating}` : rule.rating}
+                  rules?.map((rule: any, i: number) => {
+                    const isPositive = rule.rating > 0;
+                    const isNegative = rule.rating < 0;
+
+                    return (
+                      <tr key={rule.id} className="group hover:bg-white/[0.03] transition-colors">
+                        
+                        {/* 1. Tier Level: Single line, number NEVER under text */}
+                        <td className="py-2.5 px-4 text-left">
+                          <span className="font-mono text-xs font-bold text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20 px-2.5 py-1 rounded-lg whitespace-nowrap">
+                            Tier {i + 1}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-[24px] py-[16px]">
-                        <div className="flex justify-end gap-[8px]">
-                          <button 
-                            onClick={() => openEditModal(rule)}
-                            className="p-[8px] rounded-[10px] bg-white/5 hover:bg-white/10 text-[#A0A5B1] hover:text-white transition-colors"
-                            title="Modify Rule"
-                          >
-                            <Edit2 size={15} />
-                          </button>
-                          <button 
-                            onClick={() => deleteRuleMutation.mutate(rule.id)}
-                            className="p-[8px] rounded-[10px] bg-white/5 hover:bg-[#FF4444]/10 text-[#A0A5B1] hover:text-[#FF4444] transition-colors"
-                            title="Delete Rule"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+
+                        {/* 2. Differential Range: Centered with nice pill brackets */}
+                        <td className="py-2.5 px-4 text-center">
+                          <div className="inline-flex items-center gap-2 font-mono text-xs font-bold text-white bg-white/[0.03] border border-white/5 px-3 py-1.5 rounded-xl shadow-inner">
+                            <span className="text-[#D2F646]">{rule.min}</span>
+                            <span className="text-[#A0A5B1] font-sans text-[11px] font-normal">to</span>
+                            <span className="text-[#D2F646]">{rule.max}</span>
+                          </div>
+                        </td>
+
+                        {/* 3. Engine Macro Regime & Sentiment: Centralized bridge connecting range to rating */}
+                        <td className="py-2.5 px-4 text-center">
+                          <div className="inline-flex items-center gap-2">
+                            {isPositive && (
+                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D2F646]/10 border border-[#D2F646]/25 text-[#D2F646] text-xs font-semibold">
+                                <TrendingUp size={13} />
+                                <span>{rule.regime || (rule.rating >= 8 ? "Strong Bullish Bias" : "Moderate Bullish Bias")}</span>
+                              </div>
+                            )}
+                            {isNegative && (
+                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF4444]/10 border border-[#FF4444]/25 text-[#FF5B5B] text-xs font-semibold">
+                                <TrendingDown size={13} />
+                                <span>{rule.regime || (rule.rating <= -8 ? "Strong Bearish Bias" : "Moderate Bearish Bias")}</span>
+                              </div>
+                            )}
+                            {!isPositive && !isNegative && (
+                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#A0A5B1] text-xs font-semibold">
+                                <Minus size={13} />
+                                <span>Neutral / Balanced Regime</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 4. Rating Impact Score: Centered */}
+                        <td className="py-2.5 px-4 text-center">
+                          <span className={clsx(
+                            "inline-block min-w-[54px] px-3 py-1 rounded-xl font-mono font-bold text-xs shadow-sm",
+                            isPositive ? "bg-[#D2F646]/15 text-[#D2F646] border border-[#D2F646]/30" :
+                            isNegative ? "bg-[#FF4444]/15 text-[#FF4444] border border-[#FF4444]/30" :
+                            "bg-white/5 text-[#A0A5B1] border border-white/10"
+                          )}>
+                            {isPositive ? `+${rule.rating}` : rule.rating}
+                          </span>
+                        </td>
+
+                        {/* 5. Actions */}
+                        <td className="py-2.5 px-4 text-right">
+                          <div className="flex justify-end gap-1.5">
+                            <button 
+                              onClick={() => openEditModal(rule)}
+                              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[#A0A5B1] hover:text-white transition-colors cursor-pointer"
+                              title="Modify Rule"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button 
+                              onClick={() => deleteRuleMutation.mutate(rule.id)}
+                              className="p-1.5 rounded-lg bg-white/5 hover:bg-[#FF4444]/10 text-[#A0A5B1] hover:text-[#FF4444] transition-colors cursor-pointer"
+                              title="Delete Rule"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -257,7 +381,7 @@ export default function RatingRulesPage() {
         </div>
       </main>
 
-      {/* Add / Modify Rule Modal */}
+      {/* --- Add / Modify Rule Modal with Verification & Infinity Helpers --- */}
       <AnimatePresence>
         {modalMode && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -266,22 +390,23 @@ export default function RatingRulesPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setModalMode(null)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-md"
+              className="fixed inset-0 bg-black/75 backdrop-blur-md"
             />
 
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-[460px] bg-[#161822]/95 backdrop-blur-3xl border border-white/10 rounded-[28px] p-8 shadow-2xl z-10 flex flex-col gap-6"
+              className="relative w-full max-w-[480px] bg-[#161822]/95 backdrop-blur-3xl border border-white/10 rounded-[28px] p-7 shadow-2xl z-10 flex flex-col gap-5"
             >
-              <div className="flex items-center justify-between">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-[#D2F646]/10 border border-[#D2F646]/20 text-[#D2F646]">
-                    <SlidersHorizontal size={20} />
+                    <SlidersHorizontal size={18} />
                   </div>
                   <div>
-                    <h3 className="font-sans font-bold text-xl text-white">
+                    <h3 className="font-sans font-bold text-lg text-white">
                       {modalMode === "add" ? "Add Differential Rule" : "Modify Rule"}
                     </h3>
                     <p className="text-xs text-[#A0A5B1]">{activeIndicator} Transformation</p>
@@ -289,44 +414,151 @@ export default function RatingRulesPage() {
                 </div>
                 <button
                   onClick={() => setModalMode(null)}
-                  className="p-2 rounded-xl text-[#A0A5B1] hover:text-white hover:bg-white/5 transition-colors"
+                  className="p-2 rounded-xl text-[#A0A5B1] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   <X size={18} />
                 </button>
               </div>
 
+              {/* Form with Input Verification & Infinity Controls */}
               <form onSubmit={handleSaveModal} className="flex flex-col gap-4">
+                
+                {/* Min & Max Inputs with 1-Click Infinity Buttons */}
                 <div className="grid grid-cols-2 gap-4">
+                  
+                  {/* Min Value Input */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-[#A0A5B1]">Min Value</label>
-                    <input
-                      type="text"
-                      required
-                      value={formMin}
-                      onChange={(e) => setFormMin(e.target.value)}
-                      placeholder="-1.0 or -∞"
-                      className="bg-[#12141A] border border-white/10 rounded-xl px-4 py-2.5 font-mono text-sm text-white outline-none focus:border-[#D2F646]"
-                    />
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-[#A0A5B1]">Min Boundary</label>
+                      <button
+                        type="button"
+                        onClick={() => setFormMin("-∞")}
+                        className="text-[10px] font-mono text-[#D2F646] hover:underline bg-[#D2F646]/10 px-1.5 py-0.5 rounded cursor-pointer"
+                        title="Set to Negative Infinity"
+                      >
+                        -∞ (Neg Inf)
+                      </button>
+                    </div>
+
+                    <div className={clsx(
+                      "flex items-center bg-[#12141A] border rounded-xl px-3 py-2 transition-all",
+                      !parsedMin.isValid && formMin.trim() ? "border-[#FF4444]" : "border-white/10 focus-within:border-[#D2F646]"
+                    )}>
+                      <input
+                        type="text"
+                        required
+                        value={formMin}
+                        onChange={(e) => handleMinChange(e.target.value)}
+                        placeholder="-2.0 or -∞"
+                        className="w-full bg-transparent border-none outline-none font-mono text-sm text-white placeholder:text-[#A0A5B1]/40"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormMin("-∞")}
+                        className="p-1 rounded text-[#A0A5B1] hover:text-[#D2F646] font-mono text-xs cursor-pointer ml-1"
+                        title="Insert -∞"
+                      >
+                        -∞
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Max Value Input */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-[#A0A5B1]">Max Value</label>
-                    <input
-                      type="text"
-                      required
-                      value={formMax}
-                      onChange={(e) => setFormMax(e.target.value)}
-                      placeholder="1.0 or +∞"
-                      className="bg-[#12141A] border border-white/10 rounded-xl px-4 py-2.5 font-mono text-sm text-white outline-none focus:border-[#D2F646]"
-                    />
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-[#A0A5B1]">Max Boundary</label>
+                      <button
+                        type="button"
+                        onClick={() => setFormMax("+∞")}
+                        className="text-[10px] font-mono text-[#00E5FF] hover:underline bg-[#00E5FF]/10 px-1.5 py-0.5 rounded cursor-pointer"
+                        title="Set to Positive Infinity"
+                      >
+                        +∞ (Pos Inf)
+                      </button>
+                    </div>
+
+                    <div className={clsx(
+                      "flex items-center bg-[#12141A] border rounded-xl px-3 py-2 transition-all",
+                      !parsedMax.isValid && formMax.trim() ? "border-[#FF4444]" : "border-white/10 focus-within:border-[#D2F646]"
+                    )}>
+                      <input
+                        type="text"
+                        required
+                        value={formMax}
+                        onChange={(e) => handleMaxChange(e.target.value)}
+                        placeholder="2.0 or +∞"
+                        className="w-full bg-transparent border-none outline-none font-mono text-sm text-white placeholder:text-[#A0A5B1]/40"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormMax("+∞")}
+                        className="p-1 rounded text-[#A0A5B1] hover:text-[#00E5FF] font-mono text-xs cursor-pointer ml-1"
+                        title="Insert +∞"
+                      >
+                        +∞
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Quick Presets Clickable Chips */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] font-mono text-[#A0A5B1]">Quick Interval Values (Click to insert):</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {["-∞", "-2.0", "-1.0", "0.0", "1.0", "2.0", "+∞"].map((val) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => {
+                          if (!formMin || formMin === "-∞") {
+                            setFormMin(val);
+                          } else {
+                            setFormMax(val);
+                          }
+                        }}
+                        className="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/5 text-[11px] font-mono text-white transition-colors cursor-pointer"
+                      >
+                        {val}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
+                {/* Real-time Validation Error Banner */}
+                <AnimatePresence>
+                  {validationError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="p-2.5 rounded-xl bg-[#FF4444]/10 border border-[#FF4444]/30 flex items-center gap-2 text-[#FF6B6B] text-xs"
+                    >
+                      <AlertCircle size={15} className="flex-shrink-0" />
+                      <span>{validationError}</span>
+                    </motion.div>
+                  )}
+                  {isFormValid && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-2 rounded-xl bg-[#6FF542]/10 border border-[#6FF542]/20 flex items-center justify-between text-[#6FF542] text-[11px] font-mono"
+                    >
+                      <span>Valid interval: [{parsedMin.display} to {parsedMax.display}]</span>
+                      <Check size={14} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Rating Impact Slider */}
+                <div className="flex flex-col gap-1.5 pt-1">
                   <div className="flex justify-between items-center">
                     <label className="text-xs font-semibold text-[#A0A5B1]">Rating Impact (-10 to +10)</label>
                     <span className={clsx(
-                      "font-mono font-bold text-sm",
-                      formRating > 0 ? "text-[#D2F646]" : formRating < 0 ? "text-[#FF4444]" : "text-white"
+                      "font-mono font-bold text-sm px-2 py-0.5 rounded-lg",
+                      formRating > 0 ? "bg-[#D2F646]/10 text-[#D2F646] border border-[#D2F646]/30" : 
+                      formRating < 0 ? "bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/30" : 
+                      "bg-white/5 text-white"
                     )}>
                       {formRating > 0 ? `+${formRating}` : formRating}
                     </span>
@@ -347,17 +579,19 @@ export default function RatingRulesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 mt-4">
+                {/* Modal Action Buttons */}
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/5">
                   <button
                     type="button"
                     onClick={() => setModalMode(null)}
-                    className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all"
+                    className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 rounded-xl bg-[#D2F646] text-[#121418] font-sans text-xs font-bold hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_16px_rgba(210,246,70,0.3)]"
+                    disabled={!isFormValid}
+                    className="flex-1 py-2.5 rounded-xl bg-[#D2F646] text-[#121418] font-sans text-xs font-bold hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_16px_rgba(210,246,70,0.3)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <Check size={16} />
                     <span>{modalMode === "add" ? "Create Rule" : "Save Changes"}</span>

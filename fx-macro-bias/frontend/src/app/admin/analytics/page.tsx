@@ -201,7 +201,7 @@ export default function AnalyticsPage() {
   const [tremorData2] = useState(generateTremorData());
   const [tremorData3] = useState(generateTremorData());
 
-  const springConfig = { type: "spring", stiffness: 300, damping: 30 };
+  const springConfig = { type: "spring" as const, stiffness: 300, damping: 30 };
 
   return (
     <motion.div 

@@ -45,21 +45,14 @@ const fetchFinalScores = async (year: number) => {
     }
   }
 
-  // Expanded pairs for display
-  const expandedPairs = Array.from({ length: 28 }).map((_, i) => ({
-    ...PAIRS[i % PAIRS.length],
-    pair: `${PAIRS[i % PAIRS.length].name}${i > 6 ? ` [Tier ${Math.floor(i/7) + 1}]` : ''}`,
-    baseName: PAIRS[i % PAIRS.length].name
-  }));
-
-  return expandedPairs.map((pairData) => ({
-    pair: pairData.pair,
+  return PAIRS.map((pairData) => ({
+    pair: pairData.name,
     base: pairData.base,
     quote: pairData.quote,
     data: displayMonths.map((month) => {
       const indicators = INDICATORS.map(ind => ({
         ind,
-        val: pairIndicatorData[pairData.baseName]?.[ind]?.[month] ?? 0
+        val: pairIndicatorData[pairData.name]?.[ind]?.[month] ?? 0
       }));
       
       const totalScore = indicators.reduce((sum, item) => sum + item.val, 0); 
@@ -73,16 +66,14 @@ const fetchFinalScores = async (year: number) => {
 
 const FlagStack = ({ base, quote }: { base: string; quote: string }) => (
   <div className="flex items-center flex-shrink-0 mr-[4px]">
-    <img src={`/flags/${base}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#1E2028] z-10 shadow-sm" alt={base} />
-    <img src={`/flags/${quote}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#1E2028] -ml-[8px] z-0 shadow-sm" alt={quote} />
+    <img src={`/flags/${base}.svg`} className="w-[18px] h-[18px] rounded-full border border-white/20 z-10 shadow-sm" alt={base} />
+    <img src={`/flags/${quote}.svg`} className="w-[18px] h-[18px] rounded-full border border-white/20 -ml-[6px] z-0 shadow-sm" alt={quote} />
   </div>
 );
 
 export default function FinalScorePage() {
   const [selectedCell, setSelectedCell] = useState<{ pair: string; base: string; quote: string; data: any } | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedYear, setSelectedYear] = useState<number>(YEARS[0]);
-  const itemsPerPage = 4;
 
   const { data: scoresData, isLoading } = useQuery({
     queryKey: ["final-scores", selectedYear],
@@ -90,12 +81,6 @@ export default function FinalScorePage() {
   });
 
   const displayMonths = Array.from({ length: selectedYear === new Date().getFullYear() ? new Date().getMonth() + 1 : 12 }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, '0')}`);
-
-  const totalItems = scoresData?.length || 0;
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentData = scoresData?.slice(startIndex, endIndex);
 
   return (
     <div className="flex flex-col w-full h-full max-h-screen bg-transparent relative justify-between overflow-hidden">
@@ -132,55 +117,80 @@ export default function FinalScorePage() {
       </header>
 
       <main className="flex-1 flex flex-col px-8 gap-2.5 pb-4 max-w-[1550px] w-full mx-auto overflow-hidden justify-between min-h-0">
-        <div className={clsx("flex-1 flex flex-col justify-between overflow-hidden relative p-3 opacity-0 animate-slideUp min-h-0 shadow-2xl", matteCard)} style={{ animationDelay: "0.2s" }}>
-          <div className="w-full overflow-x-auto no-scrollbar flex-1 flex flex-col justify-center">
-            <table className="w-full text-left border-collapse min-w-[1100px]">
+        <div className={clsx("flex flex-col relative overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
+          
+          {/* Header Info Banner */}
+          <div className="flex items-center justify-between px-6 py-2.5 border-b border-white/5 bg-white/[0.01]">
+            <div className="flex items-center gap-2.5">
+              <span className="font-sans font-bold text-xs text-white">
+                G10 Sovereign Macro Bias Composite Score Matrix ({selectedYear})
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-[11px] font-mono text-[#A0A5B1]">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#6FF542]" />
+                Bullish (≥ +20%)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#A0A5B1]" />
+                Neutral (-20% to +20%)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#FF4444]" />
+                Bearish (≤ -20%)
+              </span>
+            </div>
+          </div>
+
+          {/* Matrix Table with All 7 G10 Pairs starting at the TOP */}
+          <div className="overflow-x-auto w-full p-3">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr>
-                  <th className="px-4 py-1.5 font-sans font-medium text-xs text-[#A0A5B1] border-b border-white/5 w-[160px] border-r sticky left-0 z-20 bg-[#121418]/95 backdrop-blur-md shadow-[4px_0_12px_rgba(0,0,0,0.1)]">FX Pair</th>
+                <tr className="border-b border-white/5">
+                  <th className="px-4 py-2 font-sans font-medium text-xs text-[#A0A5B1] w-[160px] border-r border-white/5">FX Pair</th>
                   {displayMonths.map((m) => (
-                    <th key={m} className="px-3 py-1.5 font-sans font-medium text-xs text-[#A0A5B1] border-b border-white/5 text-center min-w-[110px]">{m}</th>
+                    <th key={m} className="px-3 py-2 font-sans font-medium text-xs text-[#A0A5B1] text-center min-w-[100px]">{m}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.03]">
                 {isLoading ? (
-                  Array.from({ length: itemsPerPage }).map((_, i) => (
-                    <tr key={i} className="border-b border-white/5">
+                  Array.from({ length: 7 }).map((_, i) => (
+                    <tr key={i}>
                       <td className="px-4 py-2 border-r border-white/5"><div className="w-[120px] h-[20px] bg-white/5 rounded-md animate-pulse" /></td>
-                      {displayMonths.map((m, j) => <td key={j} className="p-1.5"><div className="w-full h-[46px] bg-white/5 rounded-xl animate-pulse" /></td>)}
+                      {displayMonths.map((m, j) => <td key={j} className="p-1.5"><div className="w-full h-[44px] bg-white/5 rounded-xl animate-pulse" /></td>)}
                     </tr>
                   ))
                 ) : (
-                  currentData?.map((row: any, i: number) => (
-                    <tr key={i} className="group border-b border-white/5 last:border-0 cursor-default hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-1 border-r border-white/5 sticky left-0 z-20 bg-[#1E2028] backdrop-blur-md shadow-[4px_0_12px_rgba(0,0,0,0.1)] group-hover:bg-[#242731] transition-colors">
-                        <div className="flex items-center gap-2.5 p-1 transition-colors duration-200 cursor-pointer font-sans font-bold text-xs text-white whitespace-nowrap">
+                  scoresData?.map((row: any, i: number) => (
+                    <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-1.5 border-r border-white/5">
+                        <div className="flex items-center gap-2.5 p-0.5 whitespace-nowrap">
                           <FlagStack base={row.base} quote={row.quote} />
-                          <span>{row.pair}</span>
+                          <span className="font-sans font-bold text-xs text-white">{row.pair}</span>
                         </div>
                       </td>
                       {row.data.map((cell: any, j: number) => {
                         const isBullish = cell.bias === "BULLISH";
                         const isBearish = cell.bias === "BEARISH";
                         return (
-                          <td key={j} className="px-1.5 py-1 text-center relative group/cell">
+                          <td key={j} className="px-1 py-1 text-center relative group/cell">
                             <button 
                               onClick={() => setSelectedCell({ pair: row.pair, base: row.base, quote: row.quote, data: cell })}
                               className={clsx(
-                                "inline-flex flex-col items-center justify-center w-full py-1.5 px-2 rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_8px_16px_rgba(0,0,0,0.3)] cursor-pointer relative overflow-hidden group-hover/cell:z-10 group-hover/cell:border-white/10 border border-transparent",
-                                isBullish ? "bg-[#1E2E1E]" : isBearish ? "bg-[#2E1E1E]" : "bg-[#242731]"
+                                "inline-flex flex-col items-center justify-center w-full py-1.5 px-2 rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border",
+                                isBullish ? "bg-[#1E2E1E]/80 border-[#6FF542]/20" : isBearish ? "bg-[#2E1E1E]/80 border-[#FF4444]/20" : "bg-[#242731]/70 border-transparent"
                               )}
                             >
                               <span className={clsx(
-                                "font-sans text-[15px] font-extrabold z-10 transition-transform",
+                                "font-sans text-[14px] font-extrabold transition-transform",
                                 isBullish ? "text-[#6FF542]" : isBearish ? "text-[#FF4444]" : "text-white"
                               )}>
                                 {parseFloat(cell.finalScorePct) > 0 ? `+${cell.finalScorePct}%` : `${cell.finalScorePct}%`}
                               </span>
                               <span className={clsx(
-                                "mt-0.5 z-10 font-sans text-[9px] font-bold tracking-widest uppercase",
-                                isBullish ? "text-[#6FF542]/70" : isBearish ? "text-[#FF4444]/70" : "text-[#A0A5B1]"
+                                "mt-0.5 font-sans text-[8px] font-bold tracking-wider uppercase",
+                                isBullish ? "text-[#6FF542]/80" : isBearish ? "text-[#FF4444]/80" : "text-[#A0A5B1]"
                               )}>
                                 {cell.bias}
                               </span>
@@ -195,53 +205,16 @@ export default function FinalScorePage() {
             </table>
           </div>
 
-          {/* Pagination Footer */}
-          {!isLoading && totalPages > 1 && (
-            <div className="flex items-center justify-between w-full pt-2.5 mt-1 border-t border-white/5 flex-shrink-0 text-xs">
-              <span className="font-sans text-[#A0A5B1]">
-                Showing <strong className="text-white font-mono">{startIndex + 1}</strong>–<strong className="text-white font-mono">{Math.min(endIndex, totalItems)}</strong> of <strong className="text-white font-mono">{totalItems}</strong> FX Pairs
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-[#A0A5B1] mr-1 hidden sm:inline-block">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button 
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
-                >
-                  <ChevronLeft size={14} />
-                  <span>Prev</span>
-                </button>
-                
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }).map((_, i) => (
-                    <button 
-                      key={i + 1}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={clsx(
-                        "w-7 h-7 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center",
-                        currentPage === i + 1 
-                          ? "bg-[#D2F646] text-[#121418] font-black shadow-[0_0_12px_rgba(210,246,70,0.35)]" 
-                          : "bg-white/5 text-[#A0A5B1] hover:text-white hover:bg-white/10 border border-white/10"
-                      )}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                </div>
-                
-                <button 
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
-                >
-                  <span>Next</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
+          {/* Bottom Summary Bar */}
+          <div className="flex items-center justify-between px-6 py-2.5 border-t border-white/5 bg-[#121418]/60 text-xs">
+            <span className="font-sans text-[#A0A5B1]">
+              Displaying all <strong className="text-white">7 of 7 Core G10 Currency Pairs</strong> evaluated across {displayMonths.length} monthly statistical releases.
+            </span>
+            <div className="flex items-center gap-2 font-mono text-[11px] text-[#D2F646] font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#6FF542] animate-pulse" />
+              Composite Macro Regimes Live
             </div>
-          )}
+          </div>
         </div>
 
         <AnimatePresence>

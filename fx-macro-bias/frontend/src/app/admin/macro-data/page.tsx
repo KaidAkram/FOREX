@@ -8,101 +8,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
+import { COUNTRIES, PAIRS, INDICATORS, getMacroMatrixData, getCombinedDifferentialData } from "@/data/macroDataset";
+
 const TABS = ["Macro Data Matrix", "Differential & Rating"];
-const INDICATORS = ["GDP", "Current Account", "CPI", "Interest Rate", "FX Reserves", "Equity"];
-
-const PAIRS = [
-  { name: "EUR/USD", base: "eu", quote: "us", baseName: "EUR", quoteName: "USD" },
-  { name: "GBP/USD", base: "gb", quote: "us", baseName: "GBP", quoteName: "USD" },
-  { name: "USD/JPY", base: "us", quote: "jp", baseName: "USD", quoteName: "JPY" },
-  { name: "AUD/USD", base: "au", quote: "us", baseName: "AUD", quoteName: "USD" },
-  { name: "USD/CAD", base: "us", quote: "ca", baseName: "USD", quoteName: "CAD" },
-  { name: "NZD/USD", base: "nz", quote: "us", baseName: "NZD", quoteName: "USD" },
-  { name: "USD/CHF", base: "us", quote: "ch", baseName: "USD", quoteName: "CHF" }
-];
-
 const YEARS = Array.from({ length: new Date().getFullYear() - 2020 + 1 }).map((_, i) => new Date().getFullYear() - i);
-
-const COUNTRIES = [
-  { country: "USA", base: "us" },
-  { country: "Euro Area", base: "eu" },
-  { country: "Japan", base: "jp" },
-  { country: "United Kingdom", base: "gb" },
-  { country: "Australia", base: "au" },
-  { country: "Canada", base: "ca" },
-  { country: "Switzerland", base: "ch" },
-  { country: "New Zealand", base: "nz" },
-  { country: "Sweden", base: "se" },
-  { country: "Norway", base: "no" }
-];
 
 // Translucent Glass Cards with Specular Highlight
 const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[24px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
-
-// API Fetchers
-const fetchMatrixData = async (indicator: string, year: number) => {
-  await new Promise(r => setTimeout(r, 300));
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  const endMonth = year === currentYear ? currentMonth : 12;
-  const months = Array.from({ length: endMonth }).map((_, i) => `${year}-${(i + 1).toString().padStart(2, '0')}`);
-
-  return COUNTRIES.map((c, i) => ({
-    ...c,
-    data: months.map((m, j) => ({
-      value: (i === 2 && j === 4) ? null : (Math.random() * 4 - 1).toFixed(1),
-      status: (i === 2 && j === 4) ? "missing" : (i === 0 && j === 5) ? "manual" : "published"
-    }))
-  }));
-};
-
-const fetchCombinedData = async (pair: string, indicator: string, year: number) => {
-  await new Promise(r => setTimeout(r, 300));
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  const endMonth = year === currentYear ? currentMonth : 12;
-  const months = Array.from({ length: endMonth }).map((_, i) => `${year}-${(i + 1).toString().padStart(2, '0')}`);
-  
-  return months.map(m => {
-    const baseVal = (Math.random() * 2.5 + 0.5).toFixed(1);
-    const quoteVal = (Math.random() * 2.5 + 0.5).toFixed(1);
-    const diff = (parseFloat(baseVal) - parseFloat(quoteVal)).toFixed(1);
-    const diffNum = parseFloat(diff);
-    
-    let rating = 0;
-    let rule = "-1.0 to 1.0";
-    let regime = "Neutral / Balanced";
-    
-    if (diffNum >= 2.0) {
-      rating = 10;
-      rule = "2.0 to +∞";
-      regime = "Strong Bullish Bias";
-    } else if (diffNum >= 1.0) {
-      rating = 5;
-      rule = "1.0 to 2.0";
-      regime = "Moderate Bullish Bias";
-    } else if (diffNum <= -2.0) {
-      rating = -10;
-      rule = "-∞ to -2.0";
-      regime = "Strong Bearish Bias";
-    } else if (diffNum <= -1.0) {
-      rating = -5;
-      rule = "-2.0 to -1.0";
-      regime = "Moderate Bearish Bias";
-    }
-
-    return { 
-      month: m, 
-      baseVal, 
-      quoteVal, 
-      diff: diffNum > 0 ? `+${diff}` : diff, 
-      diffNum,
-      rating, 
-      rule,
-      regime
-    };
-  });
-};
 
 const FlagStack = ({ base, quote }: { base: string; quote: string }) => (
   <div className="flex items-center flex-shrink-0">
@@ -118,6 +30,8 @@ export default function MacroDataPage() {
   const [activePair, setActivePair] = useState(PAIRS[0].name);
   const [selectedYear, setSelectedYear] = useState<number>(YEARS[0]);
   const [selectedCell, setSelectedCell] = useState<{ c: string; m: string; val: string } | null>(null);
+  const [overrideInputVal, setOverrideInputVal] = useState<string>("");
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
 
   // Dropdown Open States (Click-controlled)
   const [isOpenPairDropdown, setIsOpenPairDropdown] = useState(false);
@@ -145,8 +59,32 @@ export default function MacroDataPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const fetchMatrixData = async (indicator: string, year: number) => {
+    await new Promise(r => setTimeout(r, 120));
+    const baseRows = getMacroMatrixData(indicator, year);
+    return baseRows.map(row => ({
+      ...row,
+      data: row.data.map((cell, idx) => {
+        const monthKey = `${year}-${(idx + 1).toString().padStart(2, '0')}`;
+        const overrideKey = `${indicator}_${row.country}_${monthKey}`;
+        if (overrides[overrideKey] !== undefined) {
+          return {
+            value: overrides[overrideKey],
+            status: "manual" as const
+          };
+        }
+        return cell;
+      })
+    }));
+  };
+
+  const fetchCombinedData = async (pair: string, indicator: string, year: number) => {
+    await new Promise(r => setTimeout(r, 120));
+    return getCombinedDifferentialData(pair, indicator, year);
+  };
+
   const { data: matrixData, isLoading: matrixLoading } = useQuery({
-    queryKey: ["macro-matrix", activeInd, selectedYear],
+    queryKey: ["macro-matrix", activeInd, selectedYear, overrides],
     queryFn: () => fetchMatrixData(activeInd, selectedYear),
     enabled: activeTab === "Macro Data Matrix"
   });
@@ -163,11 +101,15 @@ export default function MacroDataPage() {
   const displayMonths = Array.from({ length: endMonth }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, '0')}`);
 
   const saveOverrideMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      await new Promise(r => setTimeout(r, 600));
+    mutationFn: async (payload: { country: string; month: string; value: string }) => {
+      await new Promise(r => setTimeout(r, 300));
+      setOverrides(prev => ({
+        ...prev,
+        [`${activeInd}_${payload.country}_${payload.month}`]: payload.value
+      }));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["macro-matrix", activeInd] });
+      queryClient.invalidateQueries({ queryKey: ["macro-matrix", activeInd, selectedYear] });
       setSelectedCell(null);
     }
   });
@@ -421,7 +363,7 @@ export default function MacroDataPage() {
                 <div className="flex items-center gap-2.5">
                   <Database size={15} className="text-[#D2F646]" />
                   <span className="font-sans font-bold text-xs text-white">
-                    G10 Currency Sovereign Matrix: {activeInd} ({selectedYear})
+                    G10 Currency Sovereign Matrix: {activeInd} {activeInd === "FX Reserves" ? "(USD Millions)" : activeInd === "Interest Rate" ? "(% Policy Rate)" : activeInd === "CPI" ? "(% YoY Inflation)" : "(% Growth / Spread)"} ({selectedYear})
                   </span>
                 </div>
                 <div className="flex items-center gap-4 text-[11px] font-mono text-[#A0A5B1]">
@@ -471,7 +413,10 @@ export default function MacroDataPage() {
                           {row.data.map((cell: any, j: number) => (
                             <td key={j} className="px-1.5 py-1 text-center relative group/cell">
                               <button 
-                                onClick={() => setSelectedCell({ c: row.country, m: displayMonths[j], val: cell.value || "N/A" })}
+                                onClick={() => {
+                                  setSelectedCell({ c: row.country, m: displayMonths[j], val: cell.value || "N/A" });
+                                  setOverrideInputVal(cell.value || "");
+                                }}
                                 className="inline-flex flex-col items-center justify-center w-[84px] py-1 px-1 rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border border-transparent"
                               >
                                 <span className={clsx(
@@ -523,7 +468,9 @@ export default function MacroDataPage() {
                 </div>
                 <div className="flex items-center gap-2 font-mono text-xs text-[#A0A5B1]">
                   <span>Formula: </span>
-                  <span className="text-[#D2F646] font-bold">Diff = {activePairObj.baseName} − {activePairObj.quoteName}</span>
+                  <span className="text-[#D2F646] font-bold">
+                    {activeInd === "FX Reserves" ? `Diff = ${activePairObj.baseName} (USD M) − ${activePairObj.quoteName} (USD M)` : `Diff = ${activePairObj.baseName} (%) − ${activePairObj.quoteName} (%)`}
+                  </span>
                 </div>
               </div>
 
@@ -566,7 +513,7 @@ export default function MacroDataPage() {
                             <td className="py-2.5 px-4 text-center">
                               <div className="inline-flex items-center gap-1.5 font-mono text-xs text-[#A0A5B1]">
                                 <img src={`/flags/${activePairObj.base}.svg`} className="w-4 h-4 rounded-full border border-white/10" alt={activePairObj.base} />
-                                <span className="text-white font-bold">{row.baseVal}%</span>
+                                <span className="text-white font-bold">{row.baseVal}{activeInd !== "FX Reserves" ? "%" : "M"}</span>
                               </div>
                             </td>
 
@@ -574,7 +521,7 @@ export default function MacroDataPage() {
                             <td className="py-2.5 px-4 text-center">
                               <div className="inline-flex items-center gap-1.5 font-mono text-xs text-[#A0A5B1]">
                                 <img src={`/flags/${activePairObj.quote}.svg`} className="w-4 h-4 rounded-full border border-white/10" alt={activePairObj.quote} />
-                                <span className="text-white font-bold">{row.quoteVal}%</span>
+                                <span className="text-white font-bold">{row.quoteVal}{activeInd !== "FX Reserves" ? "%" : "M"}</span>
                               </div>
                             </td>
 
@@ -586,7 +533,7 @@ export default function MacroDataPage() {
                                 row.diffNum < 0 ? "text-[#FF5B5B] bg-[#FF4444]/10 border border-[#FF4444]/20" :
                                 "text-white bg-white/5 border border-white/10"
                               )}>
-                                {row.diff}%
+                                {row.diff}{activeInd !== "FX Reserves" ? "%" : "M"}
                               </span>
                             </td>
 
@@ -676,11 +623,12 @@ export default function MacroDataPage() {
               </div>
               <input 
                 type="text" 
-                defaultValue={selectedCell.val} 
+                value={overrideInputVal} 
+                onChange={(e) => setOverrideInputVal(e.target.value)}
                 className="w-full bg-[#121418] border border-white/10 rounded-xl px-4 py-2.5 font-mono font-bold text-base text-white outline-none focus:border-[#D2F646] transition-all" 
               />
               <button 
-                onClick={() => saveOverrideMutation.mutate({ country: selectedCell.c, month: selectedCell.m, value: "..." })}
+                onClick={() => saveOverrideMutation.mutate({ country: selectedCell.c, month: selectedCell.m, value: overrideInputVal })}
                 className="w-full py-2.5 rounded-xl bg-[#D2F646] text-[#121418] font-sans font-bold text-xs hover:brightness-110 transition-all flex justify-center items-center gap-2 cursor-pointer shadow-md"
               >
                 {saveOverrideMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : "Save Override"}

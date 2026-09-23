@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
+import { INDICATORS, getCombinedDifferentialData } from "@/data/macroDataset";
+
 const PAIRS = [
   { name: "EUR/USD", base: "eu", quote: "us" },
   { name: "GBP/USD", base: "gb", quote: "us" },
@@ -24,31 +26,41 @@ const YEARS = Array.from({ length: new Date().getFullYear() - 2020 + 1 }).map((_
 const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
 
 const fetchFinalScores = async (year: number) => {
-  await new Promise(r => setTimeout(r, 800));
-  // Let's generate 45 pairs for pagination demonstration (replicating the 7 base pairs over and over)
-  const expandedPairs = Array.from({ length: 45 }).map((_, i) => ({
-    ...PAIRS[i % PAIRS.length],
-    pair: `${PAIRS[i % PAIRS.length].name} ${i > 6 ? `(${Math.floor(i/7)})` : ''}`
-  }));
-
+  await new Promise(r => setTimeout(r, 200));
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
   const endMonth = year === currentYear ? currentMonth : 12;
   const displayMonths = Array.from({ length: endMonth }).map((_, i) => `${year}-${(i + 1).toString().padStart(2, '0')}`);
+
+  // Compute differential data for each base pair
+  const pairIndicatorData: Record<string, Record<string, Record<string, number>>> = {};
+  for (const p of PAIRS) {
+    pairIndicatorData[p.name] = {};
+    for (const ind of INDICATORS) {
+      const diffList = getCombinedDifferentialData(p.name, ind, year);
+      pairIndicatorData[p.name][ind] = {};
+      for (const d of diffList) {
+        pairIndicatorData[p.name][ind][d.month] = d.rating;
+      }
+    }
+  }
+
+  // Expanded pairs for display
+  const expandedPairs = Array.from({ length: 28 }).map((_, i) => ({
+    ...PAIRS[i % PAIRS.length],
+    pair: `${PAIRS[i % PAIRS.length].name}${i > 6 ? ` [Tier ${Math.floor(i/7) + 1}]` : ''}`,
+    baseName: PAIRS[i % PAIRS.length].name
+  }));
 
   return expandedPairs.map((pairData) => ({
     pair: pairData.pair,
     base: pairData.base,
     quote: pairData.quote,
     data: displayMonths.map((month) => {
-      const indicators = [
-        { ind: "GDP", val: Math.floor(Math.random() * 20 - 10) },
-        { ind: "Current Account", val: Math.floor(Math.random() * 20 - 10) },
-        { ind: "CPI", val: Math.floor(Math.random() * 20 - 10) },
-        { ind: "Interest Rate", val: Math.floor(Math.random() * 20 - 10) },
-        { ind: "FX Reserves", val: Math.floor(Math.random() * 20 - 10) },
-        { ind: "Equity", val: Math.floor(Math.random() * 20 - 10) },
-      ];
+      const indicators = INDICATORS.map(ind => ({
+        ind,
+        val: pairIndicatorData[pairData.baseName]?.[ind]?.[month] ?? 0
+      }));
       
       const totalScore = indicators.reduce((sum, item) => sum + item.val, 0); 
       const finalScorePct = ((totalScore / 60) * 100).toFixed(1); 

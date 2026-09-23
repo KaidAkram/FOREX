@@ -20,17 +20,20 @@ const fetchDashboardData = async () => {
       timestamps: { lastDataUpdate: "Today, 14:30 UTC", lastCalculation: "Today, 14:32 UTC" }
     },
     latestPublished: [
-      { ind: "CPI", country: "USA", base: "us", month: "Oct 2025", val: "3.2%", pub: "Today, 14:30", src: "BLS" },
-      { ind: "Interest Rate", country: "Euro Area", base: "eu", month: "Oct 2025", val: "4.5%", pub: "Today, 12:00", src: "ECB" },
-      { ind: "GDP", country: "UK", base: "gb", month: "Q3 2025", val: "0.2%", pub: "Yesterday", src: "ONS" },
-      { ind: "Current Account", country: "Japan", base: "jp", month: "Sep 2025", val: "1.5%", pub: "2 Days Ago", src: "BOJ" }
+      { ind: "CPI", country: "USA", base: "us", month: "Aug 2026", val: "3.4%", pub: "Official BLS Print", src: "BLS" },
+      { ind: "Interest Rate", country: "USA", base: "us", month: "Sep 2026", val: "4.00%", pub: "FOMC Target Range", src: "Federal Reserve" },
+      { ind: "Interest Rate", country: "Euro Area", base: "eu", month: "Sep 2026", val: "2.65%", pub: "ECB Policy Rate", src: "ECB" },
+      { ind: "FX Reserves", country: "USA", base: "us", month: "Aug 2026", val: "$38,578M", pub: "IMF Official Release", src: "IMF" },
+      { ind: "GDP", country: "USA", base: "us", month: "Q2 2026", val: "1.8%", pub: "BEA Real Print", src: "BEA" },
+      { ind: "Current Account", country: "Japan", base: "jp", month: "Aug 2026", val: "+4.2%", pub: "BOJ Balance Release", src: "BOJ" }
     ],
     dataStatus: [
-      { ind: "CPI", status: "Updated", last: "Today", next: "Nov 15" },
-      { ind: "GDP", status: "Pending", last: "Q2 2025", next: "Tomorrow" },
-      { ind: "Interest Rate", status: "Neutral", last: "Sep 2025", next: "TBD" },
-      { ind: "FX Reserves", status: "Missing", last: "Aug 2025", next: "Past Due" },
-      { ind: "Current Account", status: "Updated", last: "Sep 2025", next: "Dec 1" }
+      { ind: "CPI", status: "Updated", last: "Aug 2026 (3.4%)", next: "Oct 14" },
+      { ind: "Interest Rate", status: "Updated", last: "Sep 2026 (4.00%)", next: "Nov 06" },
+      { ind: "FX Reserves", status: "Updated", last: "Aug 2026 ($38,578M)", next: "Oct 05" },
+      { ind: "GDP", status: "Updated", last: "Q2 2026 (1.8%)", next: "Oct 28" },
+      { ind: "Current Account", status: "Updated", last: "Q2 2026 (-3.0%)", next: "Dec 18" },
+      { ind: "Equity", status: "Updated", last: "Sep 2026 (+1.7%)", next: "Daily" }
     ]
   };
 };

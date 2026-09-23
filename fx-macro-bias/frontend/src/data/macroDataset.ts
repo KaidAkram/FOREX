@@ -4589,44 +4589,149 @@ export function getCombinedDifferentialData(pairName: string, indicator: string,
     let quoteVal = "";
     let diffNum = 0;
     let diff = "";
+    let rating = 0;
+    let rule = "-1.0 to 1.0";
+    let regime = "Neutral / Balanced";
 
     if (indicator === "FX Reserves") {
-      baseVal = Math.round(rawBase).toLocaleString();
-      quoteVal = Math.round(rawQuote).toLocaleString();
-      diffNum = rawBase - rawQuote;
-      diff = Math.round(diffNum).toLocaleString();
+      const getRollingAvg = (countryMap: Record<string, number | null>, curMonth: string) => {
+        const [yr, mo] = curMonth.split('-').map(Number);
+        const deltas: number[] = [];
+        for (let k = 0; k < 12; k++) {
+          let targetM = mo - k;
+          let targetY = yr;
+          while (targetM <= 0) {
+            targetM += 12;
+            targetY -= 1;
+          }
+          const curKey = `${targetY}-${targetM.toString().padStart(2, '0')}`;
+          let prevM = targetM - 1;
+          let prevY = targetY;
+          if (prevM <= 0) {
+            prevM = 12;
+            prevY -= 1;
+          }
+          const prevKey = `${prevY}-${prevM.toString().padStart(2, '0')}`;
+          const curVal = countryMap[curKey];
+          const prevVal = countryMap[prevKey];
+          if (curVal !== undefined && curVal !== null && prevVal !== undefined && prevVal !== null) {
+            deltas.push(Number(curVal) - Number(prevVal));
+          }
+        }
+        if (deltas.length === 0) return 0;
+        return deltas.reduce((a, b) => a + b, 0) / deltas.length;
+      };
+
+      const baseFlow = getRollingAvg(baseMap, m);
+      const quoteFlow = getRollingAvg(quoteMap, m);
+      diffNum = parseFloat((baseFlow - quoteFlow).toFixed(1));
+      baseVal = (baseFlow >= 0 ? "+" : "") + Math.round(baseFlow).toLocaleString();
+      quoteVal = (quoteFlow >= 0 ? "+" : "") + Math.round(quoteFlow).toLocaleString();
+      diff = (diffNum >= 0 ? "+" : "") + Math.round(diffNum).toLocaleString();
+
+      if (diffNum >= 600) {
+        rating = 10;
+        rule = "+600M to +∞";
+        regime = "Strong Bullish Bias";
+      } else if (diffNum >= 200) {
+        rating = 5;
+        rule = "+200M to +600M";
+        regime = "Moderate Bullish Bias";
+      } else if (diffNum <= -600) {
+        rating = -10;
+        rule = "-∞ to -600M";
+        regime = "Strong Bearish Bias";
+      } else if (diffNum <= -200) {
+        rating = -5;
+        rule = "-600M to -200M";
+        regime = "Moderate Bearish Bias";
+      } else {
+        rating = 0;
+        rule = "-200M to +200M";
+        regime = "Neutral / Balanced";
+      }
+    } else if (indicator === "CPI") {
+      baseVal = rawBase.toFixed(1);
+      quoteVal = rawQuote.toFixed(1);
+      diffNum = parseFloat((rawBase - rawQuote).toFixed(1));
+      diff = (diffNum > 0 ? "+" : "") + diffNum.toFixed(1);
+
+      if (diffNum <= -2.0) {
+        rating = 10;
+        rule = "-∞ to -2.0%";
+        regime = "Strong Bullish Bias";
+      } else if (diffNum <= -1.0) {
+        rating = 5;
+        rule = "-2.0% to -1.0%";
+        regime = "Moderate Bullish Bias";
+      } else if (diffNum >= 2.0) {
+        rating = -10;
+        rule = "+2.0% to +∞";
+        regime = "Strong Bearish Bias";
+      } else if (diffNum >= 1.0) {
+        rating = -5;
+        rule = "+1.0% to +2.0%";
+        regime = "Moderate Bearish Bias";
+      } else {
+        rating = 0;
+        rule = "-1.0% to +1.0%";
+        regime = "Neutral / Balanced";
+      }
     } else if (indicator === "Interest Rate") {
       baseVal = rawBase.toFixed(2);
       quoteVal = rawQuote.toFixed(2);
       diffNum = parseFloat((rawBase - rawQuote).toFixed(2));
       diff = (diffNum > 0 ? "+" : "") + diffNum.toFixed(2);
+
+      if (diffNum >= 2.0) {
+        rating = 10;
+        rule = "2.0% to +∞";
+        regime = "Strong Bullish Bias";
+      } else if (diffNum >= 1.0) {
+        rating = 5;
+        rule = "1.0% to 2.0%";
+        regime = "Moderate Bullish Bias";
+      } else if (diffNum <= -2.0) {
+        rating = -10;
+        rule = "-∞ to -2.0%";
+        regime = "Strong Bearish Bias";
+      } else if (diffNum <= -1.0) {
+        rating = -5;
+        rule = "-2.0% to -1.0%";
+        regime = "Moderate Bearish Bias";
+      } else {
+        rating = 0;
+        rule = "-1.0% to 1.0%";
+        regime = "Neutral / Balanced";
+      }
     } else {
+      // GDP, Current Account, Equity
       baseVal = rawBase.toFixed(1);
       quoteVal = rawQuote.toFixed(1);
       diffNum = parseFloat((rawBase - rawQuote).toFixed(1));
       diff = (diffNum > 0 ? "+" : "") + diffNum.toFixed(1);
-    }
 
-    let rating = 0;
-    let rule = "-1.0 to 1.0";
-    let regime = "Neutral / Balanced";
-
-    if (diffNum >= 2.0) {
-      rating = 10;
-      rule = "2.0 to +∞";
-      regime = "Strong Bullish Bias";
-    } else if (diffNum >= 1.0) {
-      rating = 5;
-      rule = "1.0 to 2.0";
-      regime = "Moderate Bullish Bias";
-    } else if (diffNum <= -2.0) {
-      rating = -10;
-      rule = "-∞ to -2.0";
-      regime = "Strong Bearish Bias";
-    } else if (diffNum <= -1.0) {
-      rating = -5;
-      rule = "-2.0 to -1.0";
-      regime = "Moderate Bearish Bias";
+      if (diffNum >= 2.0) {
+        rating = 10;
+        rule = "2.0 to +∞";
+        regime = "Strong Bullish Bias";
+      } else if (diffNum >= 1.0) {
+        rating = 5;
+        rule = "1.0 to 2.0";
+        regime = "Moderate Bullish Bias";
+      } else if (diffNum <= -2.0) {
+        rating = -10;
+        rule = "-∞ to -2.0";
+        regime = "Strong Bearish Bias";
+      } else if (diffNum <= -1.0) {
+        rating = -5;
+        rule = "-2.0 to -1.0";
+        regime = "Moderate Bearish Bias";
+      } else {
+        rating = 0;
+        rule = "-1.0 to 1.0";
+        regime = "Neutral / Balanced";
+      }
     }
 
     return {

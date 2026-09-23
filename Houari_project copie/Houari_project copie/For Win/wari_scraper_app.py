@@ -81,6 +81,192 @@ IMF_COUNTRY_MAP = {
     "south-africa": "ZAF"
 }
 
+# The Core FX Pairs for Differential & Macro Rating Calculation
+PAIRS_DEF = [
+    ("EUR/USD", "Euro Area", "United States"),
+    ("GBP/USD", "United Kingdom", "United States"),
+    ("USD/JPY", "United States", "Japan"),
+    ("AUD/USD", "Australia", "United States"),
+    ("USD/CAD", "United States", "Canada"),
+    ("NZD/USD", "New Zealand", "United States"),
+    ("USD/CHF", "United States", "Switzerland"),
+    ("EUR/JPY", "Euro Area", "Japan"),
+    ("GBP/JPY", "United Kingdom", "Japan"),
+    ("EUR/GBP", "Euro Area", "United Kingdom"),
+    ("EUR/CHF", "Euro Area", "Switzerland"),
+    ("AUD/JPY", "Australia", "Japan")
+]
+
+def rate_interest_rate(diff):
+    import numpy as np
+    if pd.isna(diff): return np.nan
+    # Exact lookup table from EXCEL8EXAMPLE.xlsx Interest Rates data sheet (Cols AZ & BA)
+    az = [-7.0, -6.5, -6.0, -5.5, -5.0, -4.5, -4.0, -3.5, -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0]
+    ba = [-3,   -4,   -5,   -6,   -10,  -9,   -8,   -7,   -6,   -5,   -4,   -3,   -2,   -1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,   6,   5,   4,   3]
+    clamped = max(-7.0, min(7.0, float(diff)))
+    idx = min(range(len(az)), key=lambda i: abs(az[i] - clamped))
+    return int(ba[idx])
+
+def rate_cpi(diff):
+    import numpy as np
+    if pd.isna(diff): return np.nan
+    # Exact lookup table from EXCEL8EXAMPLE.xlsx CPI data sheet (Cols AY & AZ)
+    ay = [-2.0, -1.75, -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+    az = [2,    3,     4,    6,     10,   8,     6,    4,     0,   -4,   -6,  -8,   -10, 6,    8,   9,    10]
+    clamped = max(-2.0, min(2.0, float(diff)))
+    idx = min(range(len(ay)), key=lambda i: abs(ay[i] - clamped))
+    return int(az[idx])
+
+def rate_gdp(diff):
+    import numpy as np
+    if pd.isna(diff): return np.nan
+    # Exact formula from EXCEL8EXAMPLE.xlsx GDP data sheet: 2 * diff clamped to [-10, +10]
+    clamped = max(-5.0, min(5.0, float(diff)))
+    return int(round(clamped * 2))
+
+def rate_fx_spread(spread):
+    import numpy as np
+    if pd.isna(spread): return np.nan
+    # Exact lookup table from EXCEL8EXAMPLE.xlsx FX RESERVE DATA sheet (Cols BK & BL)
+    bk = [-2000 + 200*i for i in range(21)]
+    bl = [10 - i for i in range(21)]
+    clamped = max(-2000.0, min(2000.0, float(spread)))
+    idx = min(range(len(bk)), key=lambda i: abs(bk[i] - clamped))
+    return int(bl[idx])
+
+def compute_post_scraping_math(matrices_val, matrices_color, log_fn=print):
+    """
+    Computes mathematical models following EXCEL8EXAMPLE specification:
+    1. Differentials & Rating for Interest Rate, Inflation (CPI), and GDP Growth
+    2. 12-Month rolling average monthly flow and spreads for FX Reserves
+    3. Final COMPARATIVE MATRIX sheet compiling composite scores and macro bias
+    """
+    new_val = dict(matrices_val)
+    new_color = dict(matrices_color)
+    pair_ratings = {}
+
+    # 1. Process Interest Rate Differentials
+    if "Interest Rate" in matrices_val:
+        df_ir = matrices_val["Interest Rate"].copy().set_index("Country")
+        timeframes = [c for c in df_ir.columns if c != "Country"]
+        diff_rows = []
+        rating_rows = []
+        for pair_name, base_c, quote_c in PAIRS_DEF:
+            if base_c in df_ir.index and quote_c in df_ir.index:
+                b_series = pd.to_numeric(df_ir.loc[base_c, timeframes], errors='coerce')
+                q_series = pd.to_numeric(df_ir.loc[quote_c, timeframes], errors='coerce')
+                diff_series = (b_series - q_series).round(2)
+                rate_series = diff_series.apply(rate_interest_rate)
+                diff_rows.append({"Pair": pair_name, **diff_series.to_dict()})
+                rating_rows.append({"Pair": pair_name, **rate_series.to_dict()})
+                pair_ratings.setdefault(pair_name, {})["Interest Rate"] = rate_series
+
+        if diff_rows:
+            new_val["Diff - Interest Rate"] = pd.DataFrame(diff_rows)
+            new_val["Rating - Interest Rate"] = pd.DataFrame(rating_rows)
+            log_fn("  -> ✅ Calculated Interest Rate Differentials & Ratings")
+
+    # 2. Process Inflation Differentials
+    cpi_key = "Inflation" if "Inflation" in matrices_val else ("CPI Inflation" if "CPI Inflation" in matrices_val else None)
+    if cpi_key:
+        df_cpi = matrices_val[cpi_key].copy().set_index("Country")
+        timeframes = [c for c in df_cpi.columns if c != "Country"]
+        diff_rows = []
+        rating_rows = []
+        for pair_name, base_c, quote_c in PAIRS_DEF:
+            if base_c in df_cpi.index and quote_c in df_cpi.index:
+                b_series = pd.to_numeric(df_cpi.loc[base_c, timeframes], errors='coerce')
+                q_series = pd.to_numeric(df_cpi.loc[quote_c, timeframes], errors='coerce')
+                diff_series = (b_series - q_series).round(2)
+                rate_series = diff_series.apply(rate_cpi)
+                diff_rows.append({"Pair": pair_name, **diff_series.to_dict()})
+                rating_rows.append({"Pair": pair_name, **rate_series.to_dict()})
+                pair_ratings.setdefault(pair_name, {})["Inflation"] = rate_series
+
+        if diff_rows:
+            new_val["Diff - Inflation"] = pd.DataFrame(diff_rows)
+            new_val["Rating - Inflation"] = pd.DataFrame(rating_rows)
+            log_fn("  -> ✅ Calculated Inflation Differentials & Ratings")
+
+    # 3. Process GDP Growth Differentials
+    if "GDP Growth" in matrices_val:
+        df_gdp = matrices_val["GDP Growth"].copy().set_index("Country")
+        timeframes = [c for c in df_gdp.columns if c != "Country"]
+        diff_rows = []
+        rating_rows = []
+        for pair_name, base_c, quote_c in PAIRS_DEF:
+            if base_c in df_gdp.index and quote_c in df_gdp.index:
+                b_series = pd.to_numeric(df_gdp.loc[base_c, timeframes], errors='coerce')
+                q_series = pd.to_numeric(df_gdp.loc[quote_c, timeframes], errors='coerce')
+                diff_series = (b_series - q_series).round(2)
+                rate_series = diff_series.apply(rate_gdp)
+                diff_rows.append({"Pair": pair_name, **diff_series.to_dict()})
+                rating_rows.append({"Pair": pair_name, **rate_series.to_dict()})
+                pair_ratings.setdefault(pair_name, {})["GDP Growth"] = rate_series
+
+        if diff_rows:
+            new_val["Diff - GDP Growth"] = pd.DataFrame(diff_rows)
+            new_val["Rating - GDP Growth"] = pd.DataFrame(rating_rows)
+            log_fn("  -> ✅ Calculated GDP Growth Differentials & Ratings")
+
+    # 4. Process FX Reserves: 12-Month Rolling Flow & Spread
+    if "FX Reserves" in matrices_val:
+        df_fx = matrices_val["FX Reserves"].copy().set_index("Country")
+        timeframes = [c for c in df_fx.columns if c != "Country"]
+        df_fx_num = df_fx[timeframes].apply(pd.to_numeric, errors='coerce')
+        delta = df_fx_num.diff(axis=1)
+        rolling_12m = delta.T.rolling(window=12, min_periods=1).mean().T.round(2)
+        
+        spread_rows = []
+        rating_rows = []
+        for pair_name, base_c, quote_c in PAIRS_DEF:
+            if base_c in rolling_12m.index and quote_c in rolling_12m.index:
+                b_series = rolling_12m.loc[base_c]
+                q_series = rolling_12m.loc[quote_c]
+                spread_series = (b_series - q_series).round(2)
+                rate_series = spread_series.apply(rate_fx_spread)
+                spread_rows.append({"Pair": pair_name, **spread_series.to_dict()})
+                rating_rows.append({"Pair": pair_name, **rate_series.to_dict()})
+                pair_ratings.setdefault(pair_name, {})["FX Reserves"] = rate_series
+
+        if spread_rows:
+            new_val["12M Avg Flow - FX Reserves"] = rolling_12m.reset_index()
+            new_val["Spread - FX Reserves"] = pd.DataFrame(spread_rows)
+            new_val["Rating - FX Reserves"] = pd.DataFrame(rating_rows)
+            log_fn("  -> ✅ Calculated FX Reserves 12M Rolling Flow, Spreads & Ratings")
+
+    # 5. Build COMPARATIVE MATRIX
+    if pair_ratings:
+        cm_rows = []
+        for pair_name, ind_dict in pair_ratings.items():
+            sample_series = next(iter(ind_dict.values()))
+            t_cols = list(sample_series.index)
+            pair_df = pd.DataFrame(ind_dict)
+            total_score = pair_df.sum(axis=1, min_count=1)
+            num_indicators = len(ind_dict)
+            max_score = num_indicators * 10.0
+            bias_pct = ((total_score / max_score) * 100).round(1)
+            
+            def get_bias(p):
+                if pd.isna(p): return "N/A"
+                if p >= 20.0: return "BULLISH"
+                if p <= -20.0: return "BEARISH"
+                return "NEUTRAL"
+            
+            regimes = bias_pct.apply(get_bias)
+
+            for ind_name, r_series in ind_dict.items():
+                cm_rows.append({"Pair": pair_name, "Metric": f"{ind_name} Rating", **r_series.to_dict()})
+            cm_rows.append({"Pair": pair_name, "Metric": "TOTAL SCORE", **total_score.to_dict()})
+            cm_rows.append({"Pair": pair_name, "Metric": "BIAS PERCENTAGE (%)", **bias_pct.to_dict()})
+            cm_rows.append({"Pair": pair_name, "Metric": "MACRO REGIME", **regimes.to_dict()})
+            cm_rows.append({"Pair": pair_name, "Metric": "---", **{c: "" for c in t_cols}})
+
+        new_val["COMPARATIVE MATRIX"] = pd.DataFrame(cm_rows)
+        log_fn("  -> 🏆 Assembled Final COMPARATIVE MATRIX & Macro Bias Regimes")
+
+    return new_val, new_color
+
 class WariScraperApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -449,7 +635,15 @@ class WariScraperApp(ctk.CTk):
         finally:
             if 'driver' in locals(): driver.quit()
 
-        # 3. Export to multi-sheet Excel workbook with formatted styling
+        # 3. Post-Scraping Math & Macro Comparative Transformation
+        if matrices_val:
+            self.log("🧮 Executing Post-Scraping Mathematical Pipeline & Comparative Matrix...")
+            try:
+                matrices_val, matrices_color = compute_post_scraping_math(matrices_val, matrices_color, self.log)
+            except Exception as e:
+                self.log(f"⚠️ Math calculation note: {e}")
+
+        # 4. Export to multi-sheet Excel workbook with formatted styling
         if matrices_val:
             self.log("📊 Compiling Excel File with Multiple Sheets...")
             

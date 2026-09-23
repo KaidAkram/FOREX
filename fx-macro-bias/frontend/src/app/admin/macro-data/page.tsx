@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { AlertCircle, ChevronDown, CheckCircle2, Loader2, Sparkles, TrendingUp, TrendingDown, Minus, Calendar, Database } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Loader2, Sparkles, TrendingUp, TrendingDown, Minus, Calendar, Database } from "lucide-react";
 import { clsx } from "clsx";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,6 +32,22 @@ export default function MacroDataPage() {
   const [selectedCell, setSelectedCell] = useState<{ c: string; m: string; val: string } | null>(null);
   const [overrideInputVal, setOverrideInputVal] = useState<string>("");
   const [overrides, setOverrides] = useState<Record<string, string>>({});
+
+  // Pagination states (5 items per page to perfectly fit viewport with ZERO scrolling)
+  const [matrixPage, setMatrixPage] = useState<number>(1);
+  const matrixItemsPerPage = 5;
+
+  const [diffPage, setDiffPage] = useState<number>(1);
+  const diffItemsPerPage = 5;
+
+  // Reset pagination on filter change
+  useEffect(() => {
+    setMatrixPage(1);
+  }, [activeInd, selectedYear]);
+
+  useEffect(() => {
+    setDiffPage(1);
+  }, [activePair, activeInd, selectedYear]);
 
   // Dropdown Open States (Click-controlled)
   const [isOpenPairDropdown, setIsOpenPairDropdown] = useState(false);
@@ -116,14 +132,30 @@ export default function MacroDataPage() {
 
   const activePairObj = PAIRS.find(p => p.name === activePair) || PAIRS[0];
 
+  // Tab 1: Matrix Pagination
+  const totalMatrixRows = matrixData?.length || 0;
+  const totalMatrixPages = Math.ceil(totalMatrixRows / matrixItemsPerPage) || 1;
+  const paginatedMatrixRows = matrixData?.slice(
+    (matrixPage - 1) * matrixItemsPerPage,
+    matrixPage * matrixItemsPerPage
+  );
+
+  // Tab 2: Differential Pagination
+  const totalDiffRows = combinedData?.length || 0;
+  const totalDiffPages = Math.ceil(totalDiffRows / diffItemsPerPage) || 1;
+  const paginatedDiffRows = combinedData?.slice(
+    (diffPage - 1) * diffItemsPerPage,
+    diffPage * diffItemsPerPage
+  );
+
   return (
-    <div className="flex flex-col w-full h-full bg-transparent relative justify-between overflow-x-hidden">
+    <div className="flex flex-col w-full h-full max-h-screen bg-transparent relative justify-between overflow-hidden">
       
       {/* 1. Header: Clean placement with GlobalSearch & AuthHeaderWidget */}
-      <header className="w-full flex items-center justify-between px-8 py-5 pb-2 opacity-0 animate-fadeIn">
-        <div className="flex flex-col gap-1">
-          <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine Data Pipeline</span>
-          <h1 className="font-sans font-bold text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
+      <header className="w-full flex items-center justify-between px-8 py-3 pb-1 opacity-0 animate-fadeIn flex-shrink-0">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-sans font-medium text-[11px] text-[#A0A5B1]">Engine Data Pipeline</span>
+          <h1 className="font-sans font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
             Macro Data Center
           </h1>
         </div>
@@ -134,8 +166,8 @@ export default function MacroDataPage() {
         </div>
       </header>
 
-      {/* 2. Main Content Container: Sized to fit comfortably with FULL tables */}
-      <main className="flex-1 flex flex-col px-8 gap-3.5 pb-6 max-w-[1550px] w-full mx-auto">
+      {/* 2. Main Content Container: Sized to fit comfortably with ZERO scrolling */}
+      <main className="flex-1 flex flex-col px-8 gap-2.5 pb-4 max-w-[1550px] w-full mx-auto overflow-hidden justify-between min-h-0">
         
         {/* Controls Toolbar: Elevated z-index so dropdowns float ON TOP of tables */}
         <div className="relative z-50 flex items-center justify-between gap-3 opacity-0 animate-slideUp">
@@ -353,13 +385,13 @@ export default function MacroDataPage() {
         <div className={clsx("flex flex-col relative z-0 overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
           
           {/* ============================================================== */}
-          {/* TAB 1: MACRO DATA MATRIX (All 10 G10 Countries Full Table)     */}
+          {/* TAB 1: MACRO DATA MATRIX (Paginated 5 per page, zero scroll)  */}
           {/* ============================================================== */}
           {activeTab === "Macro Data Matrix" && (
-            <div className="flex flex-col w-full">
+            <div className="flex flex-col w-full h-full justify-between">
               
               {/* Header Info Banner */}
-              <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.01]">
+              <div className="flex items-center justify-between px-6 py-2.5 border-b border-white/5 bg-white/[0.01] flex-shrink-0">
                 <div className="flex items-center gap-2.5">
                   <Database size={15} className="text-[#D2F646]" />
                   <span className="font-sans font-bold text-xs text-white">
@@ -382,8 +414,8 @@ export default function MacroDataPage() {
                 </div>
               </div>
 
-              {/* Matrix Table with All 10 G10 Countries (FULL) */}
-              <div className="overflow-x-auto w-full p-4">
+              {/* Matrix Table with 5 Sovereign Countries per Page */}
+              <div className="overflow-x-auto w-full p-3 flex-1 flex flex-col justify-center">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/5">
@@ -395,17 +427,17 @@ export default function MacroDataPage() {
                   </thead>
                   <tbody className="divide-y divide-white/[0.03]">
                     {matrixLoading ? (
-                      Array.from({ length: 10 }).map((_, i) => (
+                      Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i}>
-                          <td className="px-4 py-2.5 border-r border-white/5"><div className="w-[120px] h-[20px] bg-white/5 rounded-md animate-pulse" /></td>
-                          {displayMonths.map((m, j) => <td key={j} className="p-2"><div className="w-[75px] h-[36px] bg-white/5 rounded-xl animate-pulse mx-auto" /></td>)}
+                          <td className="px-4 py-2 border-r border-white/5"><div className="w-[120px] h-[20px] bg-white/5 rounded-md animate-pulse" /></td>
+                          {displayMonths.map((m, j) => <td key={j} className="p-1.5"><div className="w-[75px] h-[32px] bg-white/5 rounded-xl animate-pulse mx-auto" /></td>)}
                         </tr>
                       ))
                     ) : (
-                      matrixData?.map((row: any, i: number) => (
+                      paginatedMatrixRows?.map((row: any, i: number) => (
                         <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                           <td className="px-4 py-2 border-r border-white/5">
-                            <div className="flex items-center gap-2.5 p-1 whitespace-nowrap">
+                            <div className="flex items-center gap-2.5 p-0.5 whitespace-nowrap">
                               <img src={`/flags/${row.base}.svg`} className="w-5 h-5 rounded-full border border-white/10 shadow-sm flex-shrink-0" alt={row.base} />
                               <span className="font-sans font-bold text-xs text-white">{row.country}</span>
                             </div>
@@ -440,26 +472,68 @@ export default function MacroDataPage() {
                 </table>
               </div>
 
-              {/* Bottom Summary Bar - Fills bottom neatly */}
-              <div className="flex items-center justify-between px-6 py-2.5 border-t border-white/5 bg-[#121418]/60 text-xs">
-                <span className="font-sans text-[#A0A5B1]">
-                  Displaying complete <strong className="text-white">10 of 10 G10 economies</strong> across {displayMonths.length} monthly statistical releases.
-                </span>
-                <span className="font-mono text-[#6FF542] text-[11px] font-bold">
-                  100% Ingestion Coverage
-                </span>
+              {/* Bottom Pagination & Summary Bar */}
+              <div className="flex items-center justify-between px-6 py-2.5 border-t border-white/5 bg-[#121418]/60 text-xs flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <span className="font-sans text-[#A0A5B1]">
+                    Showing <strong className="text-white font-mono">{totalMatrixRows > 0 ? ((matrixPage - 1) * matrixItemsPerPage) + 1 : 0}</strong>–<strong className="text-white font-mono">{Math.min(matrixPage * matrixItemsPerPage, totalMatrixRows)}</strong> of <strong className="text-white font-mono">{totalMatrixRows}</strong> sovereign economies
+                  </span>
+                  <span className="hidden sm:inline-block h-3 w-px bg-white/10" />
+                  <span className="hidden sm:flex items-center gap-1.5 font-mono text-[10px] text-[#6FF542] font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#6FF542] animate-pulse" />
+                    100% Ingestion Coverage
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-[#A0A5B1] mr-1 hidden md:inline-block">
+                    Page {matrixPage} of {totalMatrixPages}
+                  </span>
+                  <button
+                    onClick={() => setMatrixPage(p => Math.max(1, p - 1))}
+                    disabled={matrixPage === 1}
+                    className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
+                  >
+                    <ChevronLeft size={14} />
+                    <span>Prev</span>
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalMatrixPages }).map((_, idx) => (
+                      <button
+                        key={idx + 1}
+                        onClick={() => setMatrixPage(idx + 1)}
+                        className={clsx(
+                          "w-7 h-7 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center",
+                          matrixPage === idx + 1
+                            ? "bg-[#D2F646] text-[#121418] font-black shadow-[0_0_12px_rgba(210,246,70,0.35)]"
+                            : "bg-white/5 text-[#A0A5B1] hover:text-white hover:bg-white/10 border border-white/10"
+                        )}
+                      >
+                        {idx + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setMatrixPage(p => Math.min(totalMatrixPages, p + 1))}
+                    disabled={matrixPage === totalMatrixPages}
+                    className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Next</span>
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {/* ============================================================== */}
-          {/* TAB 2: COMBINED DIFFERENTIAL & RATING (FULL TABLE NO VOID)     */}
+          {/* TAB 2: COMBINED DIFFERENTIAL & RATING (Paginated 5 per page)   */}
           {/* ============================================================== */}
           {activeTab === "Differential & Rating" && (
-            <div className="flex flex-col w-full">
+            <div className="flex flex-col w-full h-full justify-between">
               
               {/* Header Info Banner */}
-              <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.01]">
+              <div className="flex items-center justify-between px-6 py-2.5 border-b border-white/5 bg-white/[0.01] flex-shrink-0">
                 <div className="flex items-center gap-2.5">
                   <FlagStack base={activePairObj.base} quote={activePairObj.quote} />
                   <span className="font-sans font-bold text-xs text-white">
@@ -474,43 +548,43 @@ export default function MacroDataPage() {
                 </div>
               </div>
 
-              {/* Table with ALL Available Months of the Year (FULL) */}
-              <div className="overflow-x-auto w-full p-4">
+              {/* Table with 5 Monthly Releases per Page */}
+              <div className="overflow-x-auto w-full p-3 flex-1 flex flex-col justify-center">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#A0A5B1]">
-                      <th className="py-2.5 px-4 w-[140px]">Release Month</th>
-                      <th className="py-2.5 px-4 text-center w-[160px]">Base ({activePairObj.baseName})</th>
-                      <th className="py-2.5 px-4 text-center w-[160px]">Quote ({activePairObj.quoteName})</th>
-                      <th className="py-2.5 px-4 text-center w-[180px]">Calculated Differential</th>
-                      <th className="py-2.5 px-4 text-center w-[180px]">Rule Threshold</th>
-                      <th className="py-2.5 px-4 text-center w-[220px]">Engine Sentiment Regime</th>
-                      <th className="py-2.5 px-4 text-right w-[130px]">Rating Score</th>
+                      <th className="py-2 px-4 w-[140px]">Release Month</th>
+                      <th className="py-2 px-4 text-center w-[160px]">Base ({activePairObj.baseName})</th>
+                      <th className="py-2 px-4 text-center w-[160px]">Quote ({activePairObj.quoteName})</th>
+                      <th className="py-2 px-4 text-center w-[180px]">Calculated Differential</th>
+                      <th className="py-2 px-4 text-center w-[180px]">Rule Threshold</th>
+                      <th className="py-2 px-4 text-center w-[220px]">Engine Sentiment Regime</th>
+                      <th className="py-2 px-4 text-right w-[130px]">Rating Score</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.03] text-xs">
                     {combinedLoading ? (
-                      Array.from({ length: 9 }).map((_, i) => (
+                      Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i}>
-                          <td colSpan={7} className="p-3"><div className="w-full h-[28px] bg-white/5 rounded-md animate-pulse" /></td>
+                          <td colSpan={7} className="p-2"><div className="w-full h-[28px] bg-white/5 rounded-md animate-pulse" /></td>
                         </tr>
                       ))
                     ) : (
-                      combinedData?.map((row: any, i: number) => {
+                      paginatedDiffRows?.map((row: any, i: number) => {
                         const isPositive = row.rating > 0;
                         const isNegative = row.rating < 0;
 
                         return (
                           <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                             {/* Month */}
-                            <td className="py-2.5 px-4">
-                              <span className="font-mono font-bold text-xs text-white bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+                            <td className="py-2 px-4">
+                              <span className="font-mono font-bold text-xs text-white bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg">
                                 {row.month}
                               </span>
                             </td>
 
                             {/* Base */}
-                            <td className="py-2.5 px-4 text-center">
+                            <td className="py-2 px-4 text-center">
                               <div className="inline-flex items-center gap-1.5 font-mono text-xs text-[#A0A5B1]">
                                 <img src={`/flags/${activePairObj.base}.svg`} className="w-4 h-4 rounded-full border border-white/10" alt={activePairObj.base} />
                                 <span className="text-white font-bold">{row.baseVal}{activeInd !== "FX Reserves" ? "%" : "M"}</span>
@@ -518,7 +592,7 @@ export default function MacroDataPage() {
                             </td>
 
                             {/* Quote */}
-                            <td className="py-2.5 px-4 text-center">
+                            <td className="py-2 px-4 text-center">
                               <div className="inline-flex items-center gap-1.5 font-mono text-xs text-[#A0A5B1]">
                                 <img src={`/flags/${activePairObj.quote}.svg`} className="w-4 h-4 rounded-full border border-white/10" alt={activePairObj.quote} />
                                 <span className="text-white font-bold">{row.quoteVal}{activeInd !== "FX Reserves" ? "%" : "M"}</span>
@@ -526,9 +600,9 @@ export default function MacroDataPage() {
                             </td>
 
                             {/* Differential */}
-                            <td className="py-2.5 px-4 text-center">
+                            <td className="py-2 px-4 text-center">
                               <span className={clsx(
-                                "inline-block font-mono font-bold text-xs px-2.5 py-1 rounded-lg",
+                                "inline-block font-mono font-bold text-xs px-2.5 py-0.5 rounded-lg",
                                 row.diffNum > 0 ? "text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20" :
                                 row.diffNum < 0 ? "text-[#FF5B5B] bg-[#FF4444]/10 border border-[#FF4444]/20" :
                                 "text-white bg-white/5 border border-white/10"
@@ -538,15 +612,15 @@ export default function MacroDataPage() {
                             </td>
 
                             {/* Rule Applied */}
-                            <td className="py-2.5 px-4 text-center">
-                              <span className="font-mono text-xs text-[#A0A5B1] bg-white/[0.03] border border-white/5 px-2.5 py-1 rounded-lg">
+                            <td className="py-2 px-4 text-center">
+                              <span className="font-mono text-[11px] text-[#A0A5B1] bg-white/[0.03] border border-white/5 px-2 py-0.5 rounded-lg">
                                 {row.rule}
                               </span>
                             </td>
 
                             {/* Engine Sentiment Regime */}
-                            <td className="py-2.5 px-4 text-center">
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                            <td className="py-2 px-4 text-center">
+                              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold">
                                 {isPositive && (
                                   <span className="flex items-center gap-1 text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/25 px-2.5 py-0.5 rounded-full">
                                     <TrendingUp size={12} />
@@ -569,9 +643,9 @@ export default function MacroDataPage() {
                             </td>
 
                             {/* Rating Score Impact */}
-                            <td className="py-2.5 px-4 text-right">
+                            <td className="py-2 px-4 text-right">
                               <span className={clsx(
-                                "inline-block px-3 py-1 rounded-xl font-mono font-bold text-xs shadow-sm",
+                                "inline-block px-2.5 py-0.5 rounded-xl font-mono font-bold text-xs shadow-sm",
                                 isPositive ? "bg-[#D2F646]/15 text-[#D2F646] border border-[#D2F646]/30" :
                                 isNegative ? "bg-[#FF4444]/15 text-[#FF4444] border border-[#FF4444]/30" :
                                 "bg-white/5 text-[#A0A5B1] border border-white/10"
@@ -587,16 +661,57 @@ export default function MacroDataPage() {
                 </table>
               </div>
 
-              {/* Bottom Summary Bar - Fills bottom neatly */}
-              <div className="flex items-center justify-between px-6 py-2.5 border-t border-white/5 bg-[#121418]/60 text-xs">
-                <span className="font-sans text-[#A0A5B1]">
-                  Total of <strong className="text-white">{combinedData?.length || 0} monthly observations</strong> evaluated for {activePair} across {selectedYear}.
-                </span>
-                <div className="flex items-center gap-2 font-mono text-[11px]">
-                  <span className="text-[#A0A5B1]">Net Annual Rating Sum:</span>
-                  <span className="text-[#D2F646] font-bold bg-[#D2F646]/10 border border-[#D2F646]/20 px-2 py-0.5 rounded-lg">
-                    {combinedData ? combinedData.reduce((acc: number, r: any) => acc + r.rating, 0) : 0} pts
+              {/* Bottom Pagination & Summary Bar */}
+              <div className="flex items-center justify-between px-6 py-2.5 border-t border-white/5 bg-[#121418]/60 text-xs flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <span className="font-sans text-[#A0A5B1]">
+                    Showing <strong className="text-white font-mono">{totalDiffRows > 0 ? ((diffPage - 1) * diffItemsPerPage) + 1 : 0}</strong>–<strong className="text-white font-mono">{Math.min(diffPage * diffItemsPerPage, totalDiffRows)}</strong> of <strong className="text-white font-mono">{totalDiffRows}</strong> observations ({activePair})
                   </span>
+                  <span className="hidden sm:inline-block h-3 w-px bg-white/10" />
+                  <div className="flex items-center gap-1.5 font-mono text-xs">
+                    <span className="text-[#A0A5B1]">Net Rating:</span>
+                    <span className="text-[#D2F646] font-bold bg-[#D2F646]/10 border border-[#D2F646]/20 px-2 py-0.5 rounded-lg">
+                      {combinedData ? combinedData.reduce((acc: number, r: any) => acc + r.rating, 0) : 0} pts
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-[#A0A5B1] mr-1 hidden md:inline-block">
+                    Page {diffPage} of {totalDiffPages}
+                  </span>
+                  <button
+                    onClick={() => setDiffPage(p => Math.max(1, p - 1))}
+                    disabled={diffPage === 1}
+                    className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
+                  >
+                    <ChevronLeft size={14} />
+                    <span>Prev</span>
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalDiffPages }).map((_, idx) => (
+                      <button
+                        key={idx + 1}
+                        onClick={() => setDiffPage(idx + 1)}
+                        className={clsx(
+                          "w-7 h-7 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center",
+                          diffPage === idx + 1
+                            ? "bg-[#D2F646] text-[#121418] font-black shadow-[0_0_12px_rgba(210,246,70,0.35)]"
+                            : "bg-white/5 text-[#A0A5B1] hover:text-white hover:bg-white/10 border border-white/10"
+                        )}
+                      >
+                        {idx + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setDiffPage(p => Math.min(totalDiffPages, p + 1))}
+                    disabled={diffPage === totalDiffPages}
+                    className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Next</span>
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
               </div>
             </div>

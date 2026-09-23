@@ -195,18 +195,18 @@ export default function RatingRulesPage() {
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-transparent relative overflow-hidden justify-between">
+    <div className="flex flex-col w-full h-full max-h-screen bg-transparent relative overflow-hidden justify-between">
       {/* Header - Compact Spacing */}
-      <header className="w-full flex items-center justify-between px-8 py-5 pb-3 opacity-0 animate-fadeIn">
-        <div className="flex flex-col gap-1">
-          <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine Logic Configuration</span>
-          <h1 className="font-sans font-bold text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
+      <header className="w-full flex items-center justify-between px-8 py-3 pb-1 opacity-0 animate-fadeIn flex-shrink-0">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-sans font-medium text-[11px] text-[#A0A5B1]">Engine Logic Configuration</span>
+          <h1 className="font-sans font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
             Rating Rules
           </h1>
         </div>
         <div className="flex items-center gap-3">
           <GlobalSearch placeholder="Search rating rules, thresholds..." />
-          <div className="flex items-center gap-2 bg-[#161822]/85 backdrop-blur-xl border border-white/5 rounded-2xl px-3.5 py-2 shadow-lg">
+          <div className="flex items-center gap-2 bg-[#161822]/85 backdrop-blur-xl border border-white/5 rounded-2xl px-3.5 py-1.5 shadow-lg">
              <ShieldCheck size={16} className="text-[#D2F646]" />
              <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine: <span className="text-white font-bold">Live</span></span>
           </div>
@@ -215,7 +215,7 @@ export default function RatingRulesPage() {
       </header>
 
       {/* Main Container - Compact and snug to avoid any empty voids or vertical scrolling */}
-      <main className="flex flex-col px-8 gap-3.5 pb-6 max-w-[1450px] w-full mx-auto">
+      <main className="flex-1 flex flex-col px-8 gap-2.5 pb-4 max-w-[1550px] w-full mx-auto overflow-hidden justify-between min-h-0">
         
         {/* Controls Toolbar */}
         <div className="flex items-center justify-between opacity-0 animate-slideUp">

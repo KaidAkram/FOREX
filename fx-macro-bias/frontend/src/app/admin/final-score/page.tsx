@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { clsx } from "clsx";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -82,7 +82,7 @@ export default function FinalScorePage() {
   const [selectedCell, setSelectedCell] = useState<{ pair: string; base: string; quote: string; data: any } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedYear, setSelectedYear] = useState<number>(YEARS[0]);
-  const itemsPerPage = 8;
+  const itemsPerPage = 4;
 
   const { data: scoresData, isLoading } = useQuery({
     queryKey: ["final-scores", selectedYear],
@@ -92,33 +92,33 @@ export default function FinalScorePage() {
   const displayMonths = Array.from({ length: selectedYear === new Date().getFullYear() ? new Date().getMonth() + 1 : 12 }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, '0')}`);
 
   const totalItems = scoresData?.length || 0;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentData = scoresData?.slice(startIndex, endIndex);
 
   return (
-    <div className="flex flex-col w-full h-full bg-transparent relative">
-      <header className="w-full flex items-center justify-between p-[40px_48px] pb-[32px] opacity-0 animate-fadeIn relative z-50" style={{ animationDelay: "0.1s" }}>
-        <div className="flex flex-col gap-[8px]">
-          <span className="font-sans font-medium text-[16px] text-[#A0A5B1]">Engine Output</span>
-          <h1 className="font-sans font-bold text-[40px] text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
+    <div className="flex flex-col w-full h-full max-h-screen bg-transparent relative justify-between overflow-hidden">
+      <header className="w-full flex items-center justify-between px-8 py-3 pb-1 opacity-0 animate-fadeIn relative z-50 flex-shrink-0" style={{ animationDelay: "0.1s" }}>
+        <div className="flex flex-col gap-0.5">
+          <span className="font-sans font-medium text-[11px] text-[#A0A5B1]">Engine Output</span>
+          <h1 className="font-sans font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
             Final Score Matrix
           </h1>
         </div>
-        <div className="flex items-center gap-[16px]">
-          <GlobalSearch />
-          <div className="relative group flex items-center bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-[16px] px-[16px] py-[10px] shadow-lg cursor-pointer">
-            <span className="font-sans font-bold text-[15px] text-white mr-[8px]">{selectedYear}</span>
-            <ChevronDown size={18} className="text-[#A0A5B1] transition-transform group-hover:rotate-180" />
+        <div className="flex items-center gap-3">
+          <GlobalSearch placeholder="Search indicators, pairs, countries..." />
+          <div className="relative group flex items-center bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-2xl px-3.5 py-1.5 shadow-lg cursor-pointer">
+            <span className="font-sans font-bold text-xs text-white mr-2">{selectedYear}</span>
+            <ChevronDown size={14} className="text-[#A0A5B1] transition-transform group-hover:rotate-180" />
             
-            <div className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#121418] border border-white/5 rounded-[16px] overflow-hidden shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#121418] border border-white/5 rounded-2xl overflow-hidden shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               {YEARS.map(year => (
                 <button
                   key={year}
                   onClick={() => setSelectedYear(year)}
                   className={clsx(
-                    "w-full px-[16px] py-[12px] text-left font-sans font-bold text-[14px] transition-colors",
+                    "w-full px-4 py-2 text-left font-sans font-bold text-xs transition-colors",
                     selectedYear === year ? "bg-white/10 text-white" : "text-[#A0A5B1] hover:bg-white/5 hover:text-white"
                   )}
                 >
@@ -131,31 +131,31 @@ export default function FinalScorePage() {
         </div>
       </header>
 
-      <main className="flex flex-col px-[48px] gap-[24px] pb-[64px] max-w-[1400px]">
-        <div className={clsx("flex-1 flex flex-col overflow-hidden relative p-[32px] opacity-0 animate-slideUp", matteCard)} style={{ animationDelay: "0.2s" }}>
-          <div className="w-full overflow-x-auto no-scrollbar">
-            <table className="w-full text-left border-collapse min-w-[1200px]">
+      <main className="flex-1 flex flex-col px-8 gap-2.5 pb-4 max-w-[1550px] w-full mx-auto overflow-hidden justify-between min-h-0">
+        <div className={clsx("flex-1 flex flex-col justify-between overflow-hidden relative p-3 opacity-0 animate-slideUp min-h-0 shadow-2xl", matteCard)} style={{ animationDelay: "0.2s" }}>
+          <div className="w-full overflow-x-auto no-scrollbar flex-1 flex flex-col justify-center">
+            <table className="w-full text-left border-collapse min-w-[1100px]">
               <thead>
                 <tr>
-                  <th className="px-[16px] py-[16px] pb-[16px] font-sans font-medium text-[14px] text-[#A0A5B1] border-b border-white/5 w-[160px] border-r sticky left-0 z-20 bg-[#121418]/95 backdrop-blur-md shadow-[4px_0_12px_rgba(0,0,0,0.1)]">FX Pair</th>
+                  <th className="px-4 py-1.5 font-sans font-medium text-xs text-[#A0A5B1] border-b border-white/5 w-[160px] border-r sticky left-0 z-20 bg-[#121418]/95 backdrop-blur-md shadow-[4px_0_12px_rgba(0,0,0,0.1)]">FX Pair</th>
                   {displayMonths.map((m) => (
-                    <th key={m} className="px-[16px] py-[16px] pb-[16px] font-sans font-medium text-[14px] text-[#A0A5B1] border-b border-white/5 text-center min-w-[140px]">{m}</th>
+                    <th key={m} className="px-3 py-1.5 font-sans font-medium text-xs text-[#A0A5B1] border-b border-white/5 text-center min-w-[110px]">{m}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/[0.03]">
                 {isLoading ? (
                   Array.from({ length: itemsPerPage }).map((_, i) => (
                     <tr key={i} className="border-b border-white/5">
-                      <td className="px-[24px] py-[24px] border-r border-white/5"><div className="w-full h-[24px] bg-white/5 rounded-md animate-pulse" /></td>
-                      {displayMonths.map((m, j) => <td key={j} className="p-[12px]"><div className="w-full h-[70px] bg-white/5 rounded-[16px] animate-pulse" /></td>)}
+                      <td className="px-4 py-2 border-r border-white/5"><div className="w-[120px] h-[20px] bg-white/5 rounded-md animate-pulse" /></td>
+                      {displayMonths.map((m, j) => <td key={j} className="p-1.5"><div className="w-full h-[46px] bg-white/5 rounded-xl animate-pulse" /></td>)}
                     </tr>
                   ))
                 ) : (
                   currentData?.map((row: any, i: number) => (
-                    <tr key={i} className="group border-b border-white/5 last:border-0 cursor-default hover:bg-white/5 transition-colors">
-                      <td className="px-[24px] py-[16px] border-r border-white/5 sticky left-0 z-20 bg-[#1E2028] backdrop-blur-md shadow-[4px_0_12px_rgba(0,0,0,0.1)] group-hover:bg-[#242731] transition-colors">
-                        <div className="flex items-center gap-[12px] p-[12px] transition-colors duration-200 cursor-pointer font-sans font-bold text-[17px] text-[#FFFFFF] whitespace-nowrap">
+                    <tr key={i} className="group border-b border-white/5 last:border-0 cursor-default hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-1 border-r border-white/5 sticky left-0 z-20 bg-[#1E2028] backdrop-blur-md shadow-[4px_0_12px_rgba(0,0,0,0.1)] group-hover:bg-[#242731] transition-colors">
+                        <div className="flex items-center gap-2.5 p-1 transition-colors duration-200 cursor-pointer font-sans font-bold text-xs text-white whitespace-nowrap">
                           <FlagStack base={row.base} quote={row.quote} />
                           <span>{row.pair}</span>
                         </div>
@@ -164,22 +164,22 @@ export default function FinalScorePage() {
                         const isBullish = cell.bias === "BULLISH";
                         const isBearish = cell.bias === "BEARISH";
                         return (
-                          <td key={j} className="px-[12px] py-[12px] text-center relative group/cell">
+                          <td key={j} className="px-1.5 py-1 text-center relative group/cell">
                             <button 
                               onClick={() => setSelectedCell({ pair: row.pair, base: row.base, quote: row.quote, data: cell })}
                               className={clsx(
-                                "inline-flex flex-col items-center justify-center w-full p-[16px] rounded-[16px] transition-all duration-300 hover:scale-[1.05] hover:shadow-[0_10px_20px_rgba(0,0,0,0.4)] cursor-pointer relative overflow-hidden group-hover/cell:z-10 group-hover/cell:border-white/10 border border-transparent",
+                                "inline-flex flex-col items-center justify-center w-full py-1.5 px-2 rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_8px_16px_rgba(0,0,0,0.3)] cursor-pointer relative overflow-hidden group-hover/cell:z-10 group-hover/cell:border-white/10 border border-transparent",
                                 isBullish ? "bg-[#1E2E1E]" : isBearish ? "bg-[#2E1E1E]" : "bg-[#242731]"
                               )}
                             >
                               <span className={clsx(
-                                "font-sans text-[20px] font-bold z-10 transition-transform duration-300",
-                                isBullish ? "text-[#6FF542]" : isBearish ? "text-[#FF4444]" : "text-[#FFFFFF]"
+                                "font-sans text-[15px] font-extrabold z-10 transition-transform",
+                                isBullish ? "text-[#6FF542]" : isBearish ? "text-[#FF4444]" : "text-white"
                               )}>
                                 {parseFloat(cell.finalScorePct) > 0 ? `+${cell.finalScorePct}%` : `${cell.finalScorePct}%`}
                               </span>
                               <span className={clsx(
-                                "mt-[8px] z-10 font-sans text-[11px] font-bold tracking-widest uppercase",
+                                "mt-0.5 z-10 font-sans text-[9px] font-bold tracking-widest uppercase",
                                 isBullish ? "text-[#6FF542]/70" : isBearish ? "text-[#FF4444]/70" : "text-[#A0A5B1]"
                               )}>
                                 {cell.bias}
@@ -197,44 +197,48 @@ export default function FinalScorePage() {
 
           {/* Pagination Footer */}
           {!isLoading && totalPages > 1 && (
-            <div className="flex items-center justify-between w-full pt-[24px] mt-[16px] border-t border-white/5">
-              <span className="font-sans font-bold text-[12px] text-[#A0A5B1] tracking-widest uppercase">
-                Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} Entries
+            <div className="flex items-center justify-between w-full pt-2.5 mt-1 border-t border-white/5 flex-shrink-0 text-xs">
+              <span className="font-sans text-[#A0A5B1]">
+                Showing <strong className="text-white font-mono">{startIndex + 1}</strong>–<strong className="text-white font-mono">{Math.min(endIndex, totalItems)}</strong> of <strong className="text-white font-mono">{totalItems}</strong> FX Pairs
               </span>
-              <div className="flex items-center gap-[8px]">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs text-[#A0A5B1] mr-1 hidden sm:inline-block">
+                  Page {currentPage} of {totalPages}
+                </span>
                 <button 
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-[12px] py-[8px] font-sans font-bold text-[12px] text-[#A0A5B1] hover:text-white disabled:opacity-50 transition-colors uppercase tracking-wider"
-                >Prev</button>
+                  className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
+                >
+                  <ChevronLeft size={14} />
+                  <span>Prev</span>
+                </button>
                 
-                {Array.from({ length: Math.min(3, totalPages) }).map((_, i) => {
-                  let pageNum = currentPage;
-                  if (currentPage === 1) pageNum = i + 1;
-                  else if (currentPage === totalPages) pageNum = totalPages - 2 + i;
-                  else pageNum = currentPage - 1 + i;
-                  
-                  if (pageNum < 1 || pageNum > totalPages) return null;
-
-                  return (
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }).map((_, i) => (
                     <button 
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
+                      key={i + 1}
+                      onClick={() => setCurrentPage(i + 1)}
                       className={clsx(
-                        "w-[32px] h-[32px] rounded-[8px] flex items-center justify-center font-sans font-bold text-[13px] transition-all",
-                        currentPage === pageNum ? "bg-[#D2F646]/10 text-[#D2F646] border border-[#D2F646]/20" : "text-[#A0A5B1] hover:bg-white/5 hover:text-white"
+                        "w-7 h-7 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center",
+                        currentPage === i + 1 
+                          ? "bg-[#D2F646] text-[#121418] font-black shadow-[0_0_12px_rgba(210,246,70,0.35)]" 
+                          : "bg-white/5 text-[#A0A5B1] hover:text-white hover:bg-white/10 border border-white/10"
                       )}
                     >
-                      {pageNum}
+                      {i + 1}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
                 
                 <button 
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-[12px] py-[8px] font-sans font-bold text-[12px] text-[#A0A5B1] hover:text-white disabled:opacity-50 transition-colors uppercase tracking-wider"
-                >Next</button>
+                  className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Next</span>
+                  <ChevronRight size={14} />
+                </button>
               </div>
             </div>
           )}

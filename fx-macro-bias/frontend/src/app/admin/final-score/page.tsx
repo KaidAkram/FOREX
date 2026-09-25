@@ -117,105 +117,108 @@ export default function FinalScorePage() {
       </header>
 
       <main className="flex-1 flex flex-col px-8 gap-4 pb-8 max-w-[1550px] w-full mx-auto justify-start">
-        <div className={clsx("flex flex-col relative overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
-          
-          {/* Header Info Banner */}
-          <div className="flex items-center justify-between px-6 py-2.5 border-b border-white/5 bg-white/[0.01]">
-            <div className="flex items-center gap-2.5">
-              <span className="font-sans font-bold text-xs text-white">
-                G10 Sovereign Macro Bias Composite Score Matrix ({selectedYear})
-              </span>
+        {/* Centered Table Container */}
+        <div className="flex-1 flex flex-col justify-center my-auto w-full py-2">
+          <div className={clsx("flex flex-col relative overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
+            
+            {/* Header Info Banner */}
+            <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.01]">
+              <div className="flex items-center gap-2.5">
+                <span className="font-sans font-bold text-sm text-white">
+                  G10 Sovereign Macro Bias Composite Score Matrix ({selectedYear})
+                </span>
+              </div>
+              <div className="flex items-center gap-4 text-xs font-mono text-[#A0A5B1]">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#6FF542]" />
+                  Bullish (≥ +20%)
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#A0A5B1]" />
+                  Neutral (-20% to +20%)
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF4444]" />
+                  Bearish (≤ -20%)
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-[11px] font-mono text-[#A0A5B1]">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#6FF542]" />
-                Bullish (≥ +20%)
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#A0A5B1]" />
-                Neutral (-20% to +20%)
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#FF4444]" />
-                Bearish (≤ -20%)
-              </span>
+
+            {/* Matrix Table with All 7 G10 Pairs starting at the TOP */}
+            <div className="overflow-x-auto w-full p-4">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="px-4 py-3 font-sans font-semibold text-sm text-[#A0A5B1] w-[180px] border-r border-white/5">FX Pair</th>
+                    {displayMonths.map((m) => (
+                      <th key={m} className="px-3 py-3 font-sans font-semibold text-sm text-[#A0A5B1] text-center min-w-[105px]">{m}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.03]">
+                  {isLoading ? (
+                    Array.from({ length: 7 }).map((_, i) => (
+                      <tr key={i}>
+                        <td className="px-4 py-3 border-r border-white/5"><div className="w-[130px] h-[24px] bg-white/5 rounded-md animate-pulse" /></td>
+                        {displayMonths.map((m, j) => <td key={j} className="p-2"><div className="w-full h-[48px] bg-white/5 rounded-xl animate-pulse" /></td>)}
+                      </tr>
+                    ))
+                  ) : (
+                    scoresData?.map((row: any, i: number) => (
+                      <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="px-4 py-2.5 border-r border-white/5">
+                          <div className="flex items-center gap-3 p-0.5 whitespace-nowrap">
+                            <FlagStack base={row.base} quote={row.quote} />
+                            <span className="font-sans font-bold text-sm text-white">{row.pair}</span>
+                          </div>
+                        </td>
+                        {row.data.map((cell: any, j: number) => {
+                          const isBullish = cell.bias === "BULLISH";
+                          const isBearish = cell.bias === "BEARISH";
+                          return (
+                            <td key={j} className="px-1.5 py-1.5 text-center relative group/cell">
+                              <button 
+                                onClick={() => setSelectedCell({ pair: row.pair, base: row.base, quote: row.quote, data: cell })}
+                                className={clsx(
+                                  "inline-flex flex-col items-center justify-center w-full py-2 px-2.5 rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border",
+                                  isBullish ? "bg-[#1E2E1E]/80 border-[#6FF542]/20" : isBearish ? "bg-[#2E1E1E]/80 border-[#FF4444]/20" : "bg-[#242731]/70 border-transparent"
+                                )}
+                              >
+                                <span className={clsx(
+                                  "font-sans text-[15px] font-extrabold transition-transform",
+                                  isBullish ? "text-[#6FF542]" : isBearish ? "text-[#FF4444]" : "text-white"
+                                )}>
+                                  {parseFloat(cell.finalScorePct) > 0 ? `+${cell.finalScorePct}%` : `${cell.finalScorePct}%`}
+                                </span>
+                                <span className={clsx(
+                                  "mt-0.5 font-sans text-[9px] font-bold tracking-wider uppercase",
+                                  isBullish ? "text-[#6FF542]/80" : isBearish ? "text-[#FF4444]/80" : "text-[#A0A5B1]"
+                                )}>
+                                  {cell.bias}
+                                </span>
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          </div>
 
-          {/* Matrix Table with All 7 G10 Pairs starting at the TOP */}
-          <div className="overflow-x-auto w-full p-3">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/5">
-                  <th className="px-4 py-2 font-sans font-medium text-xs text-[#A0A5B1] w-[160px] border-r border-white/5">FX Pair</th>
-                  {displayMonths.map((m) => (
-                    <th key={m} className="px-3 py-2 font-sans font-medium text-xs text-[#A0A5B1] text-center min-w-[100px]">{m}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.03]">
-                {isLoading ? (
-                  Array.from({ length: 7 }).map((_, i) => (
-                    <tr key={i}>
-                      <td className="px-4 py-2 border-r border-white/5"><div className="w-[120px] h-[20px] bg-white/5 rounded-md animate-pulse" /></td>
-                      {displayMonths.map((m, j) => <td key={j} className="p-1.5"><div className="w-full h-[44px] bg-white/5 rounded-xl animate-pulse" /></td>)}
-                    </tr>
-                  ))
-                ) : (
-                  scoresData?.map((row: any, i: number) => (
-                    <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-1.5 border-r border-white/5">
-                        <div className="flex items-center gap-2.5 p-0.5 whitespace-nowrap">
-                          <FlagStack base={row.base} quote={row.quote} />
-                          <span className="font-sans font-bold text-xs text-white">{row.pair}</span>
-                        </div>
-                      </td>
-                      {row.data.map((cell: any, j: number) => {
-                        const isBullish = cell.bias === "BULLISH";
-                        const isBearish = cell.bias === "BEARISH";
-                        return (
-                          <td key={j} className="px-1 py-1 text-center relative group/cell">
-                            <button 
-                              onClick={() => setSelectedCell({ pair: row.pair, base: row.base, quote: row.quote, data: cell })}
-                              className={clsx(
-                                "inline-flex flex-col items-center justify-center w-full py-1.5 px-2 rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border",
-                                isBullish ? "bg-[#1E2E1E]/80 border-[#6FF542]/20" : isBearish ? "bg-[#2E1E1E]/80 border-[#FF4444]/20" : "bg-[#242731]/70 border-transparent"
-                              )}
-                            >
-                              <span className={clsx(
-                                "font-sans text-[14px] font-extrabold transition-transform",
-                                isBullish ? "text-[#6FF542]" : isBearish ? "text-[#FF4444]" : "text-white"
-                              )}>
-                                {parseFloat(cell.finalScorePct) > 0 ? `+${cell.finalScorePct}%` : `${cell.finalScorePct}%`}
-                              </span>
-                              <span className={clsx(
-                                "mt-0.5 font-sans text-[8px] font-bold tracking-wider uppercase",
-                                isBullish ? "text-[#6FF542]/80" : isBearish ? "text-[#FF4444]/80" : "text-[#A0A5B1]"
-                              )}>
-                                {cell.bias}
-                              </span>
-                            </button>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Bottom Summary Bar */}
-          <div className="flex items-center justify-between px-6 py-2.5 border-t border-white/5 bg-[#121418]/60 text-xs">
-            <span className="font-sans text-[#A0A5B1]">
-              Displaying all <strong className="text-white">7 of 7 Core G10 Currency Pairs</strong> evaluated across {displayMonths.length} monthly statistical releases.
-            </span>
-            <div className="flex items-center gap-2 font-mono text-[11px] text-[#D2F646] font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#6FF542] animate-pulse" />
-              Composite Macro Regimes Live
+            {/* Bottom Summary Bar */}
+            <div className="flex items-center justify-between px-6 py-3 border-t border-white/5 bg-[#121418]/60 text-sm">
+              <span className="font-sans text-[#A0A5B1]">
+                Composite Model: <strong className="text-white">7 Active Currency Pairs</strong> calculated via 6-tier macro weighted engine.
+              </span>
+              <span className="font-mono text-[#6FF542] text-xs font-bold">
+                100% Ingestion Complete
+              </span>
             </div>
           </div>
         </div>
+
 
         <AnimatePresence>
           {selectedCell && (

@@ -537,454 +537,452 @@ export default function MacroDataPage() {
           </div>
         </div>
 
-        {/* 3. Table Card: Placed snugly right below the toolbar */}
-        <div className={clsx("flex flex-col relative z-0 overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
-          
-          {/* ============================================================== */}
-          {/* TAB 1: MACRO DATA MATRIX (Paginated 5 per page)                */}
-          {/* ============================================================== */}
-          {activeTab === "Macro Data Matrix" && (
-            <div className="flex flex-col w-full">
-              
-              {/* Header Info Banner */}
-              <div className="flex items-center justify-between px-6 py-2.5 border-b border-white/5 bg-white/[0.01] flex-shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <Database size={15} className="text-[#D2F646]" />
-                  <span className="font-sans font-bold text-xs text-white">
-                    G10 Currency Sovereign Matrix: {activeInd} {activeInd === "FX Reserves" ? "(USD Millions)" : activeInd === "Interest Rate" ? "(% Policy Rate)" : activeInd === "CPI" ? "(% YoY Inflation)" : "(% Growth / Spread)"} ({selectedYear})
-                  </span>
-                </div>
+        {/* 3. Table Card: Centered vertically in the middle of the screen */}
+        <div className="flex-1 flex flex-col justify-center my-auto w-full py-2">
+          <div className={clsx("flex flex-col relative z-0 overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
+            
+            {/* ============================================================== */}
+            {/* TAB 1: MACRO DATA MATRIX (Paginated 5 per page)                */}
+            {/* ============================================================== */}
+            {activeTab === "Macro Data Matrix" && (
+              <div className="flex flex-col w-full">
                 
-                {/* Visual Legend with Distinct Indicator for Forward Assumptions */}
-                <div className="flex items-center gap-4 text-[11px] font-mono text-[#A0A5B1]">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#6FF542]" />
-                    Published (Official)
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#A0A5B1]" />
-                    Manual Override
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#FF4444]" />
-                    Missing Print
-                  </span>
-                  <span className="flex items-center gap-1.5 text-[#FFD066] font-bold bg-[#F5A623]/15 border border-[#F5A623]/30 px-2.5 py-0.5 rounded-full shadow-[0_0_12px_rgba(245,166,35,0.2)]">
-                    <Sparkles size={11} className="text-[#FFD066] animate-pulse" />
-                    User Assumption (Forward Dates)
-                  </span>
-                </div>
-              </div>
-
-              {/* Matrix Table with 5 Sovereign Countries per Page */}
-              <div className="overflow-x-auto w-full p-3">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/5">
-                      <th className="px-4 py-2.5 font-sans font-medium text-xs text-[#A0A5B1] w-[180px] border-r border-white/5">
-                        Country / Sovereign
-                      </th>
-                      {displayMonths.map((m, j) => {
-                        const isUpcoming = j >= 9;
-                        return (
-                          <th 
-                            key={m} 
-                            className={clsx(
-                              "px-2.5 py-2 text-center min-w-[90px] transition-colors",
-                              isUpcoming ? 
-                                "bg-[#F5A623]/[0.08] border-b-2 border-[#F5A623]/50" : 
-                                "font-sans font-medium text-xs text-[#A0A5B1]",
-                              j === 9 && "border-l-2 border-dashed border-[#F5A623]/50"
-                            )}
-                          >
-                            {isUpcoming ? (
-                              <div className="flex flex-col items-center justify-center gap-0.5">
-                                <span className="inline-flex items-center gap-1 text-[8px] font-mono font-black text-[#F5A623] bg-[#F5A623]/25 border border-[#F5A623]/45 px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow-sm">
-                                  <Sparkles size={8} className="text-[#FFD066]" /> Assumption
-                                </span>
-                                <span className="font-mono font-bold text-xs text-[#FFD066] tracking-tight">{m}</span>
-                              </div>
-                            ) : (
-                              <span>{m}</span>
-                            )}
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.03]">
-                    {matrixLoading ? (
-                      Array.from({ length: 5 }).map((_, i) => (
-                        <tr key={i}>
-                          <td className="px-4 py-2 border-r border-white/5"><div className="w-[120px] h-[20px] bg-white/5 rounded-md animate-pulse" /></td>
-                          {displayMonths.map((m, j) => (
-                            <td key={j} className={clsx("p-1.5", j >= 9 && "bg-[#F5A623]/[0.02]", j === 9 && "border-l-2 border-dashed border-[#F5A623]/30")}>
-                              <div className="w-[75px] h-[32px] bg-white/5 rounded-xl animate-pulse mx-auto" />
-                            </td>
-                          ))}
-                        </tr>
-                      ))
-                    ) : (
-                      paginatedMatrixRows?.map((row: any, i: number) => (
-                        <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="px-4 py-2 border-r border-white/5">
-                            <div className="flex items-center gap-2.5 p-0.5 whitespace-nowrap">
-                              <img src={`/flags/${row.base}.svg`} className="w-5 h-5 rounded-full border border-white/10 shadow-sm flex-shrink-0" alt={row.base} />
-                              <span className="font-sans font-bold text-xs text-white">{row.country}</span>
-                            </div>
-                          </td>
-                          {row.data.map((cell: any, j: number) => {
-                            const isUpcoming = j >= 9;
-
-                            if (isUpcoming) {
-                              // ==========================================
-                              // 3 UPCOMING USER ASSUMPTION COLUMNS (STAND OUT)
-                              // ==========================================
-                              return (
-                                <td 
-                                  key={j} 
-                                  className={clsx(
-                                    "px-1.5 py-1.5 text-center relative group/cell bg-[#F5A623]/[0.03] hover:bg-[#F5A623]/[0.08] transition-colors",
-                                    j === 9 && "border-l-2 border-dashed border-[#F5A623]/50"
-                                  )}
-                                >
-                                  <button
-                                    onClick={() => {
-                                      setSelectedAssumptionCell({ c: row.country, m: displayMonths[j], val: cell.value || "" });
-                                      setAssumptionInputVal(cell.value || "");
-                                    }}
-                                    title={`Click to fill assumption for ${row.country} (${displayMonths[j]})`}
-                                    className={clsx(
-                                      "inline-flex flex-col items-center justify-center w-[84px] py-1 px-1 rounded-xl transition-all duration-150 cursor-pointer hover:scale-[1.04]",
-                                      cell.value ? 
-                                        "bg-[#F5A623]/15 hover:bg-[#F5A623]/25 border border-[#F5A623]/50 shadow-[0_0_12px_rgba(245,166,35,0.18)]" :
-                                        "border border-dashed border-[#F5A623]/35 hover:border-[#F5A623]/70 bg-transparent hover:bg-[#F5A623]/10"
-                                    )}
-                                  >
-                                    <span className={clsx(
-                                      "font-mono text-xs font-black transition-transform",
-                                      cell.value ? "text-[#FFD066] drop-shadow-[0_0_6px_rgba(245,166,35,0.3)]" : "text-[#F5A623]/60 italic font-medium"
-                                    )}>
-                                      {cell.value ? `${cell.value}${activeInd === "FX Reserves" ? "" : "%"}` : "+ Set"}
-                                    </span>
-                                    <div className="mt-0.5">
-                                      {cell.value ? (
-                                        <span className="inline-flex items-center gap-0.5 bg-[#F5A623]/25 text-[#FFD066] border border-[#F5A623]/50 px-1.5 py-0.2 rounded text-[8px] font-black tracking-wider uppercase shadow-sm">
-                                          <Sparkles size={7} /> Est
-                                        </span>
-                                      ) : (
-                                        <span className="bg-[#F5A623]/10 text-[#F5A623]/80 border border-[#F5A623]/25 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase group-hover:bg-[#F5A623]/20 group-hover:text-[#FFD066]">
-                                          Assume
-                                        </span>
-                                      )}
-                                    </div>
-                                  </button>
-                                </td>
-                              );
-                            }
-
-                            // ==========================================
-                            // 9 PUBLISHED OFFICIAL DATA COLUMNS
-                            // ==========================================
-                            return (
-                              <td key={j} className="px-1.5 py-1 text-center relative group/cell">
-                                <button 
-                                  onClick={() => {
-                                    setSelectedCell({ c: row.country, m: displayMonths[j], val: cell.value || "N/A" });
-                                    setOverrideInputVal(cell.value || "");
-                                  }}
-                                  className="inline-flex flex-col items-center justify-center w-[84px] py-1 px-1 rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border border-transparent"
-                                >
-                                  <span className={clsx(
-                                    "font-sans text-xs font-bold transition-transform",
-                                    cell.status === "missing" ? "text-[#FF4444]" : "text-white"
-                                  )}>
-                                    {cell.value || "—"}
-                                  </span>
-                                  <div className="mt-0.5">
-                                    {cell.status === "published" && <span className="bg-[#6FF542]/10 text-[#6FF542] border border-[#6FF542]/20 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase">Pub</span>}
-                                    {cell.status === "manual" && <span className="bg-[#A0A5B1]/10 text-[#A0A5B1] border border-white/10 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase">Man</span>}
-                                    {cell.status === "missing" && <span className="bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/20 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase">Mis</span>}
-                                  </div>
-                                </button>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Bottom Pagination & Summary Bar */}
-              <div className="flex items-center justify-between px-6 py-2.5 border-t border-white/5 bg-[#121418]/60 text-xs flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <span className="font-sans text-[#A0A5B1]">
-                    Showing <strong className="text-white font-mono">{totalMatrixRows > 0 ? ((matrixPage - 1) * matrixItemsPerPage) + 1 : 0}</strong>–<strong className="text-white font-mono">{Math.min(matrixPage * matrixItemsPerPage, totalMatrixRows)}</strong> of <strong className="text-white font-mono">{totalMatrixRows}</strong> sovereign economies
-                  </span>
-                  <span className="hidden sm:inline-block h-3 w-px bg-white/10" />
-                  <span className="hidden sm:flex items-center gap-1.5 font-mono text-[10px] text-[#6FF542] font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#6FF542] animate-pulse" />
-                    9 Published Prints • 3 Forward Assumption Slots Active
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-[#A0A5B1] mr-1 hidden md:inline-block">
-                    Page {matrixPage} of {totalMatrixPages}
-                  </span>
-                  <button
-                    onClick={() => setMatrixPage(p => Math.max(1, p - 1))}
-                    disabled={matrixPage === 1}
-                    className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
-                  >
-                    <ChevronLeft size={14} />
-                    <span>Prev</span>
-                  </button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalMatrixPages }).map((_, idx) => (
-                      <button
-                        key={idx + 1}
-                        onClick={() => setMatrixPage(idx + 1)}
-                        className={clsx(
-                          "w-7 h-7 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center",
-                          matrixPage === idx + 1
-                            ? "bg-[#D2F646] text-[#121418] font-black shadow-[0_0_12px_rgba(210,246,70,0.35)]"
-                            : "bg-white/5 text-[#A0A5B1] hover:text-white hover:bg-white/10 border border-white/10"
-                        )}
-                      >
-                        {idx + 1}
-                      </button>
-                    ))}
+                {/* Header Info Banner */}
+                <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.01] flex-shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <Database size={17} className="text-[#D2F646]" />
+                    <span className="font-sans font-bold text-sm text-white">
+                      G10 Currency Sovereign Matrix: {activeInd} {activeInd === "FX Reserves" ? "(USD Millions)" : activeInd === "Interest Rate" ? "(% Policy Rate)" : activeInd === "CPI" ? "(% YoY Inflation)" : "(% Growth / Spread)"} ({selectedYear})
+                    </span>
                   </div>
-                  <button
-                    onClick={() => setMatrixPage(p => Math.min(totalMatrixPages, p + 1))}
-                    disabled={matrixPage === totalMatrixPages}
-                    className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Next</span>
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* TAB 2: COMBINED DIFFERENTIAL & RATING (Paginated 5 per page)   */}
-          {/* ============================================================== */}
-          {activeTab === "Differential & Rating" && (
-            <div className="flex flex-col w-full">
-              
-              {/* Header Info Banner */}
-              <div className="flex items-center justify-between px-6 py-2.5 border-b border-white/5 bg-white/[0.01] flex-shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <FlagStack base={activePairObj.base} quote={activePairObj.quote} />
-                  <span className="font-sans font-bold text-xs text-white">
-                    Differential Transformation: {activePair} • {activeInd} ({selectedYear})
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 font-mono text-xs text-[#A0A5B1]">
-                  <span>Formula: </span>
-                  <span className="text-[#D2F646] font-bold">
-                    {activeInd === "FX Reserves" ? `Diff = ${activePairObj.baseName} (USD M) − ${activePairObj.quoteName} (USD M)` : `Diff = ${activePairObj.baseName} (%) − ${activePairObj.quoteName} (%)`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Table with Monthly Releases & Forward Assumptions */}
-              <div className="overflow-x-auto w-full p-3">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#A0A5B1]">
-                      <th className="py-2 px-4 w-[150px]">Release Month</th>
-                      <th className="py-2 px-4 text-center w-[160px]">Base ({activePairObj.baseName})</th>
-                      <th className="py-2 px-4 text-center w-[160px]">Quote ({activePairObj.quoteName})</th>
-                      <th className="py-2 px-4 text-center w-[180px]">Calculated Differential</th>
-                      <th className="py-2 px-4 text-center w-[180px]">Rule Threshold</th>
-                      <th className="py-2 px-4 text-center w-[220px]">Engine Sentiment Regime</th>
-                      <th className="py-2 px-4 text-right w-[130px]">Rating Score</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.03] text-xs">
-                    {combinedLoading ? (
-                      Array.from({ length: 5 }).map((_, i) => (
-                        <tr key={i}>
-                          <td colSpan={7} className="p-2"><div className="w-full h-[28px] bg-white/5 rounded-md animate-pulse" /></td>
-                        </tr>
-                      ))
-                    ) : (
-                      paginatedDiffRows?.map((row: any, i: number) => {
-                        const isPositive = row.rating > 0;
-                        const isNegative = row.rating < 0;
-                        const isAssumptionRow = Boolean(row.isAssumption);
-
-                        return (
-                          <tr 
-                            key={i} 
-                            className={clsx(
-                              "transition-colors",
-                              isAssumptionRow ? "bg-[#F5A623]/[0.03] hover:bg-[#F5A623]/[0.06]" : "hover:bg-white/[0.02]"
-                            )}
-                          >
-                            {/* Month */}
-                            <td className="py-2 px-4">
-                              <span className={clsx(
-                                "font-mono font-bold text-xs px-2 py-0.5 rounded-lg inline-flex items-center gap-1",
-                                isAssumptionRow ? 
-                                  "text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/35" : 
-                                  "text-white bg-white/5 border border-white/10"
-                              )}>
-                                {isAssumptionRow && <Sparkles size={9} className="text-[#FFD066]" />}
-                                {row.month}
-                                {isAssumptionRow && <span className="text-[9px] uppercase font-bold text-[#F5A623]">Est</span>}
-                              </span>
-                            </td>
-
-                            {/* Base */}
-                            <td className="py-2 px-4 text-center">
-                              <div className="inline-flex items-center gap-1.5 font-mono text-xs text-[#A0A5B1]">
-                                <img src={`/flags/${activePairObj.base}.svg`} className="w-4 h-4 rounded-full border border-white/10" alt={activePairObj.base} />
-                                <span className={clsx("font-bold", isAssumptionRow ? "text-[#FFD066]" : "text-white")}>
-                                  {row.baseVal}{row.baseVal !== "—" && activeInd !== "FX Reserves" ? "%" : row.baseVal !== "—" ? "M" : ""}
-                                </span>
-                              </div>
-                            </td>
-
-                            {/* Quote */}
-                            <td className="py-2 px-4 text-center">
-                              <div className="inline-flex items-center gap-1.5 font-mono text-xs text-[#A0A5B1]">
-                                <img src={`/flags/${activePairObj.quote}.svg`} className="w-4 h-4 rounded-full border border-white/10" alt={activePairObj.quote} />
-                                <span className={clsx("font-bold", isAssumptionRow ? "text-[#FFD066]" : "text-white")}>
-                                  {row.quoteVal}{row.quoteVal !== "—" && activeInd !== "FX Reserves" ? "%" : row.quoteVal !== "—" ? "M" : ""}
-                                </span>
-                              </div>
-                            </td>
-
-                            {/* Differential */}
-                            <td className="py-2 px-4 text-center">
-                              <span className={clsx(
-                                "inline-block font-mono font-bold text-xs px-2.5 py-0.5 rounded-lg",
-                                isAssumptionRow ? "text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/30" :
-                                row.diffNum > 0 ? "text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20" :
-                                row.diffNum < 0 ? "text-[#FF5B5B] bg-[#FF4444]/10 border border-[#FF4444]/20" :
-                                "text-white bg-white/5 border border-white/10"
-                              )}>
-                                {row.diff}{row.diff !== "—" && activeInd !== "FX Reserves" ? "%" : row.diff !== "—" ? "M" : ""}
-                              </span>
-                            </td>
-
-                            {/* Rule Applied */}
-                            <td className="py-2 px-4 text-center">
-                              <span className="font-mono text-[11px] text-[#A0A5B1] bg-white/[0.03] border border-white/5 px-2 py-0.5 rounded-lg">
-                                {row.rule}
-                              </span>
-                            </td>
-
-                            {/* Engine Sentiment Regime */}
-                            <td className="py-2 px-4 text-center">
-                              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold">
-                                {isAssumptionRow ? (
-                                  <span className="flex items-center gap-1 text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/30 px-2.5 py-0.5 rounded-full">
-                                    <Sparkles size={11} className="text-[#FFD066]" />
-                                    <span>{row.regime}</span>
-                                  </span>
-                                ) : isPositive ? (
-                                  <span className="flex items-center gap-1 text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/25 px-2.5 py-0.5 rounded-full">
-                                    <TrendingUp size={12} />
-                                    <span>{row.regime}</span>
-                                  </span>
-                                ) : isNegative ? (
-                                  <span className="flex items-center gap-1 text-[#FF5B5B] bg-[#FF4444]/10 border border-[#FF4444]/25 px-2.5 py-0.5 rounded-full">
-                                    <TrendingDown size={12} />
-                                    <span>{row.regime}</span>
-                                  </span>
-                                ) : (
-                                  <span className="flex items-center gap-1 text-[#A0A5B1] bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
-                                    <Minus size={12} />
-                                    <span>{row.regime}</span>
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Rating Score Impact */}
-                            <td className="py-2 px-4 text-right">
-                              <span className={clsx(
-                                "inline-block px-2.5 py-0.5 rounded-xl font-mono font-bold text-xs shadow-sm",
-                                isAssumptionRow ? "bg-[#F5A623]/20 text-[#FFD066] border border-[#F5A623]/40" :
-                                isPositive ? "bg-[#D2F646]/15 text-[#D2F646] border border-[#D2F646]/30" :
-                                isNegative ? "bg-[#FF4444]/15 text-[#FF4444] border border-[#FF4444]/30" :
-                                "bg-white/5 text-[#A0A5B1] border border-white/10"
-                              )}>
-                                {isPositive ? `+${row.rating}` : row.rating}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Bottom Pagination & Summary Bar */}
-              <div className="flex items-center justify-between px-6 py-2.5 border-t border-white/5 bg-[#121418]/60 text-xs flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <span className="font-sans text-[#A0A5B1]">
-                    Showing <strong className="text-white font-mono">{totalDiffRows > 0 ? ((diffPage - 1) * diffItemsPerPage) + 1 : 0}</strong>–<strong className="text-white font-mono">{Math.min(diffPage * diffItemsPerPage, totalDiffRows)}</strong> of <strong className="text-white font-mono">{totalDiffRows}</strong> observations ({activePair})
-                  </span>
-                  <span className="hidden sm:inline-block h-3 w-px bg-white/10" />
-                  <div className="flex items-center gap-1.5 font-mono text-xs">
-                    <span className="text-[#A0A5B1]">Net Rating:</span>
-                    <span className="text-[#D2F646] font-bold bg-[#D2F646]/10 border border-[#D2F646]/20 px-2 py-0.5 rounded-lg">
-                      {combinedData ? combinedData.reduce((acc: number, r: any) => acc + r.rating, 0) : 0} pts
+                  
+                  {/* Visual Legend with Distinct Indicator for Forward Assumptions */}
+                  <div className="flex items-center gap-4 text-xs font-mono text-[#A0A5B1]">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#6FF542]" />
+                      Published (Official)
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#A0A5B1]" />
+                      Manual Override
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF4444]" />
+                      Missing Print
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[#FFD066] font-bold bg-[#F5A623]/15 border border-[#F5A623]/30 px-3 py-1 rounded-full shadow-[0_0_12px_rgba(245,166,35,0.2)]">
+                      <Sparkles size={13} className="text-[#FFD066] animate-pulse" />
+                      User Assumption (Forward Dates)
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-[#A0A5B1] mr-1 hidden md:inline-block">
-                    Page {diffPage} of {totalDiffPages}
-                  </span>
-                  <button
-                    onClick={() => setDiffPage(p => Math.max(1, p - 1))}
-                    disabled={diffPage === 1}
-                    className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
-                  >
-                    <ChevronLeft size={14} />
-                    <span>Prev</span>
-                  </button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalDiffPages }).map((_, idx) => (
-                      <button
-                        key={idx + 1}
-                        onClick={() => setDiffPage(idx + 1)}
-                        className={clsx(
-                          "w-7 h-7 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center",
-                          diffPage === idx + 1
-                            ? "bg-[#D2F646] text-[#121418] font-black shadow-[0_0_12px_rgba(210,246,70,0.35)]"
-                            : "bg-white/5 text-[#A0A5B1] hover:text-white hover:bg-white/10 border border-white/10"
-                        )}
-                      >
-                        {idx + 1}
-                      </button>
-                    ))}
+                {/* Matrix Table with 5 Sovereign Countries per Page */}
+                <div className="overflow-x-auto w-full p-4">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/5">
+                        <th className="px-4 py-3 font-sans font-semibold text-sm text-[#A0A5B1] w-[200px] border-r border-white/5">
+                          Country / Sovereign
+                        </th>
+                        {displayMonths.map((m, j) => {
+                          const isUpcoming = j >= 9;
+                          return (
+                            <th 
+                              key={m} 
+                              className={clsx(
+                                "px-3 py-2.5 text-center min-w-[95px] transition-colors",
+                                isUpcoming ? 
+                                  "bg-[#F5A623]/[0.08] border-b-2 border-[#F5A623]/50" : 
+                                  "font-sans font-semibold text-sm text-[#A0A5B1]",
+                                j === 9 && "border-l-2 border-dashed border-[#F5A623]/50"
+                              )}
+                            >
+                              {isUpcoming ? (
+                                <div className="flex flex-col items-center justify-center gap-0.5">
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-mono font-black text-[#F5A623] bg-[#F5A623]/25 border border-[#F5A623]/45 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                                    <Sparkles size={9} className="text-[#FFD066]" /> Assumption
+                                  </span>
+                                  <span className="font-mono font-bold text-sm text-[#FFD066] tracking-tight">{m}</span>
+                                </div>
+                              ) : (
+                                <span>{m}</span>
+                              )}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.03]">
+                      {matrixLoading ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                          <tr key={i}>
+                            <td className="px-4 py-3 border-r border-white/5"><div className="w-[130px] h-[24px] bg-white/5 rounded-md animate-pulse" /></td>
+                            {displayMonths.map((m, j) => (
+                              <td key={j} className={clsx("p-2", j >= 9 && "bg-[#F5A623]/[0.02]", j === 9 && "border-l-2 border-dashed border-[#F5A623]/30")}>
+                                <div className="w-[80px] h-[36px] bg-white/5 rounded-xl animate-pulse mx-auto" />
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      ) : (
+                        paginatedMatrixRows?.map((row: any, i: number) => (
+                          <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="px-4 py-3 border-r border-white/5">
+                              <div className="flex items-center gap-3 p-0.5 whitespace-nowrap">
+                                <img src={`/flags/${row.base}.svg`} className="w-6 h-6 rounded-full border border-white/10 shadow-sm flex-shrink-0" alt={row.base} />
+                                <span className="font-sans font-bold text-sm text-white">{row.country}</span>
+                              </div>
+                            </td>
+                            {row.data.map((cell: any, j: number) => {
+                              const isUpcoming = j >= 9;
+
+                              if (isUpcoming) {
+                                // 3 Upcoming User Assumption Columns
+                                return (
+                                  <td 
+                                    key={j} 
+                                    className={clsx(
+                                      "px-2 py-2 text-center relative group/cell bg-[#F5A623]/[0.03] hover:bg-[#F5A623]/[0.08] transition-colors",
+                                      j === 9 && "border-l-2 border-dashed border-[#F5A623]/50"
+                                    )}
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        setSelectedAssumptionCell({ c: row.country, m: displayMonths[j], val: cell.value || "" });
+                                        setAssumptionInputVal(cell.value || "");
+                                      }}
+                                      title={`Click to fill assumption for ${row.country} (${displayMonths[j]})`}
+                                      className={clsx(
+                                        "inline-flex flex-col items-center justify-center w-[88px] py-1.5 px-1.5 rounded-xl transition-all duration-150 cursor-pointer hover:scale-[1.04]",
+                                        cell.value ? 
+                                          "bg-[#F5A623]/15 hover:bg-[#F5A623]/25 border border-[#F5A623]/50 shadow-[0_0_12px_rgba(245,166,35,0.18)]" :
+                                          "border border-dashed border-[#F5A623]/35 hover:border-[#F5A623]/70 bg-transparent hover:bg-[#F5A623]/10"
+                                      )}
+                                    >
+                                      <span className={clsx(
+                                        "font-mono text-sm font-black transition-transform",
+                                        cell.value ? "text-[#FFD066] drop-shadow-[0_0_6px_rgba(245,166,35,0.3)]" : "text-[#F5A623]/70 italic font-medium"
+                                      )}>
+                                        {cell.value ? `${cell.value}${activeInd === "FX Reserves" ? "" : "%"}` : "+ Set"}
+                                      </span>
+                                      <div className="mt-0.5">
+                                        {cell.value ? (
+                                          <span className="inline-flex items-center gap-0.5 bg-[#F5A623]/25 text-[#FFD066] border border-[#F5A623]/50 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase shadow-sm">
+                                            <Sparkles size={8} /> Est
+                                          </span>
+                                        ) : (
+                                          <span className="bg-[#F5A623]/10 text-[#F5A623]/80 border border-[#F5A623]/25 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase group-hover:bg-[#F5A623]/20 group-hover:text-[#FFD066]">
+                                            Assume
+                                          </span>
+                                        )}
+                                      </div>
+                                    </button>
+                                  </td>
+                                );
+                              }
+
+                              // 9 Published Official Data Columns
+                              return (
+                                <td key={j} className="px-2 py-2 text-center relative group/cell">
+                                  <button 
+                                    onClick={() => {
+                                      setSelectedCell({ c: row.country, m: displayMonths[j], val: cell.value || "N/A" });
+                                      setOverrideInputVal(cell.value || "");
+                                    }}
+                                    className="inline-flex flex-col items-center justify-center w-[88px] py-1.5 px-1.5 rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border border-transparent"
+                                  >
+                                    <span className={clsx(
+                                      "font-mono text-sm font-bold transition-transform",
+                                      cell.status === "missing" ? "text-[#FF4444]" : "text-white"
+                                    )}>
+                                      {cell.value || "—"}
+                                    </span>
+                                    <div className="mt-0.5">
+                                      {cell.status === "published" && <span className="bg-[#6FF542]/10 text-[#6FF542] border border-[#6FF542]/20 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">Pub</span>}
+                                      {cell.status === "manual" && <span className="bg-[#A0A5B1]/10 text-[#A0A5B1] border border-white/10 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">Man</span>}
+                                      {cell.status === "missing" && <span className="bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/20 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">Mis</span>}
+                                    </div>
+                                  </button>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Bottom Pagination & Summary Bar */}
+                <div className="flex items-center justify-between px-6 py-3 border-t border-white/5 bg-[#121418]/60 text-sm flex-shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="font-sans text-[#A0A5B1]">
+                      Showing <strong className="text-white font-mono">{totalMatrixRows > 0 ? ((matrixPage - 1) * matrixItemsPerPage) + 1 : 0}</strong>–<strong className="text-white font-mono">{Math.min(matrixPage * matrixItemsPerPage, totalMatrixRows)}</strong> of <strong className="text-white font-mono">{totalMatrixRows}</strong> sovereign economies
+                    </span>
+                    <span className="hidden sm:inline-block h-3.5 w-px bg-white/10" />
+                    <span className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-[#6FF542] font-bold">
+                      <span className="w-2 h-2 rounded-full bg-[#6FF542] animate-pulse" />
+                      9 Published Prints • 3 Forward Assumption Slots Active
+                    </span>
                   </div>
-                  <button
-                    onClick={() => setDiffPage(p => Math.min(totalDiffPages, p + 1))}
-                    disabled={diffPage === totalDiffPages}
-                    className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Next</span>
-                    <ChevronRight size={14} />
-                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm text-[#A0A5B1] mr-1 hidden md:inline-block">
+                      Page {matrixPage} of {totalMatrixPages}
+                    </span>
+                    <button
+                      onClick={() => setMatrixPage(p => Math.max(1, p - 1))}
+                      disabled={matrixPage === 1}
+                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-sm font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
+                    >
+                      <ChevronLeft size={16} />
+                      <span>Prev</span>
+                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {Array.from({ length: totalMatrixPages }).map((_, idx) => (
+                        <button
+                          key={idx + 1}
+                          onClick={() => setMatrixPage(idx + 1)}
+                          className={clsx(
+                            "w-8 h-8 rounded-xl font-mono text-sm font-bold transition-all cursor-pointer flex items-center justify-center",
+                            matrixPage === idx + 1
+                              ? "bg-[#D2F646] text-[#121418] font-black shadow-[0_0_12px_rgba(210,246,70,0.35)]"
+                              : "bg-white/5 text-[#A0A5B1] hover:text-white hover:bg-white/10 border border-white/10"
+                          )}
+                        >
+                          {idx + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setMatrixPage(p => Math.min(totalMatrixPages, p + 1))}
+                      disabled={matrixPage === totalMatrixPages}
+                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-sm font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Next</span>
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
+            {/* ============================================================== */}
+            {/* TAB 2: COMBINED DIFFERENTIAL & RATING (Paginated 5 per page)   */}
+            {/* ============================================================== */}
+            {activeTab === "Differential & Rating" && (
+              <div className="flex flex-col w-full">
+                
+                {/* Header Info Banner */}
+                <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.01] flex-shrink-0">
+                  <div className="flex items-center gap-3">
+                    <FlagStack base={activePairObj.base} quote={activePairObj.quote} />
+                    <span className="font-sans font-bold text-sm text-white">
+                      Differential Transformation: {activePair} • {activeInd} ({selectedYear})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 font-mono text-sm text-[#A0A5B1]">
+                    <span>Formula: </span>
+                    <span className="text-[#D2F646] font-bold">
+                      {activeInd === "FX Reserves" ? `Diff = ${activePairObj.baseName} (USD M) − ${activePairObj.quoteName} (USD M)` : `Diff = ${activePairObj.baseName} (%) − ${activePairObj.quoteName} (%)`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Table with Monthly Releases & Forward Assumptions */}
+                <div className="overflow-x-auto w-full p-4">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/5 text-xs font-mono font-bold uppercase tracking-wider text-[#A0A5B1]">
+                        <th className="py-3.5 px-4 w-[160px]">Release Month</th>
+                        <th className="py-3.5 px-4 text-center w-[170px]">Base ({activePairObj.baseName})</th>
+                        <th className="py-3.5 px-4 text-center w-[170px]">Quote ({activePairObj.quoteName})</th>
+                        <th className="py-3.5 px-4 text-center w-[190px]">Calculated Differential</th>
+                        <th className="py-3.5 px-4 text-center w-[190px]">Rule Threshold</th>
+                        <th className="py-3.5 px-4 text-center w-[230px]">Engine Sentiment Regime</th>
+                        <th className="py-3.5 px-4 text-right w-[140px]">Rating Score</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.03]">
+                      {combinedLoading ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                          <tr key={i}>
+                            <td colSpan={7} className="p-3"><div className="w-full h-[32px] bg-white/5 rounded-md animate-pulse" /></td>
+                          </tr>
+                        ))
+                      ) : (
+                        paginatedDiffRows?.map((row: any, i: number) => {
+                          const isPositive = row.rating > 0;
+                          const isNegative = row.rating < 0;
+                          const isAssumptionRow = Boolean(row.isAssumption);
+
+                          return (
+                            <tr 
+                              key={i} 
+                              className={clsx(
+                                "transition-colors",
+                                isAssumptionRow ? "bg-[#F5A623]/[0.03] hover:bg-[#F5A623]/[0.06]" : "hover:bg-white/[0.02]"
+                              )}
+                            >
+                              {/* Month */}
+                              <td className="py-3.5 px-4">
+                                <span className={clsx(
+                                  "font-mono font-bold text-sm px-3 py-1 rounded-lg inline-flex items-center gap-1.5",
+                                  isAssumptionRow ? 
+                                    "text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/35" : 
+                                    "text-white bg-white/5 border border-white/10"
+                                )}>
+                                  {isAssumptionRow && <Sparkles size={11} className="text-[#FFD066]" />}
+                                  {row.month}
+                                  {isAssumptionRow && <span className="text-[9px] uppercase font-bold text-[#F5A623]">Est</span>}
+                                </span>
+                              </td>
+
+                              {/* Base */}
+                              <td className="py-3.5 px-4 text-center">
+                                <div className="inline-flex items-center gap-2 font-mono text-sm text-[#A0A5B1]">
+                                  <img src={`/flags/${activePairObj.base}.svg`} className="w-5 h-5 rounded-full border border-white/10" alt={activePairObj.base} />
+                                  <span className={clsx("font-bold", isAssumptionRow ? "text-[#FFD066]" : "text-white")}>
+                                    {row.baseVal}{row.baseVal !== "—" && activeInd !== "FX Reserves" ? "%" : row.baseVal !== "—" ? "M" : ""}
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* Quote */}
+                              <td className="py-3.5 px-4 text-center">
+                                <div className="inline-flex items-center gap-2 font-mono text-sm text-[#A0A5B1]">
+                                  <img src={`/flags/${activePairObj.quote}.svg`} className="w-5 h-5 rounded-full border border-white/10" alt={activePairObj.quote} />
+                                  <span className={clsx("font-bold", isAssumptionRow ? "text-[#FFD066]" : "text-white")}>
+                                    {row.quoteVal}{row.quoteVal !== "—" && activeInd !== "FX Reserves" ? "%" : row.quoteVal !== "—" ? "M" : ""}
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* Differential */}
+                              <td className="py-3.5 px-4 text-center">
+                                <span className={clsx(
+                                  "inline-block font-mono font-extrabold text-sm px-3.5 py-1 rounded-xl",
+                                  isAssumptionRow ? "text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/30" :
+                                  row.diffNum > 0 ? "text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20" :
+                                  row.diffNum < 0 ? "text-[#FF5B5B] bg-[#FF4444]/10 border border-[#FF4444]/20" :
+                                  "text-white bg-white/5 border border-white/10"
+                                )}>
+                                  {row.diff}{row.diff !== "—" && activeInd !== "FX Reserves" ? "%" : row.diff !== "—" ? "M" : ""}
+                                </span>
+                              </td>
+
+                              {/* Rule Applied */}
+                              <td className="py-3.5 px-4 text-center">
+                                <span className="font-mono text-xs text-[#A0A5B1] bg-white/[0.03] border border-white/5 px-3 py-1 rounded-lg">
+                                  {row.rule}
+                                </span>
+                              </td>
+
+                              {/* Engine Sentiment Regime */}
+                              <td className="py-3.5 px-4 text-center">
+                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm font-semibold">
+                                  {isAssumptionRow ? (
+                                    <span className="flex items-center gap-1.5 text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/30 px-3.5 py-1 rounded-full">
+                                      <Sparkles size={13} className="text-[#FFD066]" />
+                                      <span>{row.regime}</span>
+                                    </span>
+                                  ) : isPositive ? (
+                                    <span className="flex items-center gap-1.5 text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/25 px-3.5 py-1 rounded-full">
+                                      <TrendingUp size={14} />
+                                      <span>{row.regime}</span>
+                                    </span>
+                                  ) : isNegative ? (
+                                    <span className="flex items-center gap-1.5 text-[#FF5B5B] bg-[#FF4444]/10 border border-[#FF4444]/25 px-3.5 py-1 rounded-full">
+                                      <TrendingDown size={14} />
+                                      <span>{row.regime}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1.5 text-[#A0A5B1] bg-white/5 border border-white/10 px-3.5 py-1 rounded-full">
+                                      <Minus size={14} />
+                                      <span>{row.regime}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* Rating Score Impact */}
+                              <td className="py-3.5 px-4 text-right">
+                                <span className={clsx(
+                                  "inline-block px-3.5 py-1 rounded-xl font-mono font-black text-sm shadow-sm",
+                                  isAssumptionRow ? "bg-[#F5A623]/20 text-[#FFD066] border border-[#F5A623]/40" :
+                                  isPositive ? "bg-[#D2F646]/15 text-[#D2F646] border border-[#D2F646]/30" :
+                                  isNegative ? "bg-[#FF4444]/15 text-[#FF4444] border border-[#FF4444]/30" :
+                                  "bg-white/5 text-[#A0A5B1] border border-white/10"
+                                )}>
+                                  {isPositive ? `+${row.rating}` : row.rating}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Bottom Pagination & Summary Bar */}
+                <div className="flex items-center justify-between px-6 py-3 border-t border-white/5 bg-[#121418]/60 text-sm flex-shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="font-sans text-[#A0A5B1]">
+                      Showing <strong className="text-white font-mono">{totalDiffRows > 0 ? ((diffPage - 1) * diffItemsPerPage) + 1 : 0}</strong>–<strong className="text-white font-mono">{Math.min(diffPage * diffItemsPerPage, totalDiffRows)}</strong> of <strong className="text-white font-mono">{totalDiffRows}</strong> observations ({activePair})
+                    </span>
+                    <span className="hidden sm:inline-block h-3.5 w-px bg-white/10" />
+                    <div className="flex items-center gap-2 font-mono text-sm">
+                      <span className="text-[#A0A5B1]">Net Rating:</span>
+                      <span className="text-[#D2F646] font-bold bg-[#D2F646]/10 border border-[#D2F646]/20 px-3 py-1 rounded-lg">
+                        {combinedData ? combinedData.reduce((acc: number, r: any) => acc + r.rating, 0) : 0} pts
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm text-[#A0A5B1] mr-1 hidden md:inline-block">
+                      Page {diffPage} of {totalDiffPages}
+                    </span>
+                    <button
+                      onClick={() => setDiffPage(p => Math.max(1, p - 1))}
+                      disabled={diffPage === 1}
+                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-sm font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
+                    >
+                      <ChevronLeft size={16} />
+                      <span>Prev</span>
+                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {Array.from({ length: totalDiffPages }).map((_, idx) => (
+                        <button
+                          key={idx + 1}
+                          onClick={() => setDiffPage(idx + 1)}
+                          className={clsx(
+                            "w-8 h-8 rounded-xl font-mono text-sm font-bold transition-all cursor-pointer flex items-center justify-center",
+                            diffPage === idx + 1
+                              ? "bg-[#D2F646] text-[#121418] font-black shadow-[0_0_12px_rgba(210,246,70,0.35)]"
+                              : "bg-white/5 text-[#A0A5B1] hover:text-white hover:bg-white/10 border border-white/10"
+                          )}
+                        >
+                          {idx + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setDiffPage(p => Math.min(totalDiffPages, p + 1))}
+                      disabled={diffPage === totalDiffPages}
+                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-sm font-bold transition-all disabled:opacity-30 disabled:pointer-events-none border border-white/10 flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Next</span>
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
 
         {/* ============================================================== */}

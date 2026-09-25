@@ -63,5 +63,6 @@ export const settingsApi = {
   get: () => api.get("/settings"),
   save: (data: object) => api.post("/settings", data),
   runScraper: () => api.post("/settings/run-scraper"),
+  auditLogs: () => api.get("/settings/audit-logs"),
 };
 

@@ -226,6 +226,9 @@ def parse_matrix_sheet(ws, country_map: dict, source_label: str) -> list[dict]:
         country_raw = row[0]
         if not country_raw or not isinstance(country_raw, str):
             continue
+        # Stop at sub-table headers or downstream calculation sections (e.g. Monthly Change, 12 Month Average)
+        if country_raw.strip().lower() in ["monthly change", "12 month average", "spread", "paire"]:
+            break
         iso = country_map.get(country_raw.strip().lower())
         if not iso:
             continue

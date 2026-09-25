@@ -31,6 +31,11 @@ export const PAIRS = [
 
 export const INDICATORS = ["GDP", "Current Account", "CPI", "Interest Rate", "FX Reserves", "Equity"];
 
+// Current Live System Date: September 2026 (2026-09)
+export const SYSTEM_CURRENT_YEAR = 2026;
+export const SYSTEM_CURRENT_MONTH = 9;
+export const MACRO_YEARS = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
+
 export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string, number | null>>> = {
   "CPI": {
     "USA": {
@@ -4821,9 +4826,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
  * Returns matrix row objects for all 10 countries for the selected indicator & year.
  */
 export function getMacroMatrixData(indicator: string, year: number) {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  const endMonth = year === currentYear ? currentMonth : 12;
+  // If year is the current live year (2026), published data ends at current month (September: 9)
+  // For historical settled years (2025 and earlier), all 12 months are published historical data!
+  const endMonth = year === SYSTEM_CURRENT_YEAR ? SYSTEM_CURRENT_MONTH : 12;
   const months = Array.from({ length: endMonth }).map((_, i) => `${year}-${(i + 1).toString().padStart(2, '0')}`);
 
   const indData = MASTER_MACRO_DATABASE[indicator] || {};
@@ -4866,9 +4871,8 @@ export function getMacroMatrixData(indicator: string, year: number) {
  */
 export function getCombinedDifferentialData(pairName: string, indicator: string, year: number) {
   const pair = PAIRS.find(p => p.name === pairName) || PAIRS[0];
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  const endMonth = year === currentYear ? currentMonth : 12;
+  // If year is 2026, evaluate up to September (month 9). For historical years, all 12 months.
+  const endMonth = year === SYSTEM_CURRENT_YEAR ? SYSTEM_CURRENT_MONTH : 12;
   const months = Array.from({ length: endMonth }).map((_, i) => `${year}-${(i + 1).toString().padStart(2, '0')}`);
 
   const indData = MASTER_MACRO_DATABASE[indicator] || {};

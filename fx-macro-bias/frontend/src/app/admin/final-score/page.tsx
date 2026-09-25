@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
-import { INDICATORS, getCombinedDifferentialData } from "@/data/macroDataset";
+import { INDICATORS, getCombinedDifferentialData, SYSTEM_CURRENT_YEAR, SYSTEM_CURRENT_MONTH, MACRO_YEARS } from "@/data/macroDataset";
 
 const PAIRS = [
   { name: "EUR/USD", base: "eu", quote: "us" },
@@ -20,16 +20,14 @@ const PAIRS = [
   { name: "USD/CHF", base: "us", quote: "ch" }
 ];
 
-const YEARS = Array.from({ length: new Date().getFullYear() - 2020 + 1 }).map((_, i) => new Date().getFullYear() - i);
+const YEARS = MACRO_YEARS;
 
 // Translucent Glass Cards with Specular Highlight
 const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
 
 const fetchFinalScores = async (year: number) => {
   await new Promise(r => setTimeout(r, 200));
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  const endMonth = year === currentYear ? currentMonth : 12;
+  const endMonth = year === SYSTEM_CURRENT_YEAR ? SYSTEM_CURRENT_MONTH : 12;
   const displayMonths = Array.from({ length: endMonth }).map((_, i) => `${year}-${(i + 1).toString().padStart(2, '0')}`);
 
   // Compute differential data for each base pair
@@ -73,14 +71,14 @@ const FlagStack = ({ base, quote }: { base: string; quote: string }) => (
 
 export default function FinalScorePage() {
   const [selectedCell, setSelectedCell] = useState<{ pair: string; base: string; quote: string; data: any } | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number>(YEARS[0]);
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
 
   const { data: scoresData, isLoading } = useQuery({
     queryKey: ["final-scores", selectedYear],
     queryFn: () => fetchFinalScores(selectedYear),
   });
 
-  const displayMonths = Array.from({ length: selectedYear === new Date().getFullYear() ? new Date().getMonth() + 1 : 12 }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, '0')}`);
+  const displayMonths = Array.from({ length: selectedYear === SYSTEM_CURRENT_YEAR ? SYSTEM_CURRENT_MONTH : 12 }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, '0')}`);
 
   return (
     <div className="flex flex-col w-full h-full min-h-screen bg-transparent relative justify-between">

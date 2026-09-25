@@ -22,10 +22,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
-import { COUNTRIES, PAIRS, INDICATORS, getMacroMatrixData, getCombinedDifferentialData } from "@/data/macroDataset";
+import { COUNTRIES, PAIRS, INDICATORS, getMacroMatrixData, getCombinedDifferentialData, SYSTEM_CURRENT_YEAR, SYSTEM_CURRENT_MONTH, MACRO_YEARS } from "@/data/macroDataset";
 
 const TABS = ["Macro Data Matrix", "Differential & Rating"];
-const YEARS = Array.from({ length: new Date().getFullYear() - 2020 + 1 }).map((_, i) => new Date().getFullYear() - i);
+const YEARS = MACRO_YEARS;
 
 // Translucent Glass Cards with Specular Highlight
 const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[24px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
@@ -42,7 +42,7 @@ export default function MacroDataPage() {
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [activeInd, setActiveInd] = useState(INDICATORS[0]);
   const [activePair, setActivePair] = useState(PAIRS[0].name);
-  const [selectedYear, setSelectedYear] = useState<number>(YEARS[0]);
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
 
   // Published manual override state
   const [selectedCell, setSelectedCell] = useState<{ c: string; m: string; val: string } | null>(null);
@@ -121,25 +121,36 @@ export default function MacroDataPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Define months: 9 Published Official Months + 3 Upcoming Forward Assumption Months
-  const publishedMonths = Array.from({ length: 9 }).map(
-    (_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, "0")}`
-  );
-  const upcomingMonths = [
-    `${selectedYear}-10`,
-    `${selectedYear}-11`,
-    `${selectedYear}-12`
-  ];
+  // Define months:
+  // For 2026 (current live year, since we are in 09/2026):
+  //   - 9 Published Official Months (2026-01 to 2026-09)
+  //   - 3 Upcoming Forward Assumption Months (2026-10, 2026-11, 2026-12)
+  // For past historical years (e.g. 2025, 2024, etc.):
+  //   - All 12 months (01 to 12) have already passed and are official published releases!
+  const isCurrentLiveYear = selectedYear === SYSTEM_CURRENT_YEAR;
+
+  const publishedMonths = Array.from({ 
+    length: isCurrentLiveYear ? SYSTEM_CURRENT_MONTH : 12 
+  }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, "0")}`);
+
+  const upcomingMonths = isCurrentLiveYear ? [
+    `${SYSTEM_CURRENT_YEAR}-10`,
+    `${SYSTEM_CURRENT_YEAR}-11`,
+    `${SYSTEM_CURRENT_YEAR}-12`
+  ] : [];
+
   const displayMonths = [...publishedMonths, ...upcomingMonths];
 
-  // Fetch Matrix Data with 9 published + 3 upcoming user assumption columns
+  // Fetch Matrix Data with published + upcoming user assumption columns
   const fetchMatrixData = async (indicator: string, year: number) => {
     await new Promise(r => setTimeout(r, 100));
     const baseRows = getMacroMatrixData(indicator, year);
 
     return baseRows.map(row => {
-      // 1. Published data slice (first 9 months)
-      const publishedCells = row.data.slice(0, 9).map((cell, idx) => {
+      // 1. Published data slice:
+      // In 2026: 9 months (2026-01 to 2026-09)
+      // In historical years (< 2026): all 12 months (e.g. 2025-01 to 2025-12)
+      const publishedCells = row.data.map((cell, idx) => {
         const monthKey = `${year}-${(idx + 1).toString().padStart(2, "0")}`;
         const overrideKey = `${indicator}_${row.country}_${monthKey}`;
         if (overrides[overrideKey] !== undefined) {
@@ -155,8 +166,9 @@ export default function MacroDataPage() {
         };
       });
 
-      // 2. 3 Upcoming Assumption Columns (months 10, 11, 12)
-      const upcomingCells = upcomingMonths.map(m => {
+      // 2. Upcoming Assumption Columns: ONLY exist for current year 2026 (months 10, 11, 12)
+      // For past years (like 2025), those months passed already so no assumption columns exist!
+      const upcomingCells = isCurrentLiveYear ? upcomingMonths.map(m => {
         const assumptionKey = `${indicator}_${row.country}_${m}`;
         const val = assumptions[assumptionKey];
         return {
@@ -165,7 +177,7 @@ export default function MacroDataPage() {
           isAssumption: true,
           isFilled: Boolean(val)
         };
-      });
+      }) : [];
 
       return {
         ...row,
@@ -570,10 +582,17 @@ export default function MacroDataPage() {
                       <span className="w-2.5 h-2.5 rounded-full bg-[#FF4444]" />
                       Missing Print
                     </span>
-                    <span className="flex items-center gap-1.5 text-[#FFD066] font-bold bg-[#F5A623]/15 border border-[#F5A623]/30 px-3 py-1 rounded-full shadow-[0_0_12px_rgba(245,166,35,0.2)]">
-                      <Sparkles size={13} className="text-[#FFD066] animate-pulse" />
-                      User Assumption (Forward Dates)
-                    </span>
+                    {isCurrentLiveYear ? (
+                      <span className="flex items-center gap-1.5 text-[#FFD066] font-bold bg-[#F5A623]/15 border border-[#F5A623]/30 px-3 py-1 rounded-full shadow-[0_0_12px_rgba(245,166,35,0.2)]">
+                        <Sparkles size={13} className="text-[#FFD066] animate-pulse" />
+                        User Assumption (Forward Dates: 2026-10 to 2026-12)
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-[#6FF542] font-bold bg-[#6FF542]/10 border border-[#6FF542]/20 px-3 py-1 rounded-full">
+                        <CheckCircle2 size={13} className="text-[#6FF542]" />
+                        Historical Cycle Settled (12/12 Months Published)
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -586,7 +605,7 @@ export default function MacroDataPage() {
                           Country / Sovereign
                         </th>
                         {displayMonths.map((m, j) => {
-                          const isUpcoming = j >= 9;
+                          const isUpcoming = isCurrentLiveYear && j >= 9;
                           return (
                             <th 
                               key={m} 
@@ -595,7 +614,7 @@ export default function MacroDataPage() {
                                 isUpcoming ? 
                                   "bg-[#F5A623]/[0.08] border-b-2 border-[#F5A623]/50" : 
                                   "font-sans font-semibold text-sm text-[#A0A5B1]",
-                                j === 9 && "border-l-2 border-dashed border-[#F5A623]/50"
+                                isUpcoming && j === 9 && "border-l-2 border-dashed border-[#F5A623]/50"
                               )}
                             >
                               {isUpcoming ? (
@@ -619,7 +638,7 @@ export default function MacroDataPage() {
                           <tr key={i}>
                             <td className="px-4 py-3 border-r border-white/5"><div className="w-[130px] h-[24px] bg-white/5 rounded-md animate-pulse" /></td>
                             {displayMonths.map((m, j) => (
-                              <td key={j} className={clsx("p-2", j >= 9 && "bg-[#F5A623]/[0.02]", j === 9 && "border-l-2 border-dashed border-[#F5A623]/30")}>
+                              <td key={j} className={clsx("p-2", isCurrentLiveYear && j >= 9 && "bg-[#F5A623]/[0.02]", isCurrentLiveYear && j === 9 && "border-l-2 border-dashed border-[#F5A623]/30")}>
                                 <div className="w-[80px] h-[36px] bg-white/5 rounded-xl animate-pulse mx-auto" />
                               </td>
                             ))}
@@ -635,7 +654,7 @@ export default function MacroDataPage() {
                               </div>
                             </td>
                             {row.data.map((cell: any, j: number) => {
-                              const isUpcoming = j >= 9;
+                              const isUpcoming = cell.isAssumption === true;
 
                               if (isUpcoming) {
                                 // 3 Upcoming User Assumption Columns
@@ -682,7 +701,7 @@ export default function MacroDataPage() {
                                 );
                               }
 
-                              // 9 Published Official Data Columns
+                              // Published Official Data Columns
                               return (
                                 <td key={j} className="px-2 py-2 text-center relative group/cell">
                                   <button 
@@ -723,7 +742,7 @@ export default function MacroDataPage() {
                     <span className="hidden sm:inline-block h-3.5 w-px bg-white/10" />
                     <span className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-[#6FF542] font-bold">
                       <span className="w-2 h-2 rounded-full bg-[#6FF542] animate-pulse" />
-                      9 Published Prints • 3 Forward Assumption Slots Active
+                      {isCurrentLiveYear ? "9 Published Prints • 3 Forward Assumption Slots Active (Q4 2026)" : "12/12 Historical Releases Published • Cycle Settled"}
                     </span>
                   </div>
 

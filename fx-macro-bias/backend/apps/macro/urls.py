@@ -1,5 +1,5 @@
 from django.urls import path
-from apps.macro.views import dashboard, rating_rules, macro_data, final_score
+from apps.macro.views import dashboard, rating_rules, macro_data, final_score, settings
 
 urlpatterns = [
     # Dashboard
@@ -21,4 +21,8 @@ urlpatterns = [
     # Final Score
     path("final-score/matrix", final_score.score_matrix),
     path("final-score/drilldown", final_score.score_drilldown),
+
+    # Settings & Orchestrator
+    path("settings", settings.settings_config),
+    path("settings/run-scraper", settings.trigger_scraper_pipeline),
 ]

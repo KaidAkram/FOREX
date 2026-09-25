@@ -58,3 +58,10 @@ export const finalScoreApi = {
   drilldown: (pair: string, month: string) =>
     api.get(`/final-score/drilldown?pair=${pair}&month=${month}`),
 };
+
+export const settingsApi = {
+  get: () => api.get("/settings"),
+  save: (data: object) => api.post("/settings", data),
+  runScraper: () => api.post("/settings/run-scraper"),
+};
+

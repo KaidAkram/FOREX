@@ -309,3 +309,24 @@ class AuditLog(TimestampedModel):
 
     def __str__(self):
         return f"[{self.entity_type}#{self.entity_id}] {self.action} by {self.user}"
+
+
+# ──────────────────────────────────────────────────────────
+# SYSTEM CONFIGURATION & SETTINGS
+# ──────────────────────────────────────────────────────────
+
+class SystemSetting(TimestampedModel):
+    """
+    Stores key-value system configuration, scraper parameters,
+    and pipeline settings.
+    """
+    key = models.CharField(max_length=100, unique=True)
+    value = models.JSONField(default=dict)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["key"]
+
+    def __str__(self):
+        return self.key
+

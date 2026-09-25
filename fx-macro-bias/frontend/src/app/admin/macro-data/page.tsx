@@ -1,7 +1,21 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { AlertCircle, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Loader2, Sparkles, TrendingUp, TrendingDown, Minus, Calendar, Database } from "lucide-react";
+import { 
+  AlertCircle, 
+  ChevronDown, 
+  ChevronLeft, 
+  ChevronRight, 
+  CheckCircle2, 
+  Loader2, 
+  Sparkles, 
+  TrendingUp, 
+  TrendingDown, 
+  Minus, 
+  Calendar, 
+  Database,
+  X
+} from "lucide-react";
 import { clsx } from "clsx";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,11 +43,43 @@ export default function MacroDataPage() {
   const [activeInd, setActiveInd] = useState(INDICATORS[0]);
   const [activePair, setActivePair] = useState(PAIRS[0].name);
   const [selectedYear, setSelectedYear] = useState<number>(YEARS[0]);
+
+  // Published manual override state
   const [selectedCell, setSelectedCell] = useState<{ c: string; m: string; val: string } | null>(null);
   const [overrideInputVal, setOverrideInputVal] = useState<string>("");
   const [overrides, setOverrides] = useState<Record<string, string>>({});
 
-  // Pagination states (5 items per page to perfectly fit viewport with ZERO scrolling)
+  // Upcoming User Assumptions state
+  const [assumptions, setAssumptions] = useState<Record<string, string>>({});
+  const [selectedAssumptionCell, setSelectedAssumptionCell] = useState<{ c: string; m: string; val: string } | null>(null);
+  const [assumptionInputVal, setAssumptionInputVal] = useState<string>("");
+
+  // Load assumptions from localStorage on client mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("shiftfx_macro_user_assumptions");
+        if (stored) {
+          setAssumptions(JSON.parse(stored));
+        } else {
+          // Default demonstration assumptions for 2026-10 so the user immediately sees the visual distinction
+          const defaultAssumptions: Record<string, string> = {
+            "GDP_USA_2026-10": "2.2",
+            "GDP_Euro Area_2026-10": "1.1",
+            "GDP_Japan_2026-10": "0.8",
+            "GDP_United Kingdom_2026-10": "1.4",
+            "GDP_Australia_2026-10": "1.8",
+          };
+          setAssumptions(defaultAssumptions);
+          localStorage.setItem("shiftfx_macro_user_assumptions", JSON.stringify(defaultAssumptions));
+        }
+      } catch (err) {
+        console.error("Failed to load user assumptions", err);
+      }
+    }
+  }, []);
+
+  // Pagination states (5 items per page)
   const [matrixPage, setMatrixPage] = useState<number>(1);
   const matrixItemsPerPage = 5;
 
@@ -75,50 +121,130 @@ export default function MacroDataPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Define months: 9 Published Official Months + 3 Upcoming Forward Assumption Months
+  const publishedMonths = Array.from({ length: 9 }).map(
+    (_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, "0")}`
+  );
+  const upcomingMonths = [
+    `${selectedYear}-10`,
+    `${selectedYear}-11`,
+    `${selectedYear}-12`
+  ];
+  const displayMonths = [...publishedMonths, ...upcomingMonths];
+
+  // Fetch Matrix Data with 9 published + 3 upcoming user assumption columns
   const fetchMatrixData = async (indicator: string, year: number) => {
-    await new Promise(r => setTimeout(r, 120));
+    await new Promise(r => setTimeout(r, 100));
     const baseRows = getMacroMatrixData(indicator, year);
-    return baseRows.map(row => ({
-      ...row,
-      data: row.data.map((cell, idx) => {
-        const monthKey = `${year}-${(idx + 1).toString().padStart(2, '0')}`;
+
+    return baseRows.map(row => {
+      // 1. Published data slice (first 9 months)
+      const publishedCells = row.data.slice(0, 9).map((cell, idx) => {
+        const monthKey = `${year}-${(idx + 1).toString().padStart(2, "0")}`;
         const overrideKey = `${indicator}_${row.country}_${monthKey}`;
         if (overrides[overrideKey] !== undefined) {
           return {
             value: overrides[overrideKey],
-            status: "manual" as const
+            status: "manual" as const,
+            isAssumption: false
           };
         }
-        return cell;
-      })
-    }));
+        return {
+          ...cell,
+          isAssumption: false
+        };
+      });
+
+      // 2. 3 Upcoming Assumption Columns (months 10, 11, 12)
+      const upcomingCells = upcomingMonths.map(m => {
+        const assumptionKey = `${indicator}_${row.country}_${m}`;
+        const val = assumptions[assumptionKey];
+        return {
+          value: val !== undefined ? val : "",
+          status: "assumption" as const,
+          isAssumption: true,
+          isFilled: Boolean(val)
+        };
+      });
+
+      return {
+        ...row,
+        data: [...publishedCells, ...upcomingCells]
+      };
+    });
   };
 
+  // Fetch Combined Differential Data including forward assumptions
   const fetchCombinedData = async (pair: string, indicator: string, year: number) => {
-    await new Promise(r => setTimeout(r, 120));
-    return getCombinedDifferentialData(pair, indicator, year);
+    await new Promise(r => setTimeout(r, 100));
+    const baseReleases = getCombinedDifferentialData(pair, indicator, year);
+    const pairObj = PAIRS.find(p => p.name === pair) || PAIRS[0];
+
+    // Compute upcoming assumption rows for this pair
+    const upcomingReleases = upcomingMonths.map(m => {
+      const baseKey = `${indicator}_${pairObj.baseCountry}_${m}`;
+      const quoteKey = `${indicator}_${pairObj.quoteCountry}_${m}`;
+      const baseAssump = assumptions[baseKey];
+      const quoteAssump = assumptions[quoteKey];
+
+      if (baseAssump || quoteAssump) {
+        const bNum = baseAssump ? parseFloat(baseAssump) : 0;
+        const qNum = quoteAssump ? parseFloat(quoteAssump) : 0;
+        const diffNum = parseFloat((bNum - qNum).toFixed(1));
+
+        let rating = 0;
+        let rule = "-1.0 to 1.0";
+        let regime = "Neutral / Balanced";
+        if (diffNum >= 2.0) { rating = 10; rule = "≥ +2.0"; regime = "Strong Bullish Bias"; }
+        else if (diffNum >= 1.0) { rating = 5; rule = "+1.0 to +2.0"; regime = "Moderate Bullish Bias"; }
+        else if (diffNum <= -2.0) { rating = -10; rule = "≤ -2.0"; regime = "Strong Bearish Bias"; }
+        else if (diffNum <= -1.0) { rating = -5; rule = "-2.0 to -1.0"; regime = "Moderate Bearish Bias"; }
+
+        return {
+          month: m,
+          baseVal: baseAssump ? `${bNum}` : "—",
+          quoteVal: quoteAssump ? `${qNum}` : "—",
+          diffNum,
+          diff: (diffNum > 0 ? "+" : "") + diffNum,
+          rule: `${rule} (Est)`,
+          regime,
+          rating,
+          isAssumption: true
+        };
+      }
+
+      return {
+        month: m,
+        baseVal: "—",
+        quoteVal: "—",
+        diffNum: 0,
+        diff: "—",
+        rule: "Forward Projection",
+        regime: "Awaiting Assumptions",
+        rating: 0,
+        isAssumption: true
+      };
+    });
+
+    return [...baseReleases, ...upcomingReleases];
   };
 
   const { data: matrixData, isLoading: matrixLoading } = useQuery({
-    queryKey: ["macro-matrix", activeInd, selectedYear, overrides],
+    queryKey: ["macro-matrix", activeInd, selectedYear, overrides, assumptions],
     queryFn: () => fetchMatrixData(activeInd, selectedYear),
     enabled: activeTab === "Macro Data Matrix"
   });
 
   const { data: combinedData, isLoading: combinedLoading } = useQuery({
-    queryKey: ["macro-combined", activePair, activeInd, selectedYear],
+    queryKey: ["macro-combined", activePair, activeInd, selectedYear, assumptions],
     queryFn: () => fetchCombinedData(activePair, activeInd, selectedYear),
     enabled: activeTab === "Differential & Rating"
   });
 
-  // Calculate dynamic months based on selectedYear
-  const currentYear = new Date().getFullYear();
-  const endMonth = selectedYear === currentYear ? new Date().getMonth() + 1 : 12;
-  const displayMonths = Array.from({ length: endMonth }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, '0')}`);
-
+  // Save published manual override
   const saveOverrideMutation = useMutation({
     mutationFn: async (payload: { country: string; month: string; value: string }) => {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
       setOverrides(prev => ({
         ...prev,
         [`${activeInd}_${payload.country}_${payload.month}`]: payload.value
@@ -129,6 +255,36 @@ export default function MacroDataPage() {
       setSelectedCell(null);
     }
   });
+
+  // Save user forward assumption
+  const handleSaveAssumption = () => {
+    if (!selectedAssumptionCell) return;
+    const key = `${activeInd}_${selectedAssumptionCell.c}_${selectedAssumptionCell.m}`;
+    const cleanVal = assumptionInputVal.trim();
+    const updated = { ...assumptions, [key]: cleanVal };
+    setAssumptions(updated);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("shiftfx_macro_user_assumptions", JSON.stringify(updated));
+    }
+    queryClient.invalidateQueries({ queryKey: ["macro-matrix"] });
+    queryClient.invalidateQueries({ queryKey: ["macro-combined"] });
+    setSelectedAssumptionCell(null);
+  };
+
+  // Clear user forward assumption
+  const handleClearAssumption = () => {
+    if (!selectedAssumptionCell) return;
+    const key = `${activeInd}_${selectedAssumptionCell.c}_${selectedAssumptionCell.m}`;
+    const updated = { ...assumptions };
+    delete updated[key];
+    setAssumptions(updated);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("shiftfx_macro_user_assumptions", JSON.stringify(updated));
+    }
+    queryClient.invalidateQueries({ queryKey: ["macro-matrix"] });
+    queryClient.invalidateQueries({ queryKey: ["macro-combined"] });
+    setSelectedAssumptionCell(null);
+  };
 
   const activePairObj = PAIRS.find(p => p.name === activePair) || PAIRS[0];
 
@@ -149,7 +305,7 @@ export default function MacroDataPage() {
   );
 
   return (
-    <div className="flex flex-col w-full h-full max-h-screen bg-transparent relative justify-between overflow-hidden">
+    <div className="flex flex-col w-full min-h-full bg-transparent relative justify-start">
       
       {/* 1. Header: Clean placement with GlobalSearch & AuthHeaderWidget */}
       <header className="w-full flex items-center justify-between px-8 py-3 pb-1 opacity-0 animate-fadeIn flex-shrink-0">
@@ -166,8 +322,8 @@ export default function MacroDataPage() {
         </div>
       </header>
 
-      {/* 2. Main Content Container: Sized to fit comfortably with ZERO scrolling */}
-      <main className="flex-1 flex flex-col px-8 gap-2.5 pb-4 max-w-[1550px] w-full mx-auto overflow-hidden justify-between min-h-0">
+      {/* 2. Main Content Container: Clean snug placement directly under controls */}
+      <main className="flex-1 flex flex-col px-8 gap-4 pb-8 max-w-[1550px] w-full mx-auto justify-start">
         
         {/* Controls Toolbar: Elevated z-index so dropdowns float ON TOP of tables */}
         <div className="relative z-50 flex items-center justify-between gap-3 opacity-0 animate-slideUp">
@@ -248,21 +404,21 @@ export default function MacroDataPage() {
                         <div className="px-2.5 py-1 text-[10px] font-mono text-[#A0A5B1] uppercase tracking-wider">
                           Select Currency Pair
                         </div>
-                        {PAIRS.map(pair => (
+                        {PAIRS.map(p => (
                           <button
-                            key={pair.name}
+                            key={p.name}
                             type="button"
                             onClick={() => {
-                              setActivePair(pair.name);
+                              setActivePair(p.name);
                               setIsOpenPairDropdown(false);
                             }}
                             className={clsx(
-                              "w-full px-3 py-2 text-left font-sans font-bold text-xs transition-colors rounded-xl flex items-center gap-2.5 cursor-pointer",
-                              activePair === pair.name ? "bg-[#D2F646]/15 text-[#D2F646]" : "text-[#A0A5B1] hover:bg-white/5 hover:text-white"
+                              "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all text-left cursor-pointer",
+                              activePair === p.name ? "bg-[#D2F646]/15 text-white" : "hover:bg-white/5 text-[#A0A5B1] hover:text-white"
                             )}
                           >
-                            <FlagStack base={pair.base} quote={pair.quote} />
-                            <span>{pair.name}</span>
+                            <FlagStack base={p.base} quote={p.quote} />
+                            <span className="font-sans font-bold text-xs">{p.name}</span>
                           </button>
                         ))}
                       </motion.div>
@@ -292,10 +448,10 @@ export default function MacroDataPage() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.97 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-[calc(100%+8px)] left-0 w-[180px] bg-[#161822]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] p-1.5 flex flex-col gap-1"
+                        className="absolute top-[calc(100%+8px)] left-0 w-[170px] bg-[#161822]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] p-1.5 flex flex-col gap-1"
                       >
-                        <div className="px-2.5 py-1 text-[10px] font-mono text-[#A0A5B1] uppercase tracking-wider">
-                          Select Indicator
+                        <div className="px-2 py-1 text-[10px] font-mono text-[#A0A5B1] uppercase tracking-wider">
+                          Indicator
                         </div>
                         {INDICATORS.map(ind => (
                           <button
@@ -381,14 +537,14 @@ export default function MacroDataPage() {
           </div>
         </div>
 
-        {/* 3. Table Card: FULL content without empty voids */}
+        {/* 3. Table Card: Placed snugly right below the toolbar */}
         <div className={clsx("flex flex-col relative z-0 overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
           
           {/* ============================================================== */}
-          {/* TAB 1: MACRO DATA MATRIX (Paginated 5 per page, zero scroll)  */}
+          {/* TAB 1: MACRO DATA MATRIX (Paginated 5 per page)                */}
           {/* ============================================================== */}
           {activeTab === "Macro Data Matrix" && (
-            <div className="flex flex-col w-full h-full justify-between">
+            <div className="flex flex-col w-full">
               
               {/* Header Info Banner */}
               <div className="flex items-center justify-between px-6 py-2.5 border-b border-white/5 bg-white/[0.01] flex-shrink-0">
@@ -398,6 +554,8 @@ export default function MacroDataPage() {
                     G10 Currency Sovereign Matrix: {activeInd} {activeInd === "FX Reserves" ? "(USD Millions)" : activeInd === "Interest Rate" ? "(% Policy Rate)" : activeInd === "CPI" ? "(% YoY Inflation)" : "(% Growth / Spread)"} ({selectedYear})
                   </span>
                 </div>
+                
+                {/* Visual Legend with Distinct Indicator for Forward Assumptions */}
                 <div className="flex items-center gap-4 text-[11px] font-mono text-[#A0A5B1]">
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#6FF542]" />
@@ -411,18 +569,47 @@ export default function MacroDataPage() {
                     <span className="w-2 h-2 rounded-full bg-[#FF4444]" />
                     Missing Print
                   </span>
+                  <span className="flex items-center gap-1.5 text-[#FFD066] font-bold bg-[#F5A623]/15 border border-[#F5A623]/30 px-2.5 py-0.5 rounded-full shadow-[0_0_12px_rgba(245,166,35,0.2)]">
+                    <Sparkles size={11} className="text-[#FFD066] animate-pulse" />
+                    User Assumption (Forward Dates)
+                  </span>
                 </div>
               </div>
 
               {/* Matrix Table with 5 Sovereign Countries per Page */}
-              <div className="overflow-x-auto w-full p-3 flex-1 flex flex-col justify-center">
+              <div className="overflow-x-auto w-full p-3">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/5">
-                      <th className="px-4 py-2 font-sans font-medium text-xs text-[#A0A5B1] w-[180px] border-r border-white/5">Country / Sovereign</th>
-                      {displayMonths.map((m) => (
-                        <th key={m} className="px-3 py-2 font-sans font-medium text-xs text-[#A0A5B1] text-center min-w-[95px]">{m}</th>
-                      ))}
+                      <th className="px-4 py-2.5 font-sans font-medium text-xs text-[#A0A5B1] w-[180px] border-r border-white/5">
+                        Country / Sovereign
+                      </th>
+                      {displayMonths.map((m, j) => {
+                        const isUpcoming = j >= 9;
+                        return (
+                          <th 
+                            key={m} 
+                            className={clsx(
+                              "px-2.5 py-2 text-center min-w-[90px] transition-colors",
+                              isUpcoming ? 
+                                "bg-[#F5A623]/[0.08] border-b-2 border-[#F5A623]/50" : 
+                                "font-sans font-medium text-xs text-[#A0A5B1]",
+                              j === 9 && "border-l-2 border-dashed border-[#F5A623]/50"
+                            )}
+                          >
+                            {isUpcoming ? (
+                              <div className="flex flex-col items-center justify-center gap-0.5">
+                                <span className="inline-flex items-center gap-1 text-[8px] font-mono font-black text-[#F5A623] bg-[#F5A623]/25 border border-[#F5A623]/45 px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow-sm">
+                                  <Sparkles size={8} className="text-[#FFD066]" /> Assumption
+                                </span>
+                                <span className="font-mono font-bold text-xs text-[#FFD066] tracking-tight">{m}</span>
+                              </div>
+                            ) : (
+                              <span>{m}</span>
+                            )}
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.03]">
@@ -430,7 +617,11 @@ export default function MacroDataPage() {
                       Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i}>
                           <td className="px-4 py-2 border-r border-white/5"><div className="w-[120px] h-[20px] bg-white/5 rounded-md animate-pulse" /></td>
-                          {displayMonths.map((m, j) => <td key={j} className="p-1.5"><div className="w-[75px] h-[32px] bg-white/5 rounded-xl animate-pulse mx-auto" /></td>)}
+                          {displayMonths.map((m, j) => (
+                            <td key={j} className={clsx("p-1.5", j >= 9 && "bg-[#F5A623]/[0.02]", j === 9 && "border-l-2 border-dashed border-[#F5A623]/30")}>
+                              <div className="w-[75px] h-[32px] bg-white/5 rounded-xl animate-pulse mx-auto" />
+                            </td>
+                          ))}
                         </tr>
                       ))
                     ) : (
@@ -442,29 +633,83 @@ export default function MacroDataPage() {
                               <span className="font-sans font-bold text-xs text-white">{row.country}</span>
                             </div>
                           </td>
-                          {row.data.map((cell: any, j: number) => (
-                            <td key={j} className="px-1.5 py-1 text-center relative group/cell">
-                              <button 
-                                onClick={() => {
-                                  setSelectedCell({ c: row.country, m: displayMonths[j], val: cell.value || "N/A" });
-                                  setOverrideInputVal(cell.value || "");
-                                }}
-                                className="inline-flex flex-col items-center justify-center w-[84px] py-1 px-1 rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border border-transparent"
-                              >
-                                <span className={clsx(
-                                  "font-sans text-xs font-bold transition-transform",
-                                  cell.status === "missing" ? "text-[#FF4444]" : "text-white"
+                          {row.data.map((cell: any, j: number) => {
+                            const isUpcoming = j >= 9;
+
+                            if (isUpcoming) {
+                              // ==========================================
+                              // 3 UPCOMING USER ASSUMPTION COLUMNS (STAND OUT)
+                              // ==========================================
+                              return (
+                                <td 
+                                  key={j} 
+                                  className={clsx(
+                                    "px-1.5 py-1.5 text-center relative group/cell bg-[#F5A623]/[0.03] hover:bg-[#F5A623]/[0.08] transition-colors",
+                                    j === 9 && "border-l-2 border-dashed border-[#F5A623]/50"
+                                  )}
+                                >
+                                  <button
+                                    onClick={() => {
+                                      setSelectedAssumptionCell({ c: row.country, m: displayMonths[j], val: cell.value || "" });
+                                      setAssumptionInputVal(cell.value || "");
+                                    }}
+                                    title={`Click to fill assumption for ${row.country} (${displayMonths[j]})`}
+                                    className={clsx(
+                                      "inline-flex flex-col items-center justify-center w-[84px] py-1 px-1 rounded-xl transition-all duration-150 cursor-pointer hover:scale-[1.04]",
+                                      cell.value ? 
+                                        "bg-[#F5A623]/15 hover:bg-[#F5A623]/25 border border-[#F5A623]/50 shadow-[0_0_12px_rgba(245,166,35,0.18)]" :
+                                        "border border-dashed border-[#F5A623]/35 hover:border-[#F5A623]/70 bg-transparent hover:bg-[#F5A623]/10"
+                                    )}
+                                  >
+                                    <span className={clsx(
+                                      "font-mono text-xs font-black transition-transform",
+                                      cell.value ? "text-[#FFD066] drop-shadow-[0_0_6px_rgba(245,166,35,0.3)]" : "text-[#F5A623]/60 italic font-medium"
+                                    )}>
+                                      {cell.value ? `${cell.value}${activeInd === "FX Reserves" ? "" : "%"}` : "+ Set"}
+                                    </span>
+                                    <div className="mt-0.5">
+                                      {cell.value ? (
+                                        <span className="inline-flex items-center gap-0.5 bg-[#F5A623]/25 text-[#FFD066] border border-[#F5A623]/50 px-1.5 py-0.2 rounded text-[8px] font-black tracking-wider uppercase shadow-sm">
+                                          <Sparkles size={7} /> Est
+                                        </span>
+                                      ) : (
+                                        <span className="bg-[#F5A623]/10 text-[#F5A623]/80 border border-[#F5A623]/25 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase group-hover:bg-[#F5A623]/20 group-hover:text-[#FFD066]">
+                                          Assume
+                                        </span>
+                                      )}
+                                    </div>
+                                  </button>
+                                </td>
+                              );
+                            }
+
+                            // ==========================================
+                            // 9 PUBLISHED OFFICIAL DATA COLUMNS
+                            // ==========================================
+                            return (
+                              <td key={j} className="px-1.5 py-1 text-center relative group/cell">
+                                <button 
+                                  onClick={() => {
+                                    setSelectedCell({ c: row.country, m: displayMonths[j], val: cell.value || "N/A" });
+                                    setOverrideInputVal(cell.value || "");
+                                  }}
+                                  className="inline-flex flex-col items-center justify-center w-[84px] py-1 px-1 rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border border-transparent"
+                                >
+                                  <span className={clsx(
+                                    "font-sans text-xs font-bold transition-transform",
+                                    cell.status === "missing" ? "text-[#FF4444]" : "text-white"
                                   )}>
-                                  {cell.value || "—"}
-                                </span>
-                                <div className="mt-0.5">
-                                  {cell.status === "published" && <span className="bg-[#6FF542]/10 text-[#6FF542] border border-[#6FF542]/20 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase">Pub</span>}
-                                  {cell.status === "manual" && <span className="bg-[#A0A5B1]/10 text-[#A0A5B1] border border-white/10 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase">Man</span>}
-                                  {cell.status === "missing" && <span className="bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/20 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase">Mis</span>}
-                                </div>
-                              </button>
-                            </td>
-                          ))}
+                                    {cell.value || "—"}
+                                  </span>
+                                  <div className="mt-0.5">
+                                    {cell.status === "published" && <span className="bg-[#6FF542]/10 text-[#6FF542] border border-[#6FF542]/20 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase">Pub</span>}
+                                    {cell.status === "manual" && <span className="bg-[#A0A5B1]/10 text-[#A0A5B1] border border-white/10 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase">Man</span>}
+                                    {cell.status === "missing" && <span className="bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/20 px-1.5 py-0.2 rounded text-[8px] font-bold tracking-wider uppercase">Mis</span>}
+                                  </div>
+                                </button>
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))
                     )}
@@ -481,7 +726,7 @@ export default function MacroDataPage() {
                   <span className="hidden sm:inline-block h-3 w-px bg-white/10" />
                   <span className="hidden sm:flex items-center gap-1.5 font-mono text-[10px] text-[#6FF542] font-bold">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#6FF542] animate-pulse" />
-                    100% Ingestion Coverage
+                    9 Published Prints • 3 Forward Assumption Slots Active
                   </span>
                 </div>
 
@@ -530,7 +775,7 @@ export default function MacroDataPage() {
           {/* TAB 2: COMBINED DIFFERENTIAL & RATING (Paginated 5 per page)   */}
           {/* ============================================================== */}
           {activeTab === "Differential & Rating" && (
-            <div className="flex flex-col w-full h-full justify-between">
+            <div className="flex flex-col w-full">
               
               {/* Header Info Banner */}
               <div className="flex items-center justify-between px-6 py-2.5 border-b border-white/5 bg-white/[0.01] flex-shrink-0">
@@ -548,12 +793,12 @@ export default function MacroDataPage() {
                 </div>
               </div>
 
-              {/* Table with 5 Monthly Releases per Page */}
-              <div className="overflow-x-auto w-full p-3 flex-1 flex flex-col justify-center">
+              {/* Table with Monthly Releases & Forward Assumptions */}
+              <div className="overflow-x-auto w-full p-3">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#A0A5B1]">
-                      <th className="py-2 px-4 w-[140px]">Release Month</th>
+                      <th className="py-2 px-4 w-[150px]">Release Month</th>
                       <th className="py-2 px-4 text-center w-[160px]">Base ({activePairObj.baseName})</th>
                       <th className="py-2 px-4 text-center w-[160px]">Quote ({activePairObj.quoteName})</th>
                       <th className="py-2 px-4 text-center w-[180px]">Calculated Differential</th>
@@ -573,13 +818,27 @@ export default function MacroDataPage() {
                       paginatedDiffRows?.map((row: any, i: number) => {
                         const isPositive = row.rating > 0;
                         const isNegative = row.rating < 0;
+                        const isAssumptionRow = Boolean(row.isAssumption);
 
                         return (
-                          <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                          <tr 
+                            key={i} 
+                            className={clsx(
+                              "transition-colors",
+                              isAssumptionRow ? "bg-[#F5A623]/[0.03] hover:bg-[#F5A623]/[0.06]" : "hover:bg-white/[0.02]"
+                            )}
+                          >
                             {/* Month */}
                             <td className="py-2 px-4">
-                              <span className="font-mono font-bold text-xs text-white bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg">
+                              <span className={clsx(
+                                "font-mono font-bold text-xs px-2 py-0.5 rounded-lg inline-flex items-center gap-1",
+                                isAssumptionRow ? 
+                                  "text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/35" : 
+                                  "text-white bg-white/5 border border-white/10"
+                              )}>
+                                {isAssumptionRow && <Sparkles size={9} className="text-[#FFD066]" />}
                                 {row.month}
+                                {isAssumptionRow && <span className="text-[9px] uppercase font-bold text-[#F5A623]">Est</span>}
                               </span>
                             </td>
 
@@ -587,7 +846,9 @@ export default function MacroDataPage() {
                             <td className="py-2 px-4 text-center">
                               <div className="inline-flex items-center gap-1.5 font-mono text-xs text-[#A0A5B1]">
                                 <img src={`/flags/${activePairObj.base}.svg`} className="w-4 h-4 rounded-full border border-white/10" alt={activePairObj.base} />
-                                <span className="text-white font-bold">{row.baseVal}{activeInd !== "FX Reserves" ? "%" : "M"}</span>
+                                <span className={clsx("font-bold", isAssumptionRow ? "text-[#FFD066]" : "text-white")}>
+                                  {row.baseVal}{row.baseVal !== "—" && activeInd !== "FX Reserves" ? "%" : row.baseVal !== "—" ? "M" : ""}
+                                </span>
                               </div>
                             </td>
 
@@ -595,7 +856,9 @@ export default function MacroDataPage() {
                             <td className="py-2 px-4 text-center">
                               <div className="inline-flex items-center gap-1.5 font-mono text-xs text-[#A0A5B1]">
                                 <img src={`/flags/${activePairObj.quote}.svg`} className="w-4 h-4 rounded-full border border-white/10" alt={activePairObj.quote} />
-                                <span className="text-white font-bold">{row.quoteVal}{activeInd !== "FX Reserves" ? "%" : "M"}</span>
+                                <span className={clsx("font-bold", isAssumptionRow ? "text-[#FFD066]" : "text-white")}>
+                                  {row.quoteVal}{row.quoteVal !== "—" && activeInd !== "FX Reserves" ? "%" : row.quoteVal !== "—" ? "M" : ""}
+                                </span>
                               </div>
                             </td>
 
@@ -603,11 +866,12 @@ export default function MacroDataPage() {
                             <td className="py-2 px-4 text-center">
                               <span className={clsx(
                                 "inline-block font-mono font-bold text-xs px-2.5 py-0.5 rounded-lg",
+                                isAssumptionRow ? "text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/30" :
                                 row.diffNum > 0 ? "text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20" :
                                 row.diffNum < 0 ? "text-[#FF5B5B] bg-[#FF4444]/10 border border-[#FF4444]/20" :
                                 "text-white bg-white/5 border border-white/10"
                               )}>
-                                {row.diff}{activeInd !== "FX Reserves" ? "%" : "M"}
+                                {row.diff}{row.diff !== "—" && activeInd !== "FX Reserves" ? "%" : row.diff !== "—" ? "M" : ""}
                               </span>
                             </td>
 
@@ -621,19 +885,22 @@ export default function MacroDataPage() {
                             {/* Engine Sentiment Regime */}
                             <td className="py-2 px-4 text-center">
                               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold">
-                                {isPositive && (
+                                {isAssumptionRow ? (
+                                  <span className="flex items-center gap-1 text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/30 px-2.5 py-0.5 rounded-full">
+                                    <Sparkles size={11} className="text-[#FFD066]" />
+                                    <span>{row.regime}</span>
+                                  </span>
+                                ) : isPositive ? (
                                   <span className="flex items-center gap-1 text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/25 px-2.5 py-0.5 rounded-full">
                                     <TrendingUp size={12} />
                                     <span>{row.regime}</span>
                                   </span>
-                                )}
-                                {isNegative && (
+                                ) : isNegative ? (
                                   <span className="flex items-center gap-1 text-[#FF5B5B] bg-[#FF4444]/10 border border-[#FF4444]/25 px-2.5 py-0.5 rounded-full">
                                     <TrendingDown size={12} />
                                     <span>{row.regime}</span>
                                   </span>
-                                )}
-                                {!isPositive && !isNegative && (
+                                ) : (
                                   <span className="flex items-center gap-1 text-[#A0A5B1] bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
                                     <Minus size={12} />
                                     <span>{row.regime}</span>
@@ -646,6 +913,7 @@ export default function MacroDataPage() {
                             <td className="py-2 px-4 text-right">
                               <span className={clsx(
                                 "inline-block px-2.5 py-0.5 rounded-xl font-mono font-bold text-xs shadow-sm",
+                                isAssumptionRow ? "bg-[#F5A623]/20 text-[#FFD066] border border-[#F5A623]/40" :
                                 isPositive ? "bg-[#D2F646]/15 text-[#D2F646] border border-[#D2F646]/30" :
                                 isNegative ? "bg-[#FF4444]/15 text-[#FF4444] border border-[#FF4444]/30" :
                                 "bg-white/5 text-[#A0A5B1] border border-white/10"
@@ -719,7 +987,109 @@ export default function MacroDataPage() {
 
         </div>
 
-        {/* Manual Override Drawer */}
+        {/* ============================================================== */}
+        {/* DRAWER 1: USER FORWARD ASSUMPTION DRAWER (NEW FUNCTIONALITY)   */}
+        {/* ============================================================== */}
+        {selectedAssumptionCell && (
+          <motion.div 
+            initial={{ opacity: 0, y: 30, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.96 }}
+            className="fixed bottom-6 right-8 w-[380px] bg-[#161822]/95 backdrop-blur-3xl border border-[#F5A623]/40 rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_30px_rgba(245,166,35,0.18)] p-6 z-50 animate-slideUp"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#F5A623]/15 border border-[#F5A623]/35 flex items-center justify-center">
+                  <Sparkles size={16} className="text-[#FFD066]" />
+                </div>
+                <div>
+                  <h3 className="font-sans font-bold text-sm text-white">Forward Date Assumption</h3>
+                  <span className="text-[10px] font-mono text-[#F5A623] font-semibold">User Projection Model</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedAssumptionCell(null)}
+                className="w-7 h-7 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer text-[#A0A5B1] hover:text-white"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Context Card */}
+            <div className="bg-[#121418] border border-white/5 rounded-2xl p-3 mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <img 
+                  src={`/flags/${COUNTRIES.find(c => c.country === selectedAssumptionCell.c)?.base}.svg`} 
+                  className="w-6 h-6 rounded-full border border-white/15" 
+                  alt={selectedAssumptionCell.c} 
+                />
+                <div>
+                  <div className="font-sans font-bold text-xs text-white">{selectedAssumptionCell.c}</div>
+                  <div className="text-[10px] font-mono text-[#A0A5B1]">{activeInd}</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-mono uppercase text-[#A0A5B1]">Upcoming Release</div>
+                <div className="font-mono font-black text-sm text-[#FFD066]">{selectedAssumptionCell.m}</div>
+              </div>
+            </div>
+
+            {/* Input Form */}
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-[11px] font-sans font-medium text-[#A0A5B1] mb-1.5 block">
+                  Fill Assumption Value {activeInd === "FX Reserves" ? "(USD Millions)" : "(%)"}
+                </label>
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    autoFocus
+                    value={assumptionInputVal} 
+                    onChange={(e) => setAssumptionInputVal(e.target.value)}
+                    placeholder="e.g. 2.4"
+                    className="w-full bg-[#121418] border border-[#F5A623]/40 rounded-xl px-4 py-2.5 font-mono font-bold text-base text-[#FFD066] outline-none focus:border-[#F5A623] focus:ring-2 focus:ring-[#F5A623]/25 transition-all placeholder:text-white/20" 
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveAssumption();
+                    }}
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-[#A0A5B1]">
+                    {activeInd === "FX Reserves" ? "USD M" : "%"}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-[#A0A5B1] leading-relaxed">
+                * This forward assumption allows you to model predictive macro differentials for future release dates without overwriting official historical releases.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 mt-1">
+                {selectedAssumptionCell.val && (
+                  <button 
+                    type="button"
+                    onClick={handleClearAssumption}
+                    className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-[#FF4444]/15 hover:text-[#FF4444] border border-white/10 hover:border-[#FF4444]/30 text-xs font-sans font-bold text-[#A0A5B1] transition-all cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button 
+                  type="button"
+                  onClick={handleSaveAssumption}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#F5A623] to-[#FFD066] text-[#121418] font-sans font-extrabold text-xs hover:brightness-110 transition-all flex justify-center items-center gap-1.5 cursor-pointer shadow-[0_0_16px_rgba(245,166,35,0.35)]"
+                >
+                  <Sparkles size={14} className="text-[#121418]" />
+                  <span>Save Assumption</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ============================================================== */}
+        {/* DRAWER 2: MANUAL OVERRIDE DRAWER (FOR HISTORICAL PRINTS)       */}
+        {/* ============================================================== */}
         {selectedCell && (
           <div className="fixed bottom-6 right-8 w-[340px] bg-[#1E2028]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl p-6 z-50 animate-slideUp">
             <div className="flex items-center justify-between mb-4">

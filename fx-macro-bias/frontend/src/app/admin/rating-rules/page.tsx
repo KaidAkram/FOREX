@@ -195,7 +195,7 @@ export default function RatingRulesPage() {
   };
 
   return (
-    <div className="flex flex-col w-full h-full max-h-screen bg-transparent relative overflow-hidden justify-between">
+    <div className="flex flex-col w-full min-h-full bg-transparent relative justify-start">
       {/* Header - Compact Spacing */}
       <header className="w-full flex items-center justify-between px-8 py-3 pb-1 opacity-0 animate-fadeIn flex-shrink-0">
         <div className="flex flex-col gap-0.5">
@@ -214,8 +214,8 @@ export default function RatingRulesPage() {
         </div>
       </header>
 
-      {/* Main Container - Compact and snug to avoid any empty voids or vertical scrolling */}
-      <main className="flex-1 flex flex-col px-8 gap-2.5 pb-4 max-w-[1550px] w-full mx-auto overflow-hidden justify-between min-h-0">
+      {/* Main Container - Compact snug placement directly below toolbar */}
+      <main className="flex-1 flex flex-col px-8 gap-4 pb-8 max-w-[1550px] w-full mx-auto justify-start">
         
         {/* Controls Toolbar */}
         <div className="flex items-center justify-between opacity-0 animate-slideUp">

@@ -83,7 +83,7 @@ export default function FinalScorePage() {
   const displayMonths = Array.from({ length: selectedYear === new Date().getFullYear() ? new Date().getMonth() + 1 : 12 }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, '0')}`);
 
   return (
-    <div className="flex flex-col w-full h-full max-h-screen bg-transparent relative justify-between overflow-hidden">
+    <div className="flex flex-col w-full min-h-full bg-transparent relative justify-start">
       <header className="w-full flex items-center justify-between px-8 py-3 pb-1 opacity-0 animate-fadeIn relative z-50 flex-shrink-0" style={{ animationDelay: "0.1s" }}>
         <div className="flex flex-col gap-0.5">
           <span className="font-sans font-medium text-[11px] text-[#A0A5B1]">Engine Output</span>
@@ -116,7 +116,7 @@ export default function FinalScorePage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col px-8 gap-2.5 pb-4 max-w-[1550px] w-full mx-auto overflow-hidden justify-between min-h-0">
+      <main className="flex-1 flex flex-col px-8 gap-4 pb-8 max-w-[1550px] w-full mx-auto justify-start">
         <div className={clsx("flex flex-col relative overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
           
           {/* Header Info Banner */}

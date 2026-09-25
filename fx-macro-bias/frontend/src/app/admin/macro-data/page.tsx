@@ -305,25 +305,25 @@ export default function MacroDataPage() {
   );
 
   return (
-    <div className="flex flex-col w-full min-h-full bg-transparent relative justify-start">
+    <div className="flex flex-col w-full h-full min-h-screen bg-transparent relative justify-between">
       
-      {/* 1. Header: Clean placement with GlobalSearch & AuthHeaderWidget */}
-      <header className="w-full flex items-center justify-between px-8 py-3 pb-1 opacity-0 animate-fadeIn flex-shrink-0">
-        <div className="flex flex-col gap-0.5">
-          <span className="font-sans font-medium text-[11px] text-[#A0A5B1]">Engine Data Pipeline</span>
-          <h1 className="font-sans font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
+      {/* 1. Header: Elegant comfortable spacing matching Dashboard & Analytics */}
+      <header className="w-full flex items-center justify-between px-12 pt-9 pb-5 opacity-0 animate-fadeIn flex-shrink-0">
+        <div className="flex flex-col gap-1">
+          <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine Data Pipeline</span>
+          <h1 className="font-sans font-bold text-3xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
             Macro Data Center
           </h1>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <GlobalSearch placeholder="Search indicators, pairs, countries..." />
           <AuthHeaderWidget />
         </div>
       </header>
 
-      {/* 2. Main Content Container: Clean snug placement directly under controls */}
-      <main className="flex-1 flex flex-col px-8 gap-4 pb-8 max-w-[1550px] w-full mx-auto justify-start">
+      {/* 2. Main Content Container: Clean spacious layout */}
+      <main className="flex-1 flex flex-col px-12 gap-5 pb-8 max-w-[1600px] w-full mx-auto justify-between">
         
         {/* Controls Toolbar: Elevated z-index so dropdowns float ON TOP of tables */}
         <div className="relative z-50 flex items-center justify-between gap-3 opacity-0 animate-slideUp">

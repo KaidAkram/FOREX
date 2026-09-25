@@ -83,21 +83,21 @@ export default function FinalScorePage() {
   const displayMonths = Array.from({ length: selectedYear === new Date().getFullYear() ? new Date().getMonth() + 1 : 12 }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, '0')}`);
 
   return (
-    <div className="flex flex-col w-full min-h-full bg-transparent relative justify-start">
-      <header className="w-full flex items-center justify-between px-8 py-3 pb-1 opacity-0 animate-fadeIn relative z-50 flex-shrink-0" style={{ animationDelay: "0.1s" }}>
-        <div className="flex flex-col gap-0.5">
-          <span className="font-sans font-medium text-[11px] text-[#A0A5B1]">Engine Output</span>
-          <h1 className="font-sans font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
+    <div className="flex flex-col w-full h-full min-h-screen bg-transparent relative justify-between">
+      <header className="w-full flex items-center justify-between px-12 pt-9 pb-5 opacity-0 animate-fadeIn relative z-50 flex-shrink-0" style={{ animationDelay: "0.1s" }}>
+        <div className="flex flex-col gap-1">
+          <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine Output</span>
+          <h1 className="font-sans font-bold text-3xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
             Final Score Matrix
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <GlobalSearch placeholder="Search indicators, pairs, countries..." />
-          <div className="relative group flex items-center bg-[#1E2028]/80 backdrop-blur-xl border border-white/5 rounded-2xl px-3.5 py-1.5 shadow-lg cursor-pointer">
+          <div className="relative group flex items-center bg-[#1E2028]/80 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-2 shadow-lg cursor-pointer">
             <span className="font-sans font-bold text-xs text-white mr-2">{selectedYear}</span>
             <ChevronDown size={14} className="text-[#A0A5B1] transition-transform group-hover:rotate-180" />
             
-            <div className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#121418] border border-white/5 rounded-2xl overflow-hidden shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#121418] border border-white/10 rounded-2xl overflow-hidden shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               {YEARS.map(year => (
                 <button
                   key={year}
@@ -116,19 +116,19 @@ export default function FinalScorePage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col px-8 gap-4 pb-8 max-w-[1550px] w-full mx-auto justify-start">
+      <main className="flex-1 flex flex-col px-12 gap-5 pb-8 max-w-[1600px] w-full mx-auto justify-center">
         {/* Centered Table Container */}
-        <div className="flex-1 flex flex-col justify-center my-auto w-full py-2">
+        <div className="flex-1 flex flex-col justify-center my-auto w-full py-4">
           <div className={clsx("flex flex-col relative overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
             
             {/* Header Info Banner */}
-            <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.01]">
+            <div className="flex items-center justify-between px-7 py-3.5 border-b border-white/5 bg-white/[0.01]">
               <div className="flex items-center gap-2.5">
                 <span className="font-sans font-bold text-sm text-white">
                   G10 Sovereign Macro Bias Composite Score Matrix ({selectedYear})
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-xs font-mono text-[#A0A5B1]">
+              <div className="flex items-center gap-5 text-xs font-mono text-[#A0A5B1]">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#6FF542]" />
                   Bullish (≥ +20%)
@@ -144,14 +144,14 @@ export default function FinalScorePage() {
               </div>
             </div>
 
-            {/* Matrix Table with All 7 G10 Pairs starting at the TOP */}
+            {/* Matrix Table with All 7 G10 Pairs */}
             <div className="overflow-x-auto w-full p-4">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-white/5">
-                    <th className="px-4 py-3 font-sans font-semibold text-sm text-[#A0A5B1] w-[180px] border-r border-white/5">FX Pair</th>
+                    <th className="px-5 py-3.5 font-sans font-semibold text-sm text-[#A0A5B1] w-[190px] border-r border-white/5">FX Pair</th>
                     {displayMonths.map((m) => (
-                      <th key={m} className="px-3 py-3 font-sans font-semibold text-sm text-[#A0A5B1] text-center min-w-[105px]">{m}</th>
+                      <th key={m} className="px-3 py-3.5 font-sans font-semibold text-sm text-[#A0A5B1] text-center min-w-[108px]">{m}</th>
                     ))}
                   </tr>
                 </thead>
@@ -159,14 +159,14 @@ export default function FinalScorePage() {
                   {isLoading ? (
                     Array.from({ length: 7 }).map((_, i) => (
                       <tr key={i}>
-                        <td className="px-4 py-3 border-r border-white/5"><div className="w-[130px] h-[24px] bg-white/5 rounded-md animate-pulse" /></td>
-                        {displayMonths.map((m, j) => <td key={j} className="p-2"><div className="w-full h-[48px] bg-white/5 rounded-xl animate-pulse" /></td>)}
+                        <td className="px-5 py-3 border-r border-white/5"><div className="w-[130px] h-[26px] bg-white/5 rounded-md animate-pulse" /></td>
+                        {displayMonths.map((m, j) => <td key={j} className="p-2"><div className="w-full h-[52px] bg-white/5 rounded-xl animate-pulse" /></td>)}
                       </tr>
                     ))
                   ) : (
                     scoresData?.map((row: any, i: number) => (
                       <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-4 py-2.5 border-r border-white/5">
+                        <td className="px-5 py-3 border-r border-white/5">
                           <div className="flex items-center gap-3 p-0.5 whitespace-nowrap">
                             <FlagStack base={row.base} quote={row.quote} />
                             <span className="font-sans font-bold text-sm text-white">{row.pair}</span>
@@ -176,23 +176,23 @@ export default function FinalScorePage() {
                           const isBullish = cell.bias === "BULLISH";
                           const isBearish = cell.bias === "BEARISH";
                           return (
-                            <td key={j} className="px-1.5 py-1.5 text-center relative group/cell">
+                            <td key={j} className="px-2 py-2 text-center relative group/cell">
                               <button 
                                 onClick={() => setSelectedCell({ pair: row.pair, base: row.base, quote: row.quote, data: cell })}
                                 className={clsx(
-                                  "inline-flex flex-col items-center justify-center w-full py-2 px-2.5 rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border",
+                                  "inline-flex flex-col items-center justify-center w-full py-2.5 px-3 min-h-[58px] rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border",
                                   isBullish ? "bg-[#1E2E1E]/80 border-[#6FF542]/20" : isBearish ? "bg-[#2E1E1E]/80 border-[#FF4444]/20" : "bg-[#242731]/70 border-transparent"
                                 )}
                               >
                                 <span className={clsx(
-                                  "font-sans text-[15px] font-extrabold transition-transform",
+                                  "font-sans text-[16px] font-black tracking-tight transition-transform",
                                   isBullish ? "text-[#6FF542]" : isBearish ? "text-[#FF4444]" : "text-white"
                                 )}>
                                   {parseFloat(cell.finalScorePct) > 0 ? `+${cell.finalScorePct}%` : `${cell.finalScorePct}%`}
                                 </span>
                                 <span className={clsx(
-                                  "mt-0.5 font-sans text-[9px] font-bold tracking-wider uppercase",
-                                  isBullish ? "text-[#6FF542]/80" : isBearish ? "text-[#FF4444]/80" : "text-[#A0A5B1]"
+                                  "mt-0.5 font-sans text-[9px] font-extrabold tracking-wider uppercase",
+                                  isBullish ? "text-[#6FF542]/90" : isBearish ? "text-[#FF4444]/90" : "text-[#A0A5B1]"
                                 )}>
                                   {cell.bias}
                                 </span>
@@ -208,7 +208,7 @@ export default function FinalScorePage() {
             </div>
 
             {/* Bottom Summary Bar */}
-            <div className="flex items-center justify-between px-6 py-3 border-t border-white/5 bg-[#121418]/60 text-sm">
+            <div className="flex items-center justify-between px-7 py-3.5 border-t border-white/5 bg-[#121418]/60 text-sm">
               <span className="font-sans text-[#A0A5B1]">
                 Composite Model: <strong className="text-white">7 Active Currency Pairs</strong> calculated via 6-tier macro weighted engine.
               </span>

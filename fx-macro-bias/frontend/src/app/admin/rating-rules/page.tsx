@@ -196,11 +196,11 @@ export default function RatingRulesPage() {
 
   return (
     <div className="flex flex-col w-full min-h-full bg-transparent relative justify-start">
-      {/* Header - Compact Spacing */}
-      <header className="w-full flex items-center justify-between px-8 py-3 pb-1 opacity-0 animate-fadeIn flex-shrink-0">
+      {/* Header - Spacious Top Spacing */}
+      <header className="w-full flex items-center justify-between px-12 pt-9 pb-5 opacity-0 animate-fadeIn flex-shrink-0">
         <div className="flex flex-col gap-0.5">
-          <span className="font-sans font-medium text-[11px] text-[#A0A5B1]">Engine Logic Configuration</span>
-          <h1 className="font-sans font-bold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
+          <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine Logic Configuration</span>
+          <h1 className="font-sans font-bold text-3xl text-white tracking-tight">
             Rating Rules
           </h1>
         </div>
@@ -214,8 +214,8 @@ export default function RatingRulesPage() {
         </div>
       </header>
 
-      {/* Main Container - Compact snug placement directly below toolbar */}
-      <main className="flex-1 flex flex-col px-8 gap-4 pb-8 max-w-[1550px] w-full mx-auto justify-start">
+      {/* Main Container - Centered vertically in middle of screen */}
+      <main className="flex-1 flex flex-col px-12 gap-5 pb-8 max-w-[1600px] w-full mx-auto justify-center">
         
         {/* Controls Toolbar */}
         <div className="flex items-center justify-between opacity-0 animate-slideUp">

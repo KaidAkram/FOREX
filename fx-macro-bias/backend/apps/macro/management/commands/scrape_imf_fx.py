@@ -126,7 +126,7 @@ class Command(BaseCommand):
                 raw_val = val_list[0]
                 if raw_val is not None:
                     # Scale nominal USD into Millions of USD (matching IMF Data Explorer)
-                    val_m = round(float(raw_val) / 1e6, 2)
+                    val_m = float(raw_val) / 1e6
                     records_to_upsert.append({
                         "country": country,
                         "indicator": indicator,

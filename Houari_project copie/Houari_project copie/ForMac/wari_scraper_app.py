@@ -49,12 +49,68 @@ VALID_COUNTRIES_DISPLAY = [
 # Sort alphabetically for a better user experience
 VALID_COUNTRIES_DISPLAY.sort()
 
-# The 4 Core Macro Indicators tracked by the platform
+# Robust DNS resolution for sdmx.oecd.org (Cloudflare Anycast IPs)
+import socket
+_orig_getaddrinfo = socket.getaddrinfo
+def _robust_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    if "oecd.org" in host:
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('104.18.0.146', port))]
+    try:
+        return _orig_getaddrinfo(host, port, family, type, proto, flags)
+    except Exception:
+        raise
+socket.getaddrinfo = _robust_getaddrinfo
+
+# The 5 Core Macro Indicators tracked by the platform
 INDICATORS = {
     "GDP Growth": "gdp-growth-annual",
     "Inflation": "inflation-cpi",
     "Interest Rate": "interest-rate",
-    "FX Reserves": "imf"
+    "FX Reserves": "imf",
+    "Current Account": "oecd"
+}
+
+# ISO/SDMX Mapping for OECD SDMX queries
+OECD_COUNTRY_MAP = {
+    "australia": "AUS",
+    "austria": "AUT",
+    "belgium": "BEL",
+    "canada": "CAN",
+    "chile": "CHL",
+    "colombia": "COL",
+    "costa-rica": "CRI",
+    "czech-republic": "CZE",
+    "denmark": "DNK",
+    "estonia": "EST",
+    "euro-area": "EA20",
+    "finland": "FIN",
+    "france": "FRA",
+    "germany": "DEU",
+    "greece": "GRC",
+    "hungary": "HUN",
+    "iceland": "ISL",
+    "ireland": "IRL",
+    "israel": "ISR",
+    "italy": "ITA",
+    "japan": "JPN",
+    "south-korea": "KOR",
+    "latvia": "LVA",
+    "lithuania": "LTU",
+    "luxembourg": "LUX",
+    "mexico": "MEX",
+    "netherlands": "NLD",
+    "new-zealand": "NZL",
+    "norway": "NOR",
+    "poland": "POL",
+    "portugal": "PRT",
+    "slovakia": "SVK",
+    "slovenia": "SVN",
+    "spain": "ESP",
+    "sweden": "SWE",
+    "switzerland": "CHE",
+    "turkey": "TUR",
+    "united-kingdom": "GBR",
+    "united-states": "USA",
 }
 
 # ISO/SDMX Mapping for IMF API queries
@@ -229,10 +285,20 @@ def rate_fx_spread(spread):
     idx = min(range(len(bk)), key=lambda i: abs(bk[i] - clamped))
     return int(bl[idx])
 
+def rate_current_account(diff):
+    import numpy as np
+    if pd.isna(diff): return np.nan
+    # Exact lookup table from EXCEL8EXAMPLE.xlsx CA GDP DATA sheet (Cols AY & AZ)
+    ay = [14.0, 12.0, 11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 4.0, 2.0, 0.0, -2.0, -4.0, -6.0, -7.0, -8.0, -9.0, -10.0, -11.0, -12.0, -14.0]
+    az = [10,   9,    8,    7,    6,   5,   4,   3,   2,   1,   0,   -1,   -2,   -3,   -4,   -5,   -6,    -7,    -8,    -9,   -10]
+    clamped = max(-14.0, min(14.0, float(diff)))
+    idx = min(range(len(ay)), key=lambda i: abs(ay[i] - clamped))
+    return int(az[idx])
+
 def compute_post_scraping_math(matrices_val, matrices_color, log_fn=print):
     """
     Computes mathematical models following EXCEL8EXAMPLE specification:
-    1. Differentials & Rating for Interest Rate, Inflation (CPI), and GDP Growth
+    1. Differentials & Rating for Interest Rate, Inflation (CPI), GDP Growth, and Current Account
     2. 12-Month rolling average monthly flow and spreads for FX Reserves
     3. Final COMPARATIVE MATRIX sheet compiling composite scores and macro bias
     """
@@ -250,7 +316,7 @@ def compute_post_scraping_math(matrices_val, matrices_color, log_fn=print):
             if base_c in df_ir.index and quote_c in df_ir.index:
                 b_series = pd.to_numeric(df_ir.loc[base_c, timeframes], errors='coerce')
                 q_series = pd.to_numeric(df_ir.loc[quote_c, timeframes], errors='coerce')
-                diff_series = (b_series - q_series).round(2)
+                diff_series = b_series - q_series
                 rate_series = diff_series.apply(rate_interest_rate)
                 diff_rows.append({"Pair": pair_name, **diff_series.to_dict()})
                 rating_rows.append({"Pair": pair_name, **rate_series.to_dict()})
@@ -272,7 +338,7 @@ def compute_post_scraping_math(matrices_val, matrices_color, log_fn=print):
             if base_c in df_cpi.index and quote_c in df_cpi.index:
                 b_series = pd.to_numeric(df_cpi.loc[base_c, timeframes], errors='coerce')
                 q_series = pd.to_numeric(df_cpi.loc[quote_c, timeframes], errors='coerce')
-                diff_series = (b_series - q_series).round(2)
+                diff_series = b_series - q_series
                 rate_series = diff_series.apply(rate_cpi)
                 diff_rows.append({"Pair": pair_name, **diff_series.to_dict()})
                 rating_rows.append({"Pair": pair_name, **rate_series.to_dict()})
@@ -293,7 +359,7 @@ def compute_post_scraping_math(matrices_val, matrices_color, log_fn=print):
             if base_c in df_gdp.index and quote_c in df_gdp.index:
                 b_series = pd.to_numeric(df_gdp.loc[base_c, timeframes], errors='coerce')
                 q_series = pd.to_numeric(df_gdp.loc[quote_c, timeframes], errors='coerce')
-                diff_series = (b_series - q_series).round(2)
+                diff_series = b_series - q_series
                 rate_series = diff_series.apply(rate_gdp)
                 diff_rows.append({"Pair": pair_name, **diff_series.to_dict()})
                 rating_rows.append({"Pair": pair_name, **rate_series.to_dict()})
@@ -304,13 +370,35 @@ def compute_post_scraping_math(matrices_val, matrices_color, log_fn=print):
             new_val["Rating - GDP Growth"] = pd.DataFrame(rating_rows)
             log_fn("  -> ✅ Calculated GDP Growth Differentials & Ratings")
 
-    # 4. Process FX Reserves: 12-Month Rolling Flow & Spread
+    # 4. Process Current Account Differentials & Ratings
+    ca_key = "Current Account" if "Current Account" in matrices_val else ("CA GDP DATA" if "CA GDP DATA" in matrices_val else None)
+    if ca_key:
+        df_ca = matrices_val[ca_key].copy().set_index("Country")
+        timeframes = [c for c in df_ca.columns if c != "Country"]
+        diff_rows = []
+        rating_rows = []
+        for pair_name, base_c, quote_c in PAIRS_DEF:
+            if base_c in df_ca.index and quote_c in df_ca.index:
+                b_series = pd.to_numeric(df_ca.loc[base_c, timeframes], errors='coerce')
+                q_series = pd.to_numeric(df_ca.loc[quote_c, timeframes], errors='coerce')
+                diff_series = b_series - q_series
+                rate_series = diff_series.apply(rate_current_account)
+                diff_rows.append({"Pair": pair_name, **diff_series.to_dict()})
+                rating_rows.append({"Pair": pair_name, **rate_series.to_dict()})
+                pair_ratings.setdefault(pair_name, {})["Current Account"] = rate_series
+
+        if diff_rows:
+            new_val["Diff - Current Account"] = pd.DataFrame(diff_rows)
+            new_val["Rating - Current Account"] = pd.DataFrame(rating_rows)
+            log_fn("  -> ✅ Calculated Current Account Differentials & Ratings")
+
+    # 5. Process FX Reserves: 12-Month Rolling Flow & Spread
     if "FX Reserves" in matrices_val:
         df_fx = matrices_val["FX Reserves"].copy().set_index("Country")
         timeframes = [c for c in df_fx.columns if c != "Country"]
         df_fx_num = df_fx[timeframes].apply(pd.to_numeric, errors='coerce')
         delta = df_fx_num.diff(axis=1)
-        rolling_12m = delta.T.rolling(window=12, min_periods=1).mean().T.round(2)
+        rolling_12m = delta.T.rolling(window=12, min_periods=1).mean().T
         
         spread_rows = []
         rating_rows = []
@@ -318,7 +406,7 @@ def compute_post_scraping_math(matrices_val, matrices_color, log_fn=print):
             if base_c in rolling_12m.index and quote_c in rolling_12m.index:
                 b_series = rolling_12m.loc[base_c]
                 q_series = rolling_12m.loc[quote_c]
-                spread_series = (b_series - q_series).round(2)
+                spread_series = b_series - q_series
                 rate_series = spread_series.apply(rate_fx_spread)
                 spread_rows.append({"Pair": pair_name, **spread_series.to_dict()})
                 rating_rows.append({"Pair": pair_name, **rate_series.to_dict()})
@@ -330,7 +418,7 @@ def compute_post_scraping_math(matrices_val, matrices_color, log_fn=print):
             new_val["Rating - FX Reserves"] = pd.DataFrame(rating_rows)
             log_fn("  -> ✅ Calculated FX Reserves 12M Rolling Flow, Spreads & Ratings")
 
-    # 5. Build COMPARATIVE MATRIX
+    # 6. Build COMPARATIVE MATRIX
     if pair_ratings:
         cm_rows = []
         for pair_name, ind_dict in pair_ratings.items():
@@ -554,7 +642,7 @@ class WariScraperApp(ctk.CTk):
             
             # 1. Scrape TradingEconomics indicators
             for sheet_name, indicator in INDICATORS.items():
-                if indicator == "imf":
+                if indicator in ["imf", "oecd"]:
                     continue
 
                 self.log(f"📈 Starting Data Pull: {sheet_name} ({indicator})")
@@ -700,7 +788,7 @@ class WariScraperApp(ctk.CTk):
                                 formatted_date = f"{parts[0]}-{parts[1]}-01" if len(parts) == 2 else period_str
                                 raw_val = val_array[0]
                                 if raw_val is not None:
-                                    val_m_usd = round(float(raw_val) / 1e6, 2)
+                                    val_m_usd = float(raw_val) / 1e6 # Unrounded raw float precision
                                     fx_records.append({
                                         "Country": country_name,
                                         "Timeframe": formatted_date,
@@ -724,6 +812,100 @@ class WariScraperApp(ctk.CTk):
                         self.log(f"  -> ⚠️ IMF API Fetch error: {e}")
                 else:
                     self.log("  -> ℹ️ No IMF country codes mapped for selected countries.")
+
+            # 3. Fetch Current Account from official OECD SDMX 3.0 API
+            if "Current Account" in INDICATORS:
+                self.log("🌐 Fetching Current Account (% of GDP) from OECD SDMX 3.0 API...")
+                ca_monthly_records = []
+                ca_quarterly_records = []
+                oecd_targets = []
+                for country in countries:
+                    code = OECD_COUNTRY_MAP.get(country)
+                    if code:
+                        formatted_country = country.replace("-", " ").title()
+                        oecd_targets.append((country, code, formatted_country))
+
+                if oecd_targets:
+                    for country, code, formatted_country in oecd_targets:
+                        url = f"https://sdmx.oecd.org/public/rest/data/OECD.SDD.TPS,DSD_BOP@DF_BOP,1.0/{code}..CA...Q.PT_B1GQ.Y?startPeriod=2023-Q1"
+                        req = urllib.request.Request(url, headers={
+                            "Accept": "application/vnd.sdmx.data+json;version=1.0.0-wd, application/json",
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                        })
+                        try:
+                            with urllib.request.urlopen(req, timeout=20) as resp:
+                                oecd_raw = json.loads(resp.read().decode('utf-8'))
+                            structure = oecd_raw.get("data", {}).get("structure", {})
+                            obs_dims = structure.get("dimensions", {}).get("observation", [])
+                            if not obs_dims:
+                                continue
+                            time_periods = [v["id"] for v in obs_dims[0].get("values", [])]
+                            datasets = oecd_raw.get("data", {}).get("dataSets", [])
+                            if not datasets:
+                                continue
+                            series_dict = datasets[0].get("series", {})
+                            country_quarters = 0
+                            for s_key, s_val in series_dict.items():
+                                obs = s_val.get("observations", {})
+                                for tidx_str, oval in obs.items():
+                                    quarter_str = time_periods[int(tidx_str)]
+                                    raw_val = oval[0]
+                                    if raw_val is not None:
+                                        val_float = float(raw_val) # Unrounded raw float
+                                        
+                                        # Save to Quarterly table
+                                        ca_quarterly_records.append({
+                                            "Country": formatted_country,
+                                            "Quarter": quarter_str,
+                                            "Value": val_float,
+                                            "Is_Forecast": False
+                                        })
+                                        
+                                        # Expand to 3 monthly reference dates (YYYY-MM-01) for matrix alignment
+                                        try:
+                                            yr, q_part = quarter_str.split("-Q")
+                                            base_m = (int(q_part) - 1) * 3 + 1
+                                            for mo_offset in range(3):
+                                                m_str = f"{yr}-{str(base_m + mo_offset).zfill(2)}-01"
+                                                ca_monthly_records.append({
+                                                    "Country": formatted_country,
+                                                    "Timeframe": m_str,
+                                                    "Value": val_float,
+                                                    "Is_Forecast": False
+                                                })
+                                        except Exception:
+                                            pass
+                                        country_quarters += 1
+                            self.log(f"     ✅ OECD Extracted {country_quarters} quarters for {formatted_country}")
+                        except Exception as e:
+                            self.log(f"  -> ⚠️ OECD API fetch error for {formatted_country} ({code}): {e}")
+
+                    target_display_countries = [formatted_country for _, _, formatted_country in oecd_targets]
+
+                    if ca_monthly_records:
+                        ca_df = pd.DataFrame(ca_monthly_records)
+                        ca_clean = ca_df.drop_duplicates(subset=['Country', 'Timeframe'], keep='last')
+                        timeframes = sorted(ca_clean['Timeframe'].unique())
+                        
+                        pivot_val = ca_clean.pivot_table(index='Country', columns='Timeframe', values='Value', aggfunc='last').reindex(index=target_display_countries, columns=timeframes).reset_index()
+                        pivot_color = ca_clean.pivot_table(index='Country', columns='Timeframe', values='Is_Forecast', aggfunc='last').reindex(index=target_display_countries, columns=timeframes).fillna(False).reset_index()
+                        
+                        matrices_val["Current Account"] = pivot_val
+                        matrices_color["Current Account"] = pivot_color
+                        self.log(f"  -> ✅ Retrieved Current Account for {len(oecd_targets)} countries ({len(timeframes)} monthly periods)")
+
+                    if ca_quarterly_records:
+                        q_df = pd.DataFrame(ca_quarterly_records)
+                        q_clean = q_df.drop_duplicates(subset=['Country', 'Quarter'], keep='last')
+                        quarters_sorted = sorted(q_clean['Quarter'].unique(), key=lambda q: (int(q.split('-Q')[0]), int(q.split('-Q')[1])))
+                        
+                        pivot_q = q_clean.pivot_table(index='Country', columns='Quarter', values='Value', aggfunc='last').reindex(index=target_display_countries, columns=quarters_sorted).reset_index()
+                        matrices_val["CA GDP (Quarterly)"] = pivot_q
+                        matrices_color["CA GDP (Quarterly)"] = pivot_q.copy()
+                        for col in quarters_sorted:
+                            matrices_color["CA GDP (Quarterly)"][col] = False
+                else:
+                    self.log("  -> ℹ️ No OECD country codes mapped for selected countries.")
 
         except Exception as e:
             self.log(f"❌ Webdriver Error: {e}")

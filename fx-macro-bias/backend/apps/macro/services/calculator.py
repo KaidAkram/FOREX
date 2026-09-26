@@ -42,7 +42,7 @@ def calculate_differential(pair_id: int, indicator_id: int, month) -> "Different
     diff_val = None
     is_complete = False
     if base_val is not None and quote_val is not None:
-        diff_val = round(base_val - quote_val, 6)
+        diff_val = float(base_val - quote_val)
         is_complete = True
 
     diff, _ = Differential.objects.update_or_create(

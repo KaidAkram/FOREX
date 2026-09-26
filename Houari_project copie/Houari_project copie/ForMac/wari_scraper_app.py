@@ -890,6 +890,8 @@ class WariScraperApp(ctk.CTk):
                         pivot_val = ca_clean.pivot_table(index='Country', columns='Timeframe', values='Value', aggfunc='last').reindex(index=target_display_countries, columns=timeframes).reset_index()
                         pivot_color = ca_clean.pivot_table(index='Country', columns='Timeframe', values='Is_Forecast', aggfunc='last').reindex(index=target_display_countries, columns=timeframes).fillna(False).reset_index()
                         
+                        matrices_val["CA GDP DATA"] = pivot_val
+                        matrices_color["CA GDP DATA"] = pivot_color
                         matrices_val["Current Account"] = pivot_val
                         matrices_color["Current Account"] = pivot_color
                         self.log(f"  -> ✅ Retrieved Current Account for {len(oecd_targets)} countries ({len(timeframes)} monthly periods)")

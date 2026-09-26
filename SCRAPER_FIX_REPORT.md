@@ -264,3 +264,31 @@ Comparing the first historical month (`2022-01-01`) from `EXCEL8EXAMPLE.xlsx` ag
 
 *All values verified and populated in the central SQLite database and available in WARI Excel exports.*
 
+---
+
+## 8. OECD Data Explorer Ground Truth Benchmark & Multi-Tier Synchronization
+
+### 1. User Ground Truth Verification Table (United States, Last 5 Quarters)
+From the official OECD Data Explorer portal (`Reference area: United States`, `Measure: Current account`, `Unit of measure: Percentage of GDP`, `Adjustment: Calendar and seasonally adjusted`, `Frequency: Quarterly`):
+
+| Time Period | OECD Data Explorer Portal (User Screenshot) | `EXCEL8EXAMPLE.xlsx` | `macroDataset.ts` (Frontend) | Django `db.sqlite3` | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **2025-Q2** | **-3.344384** | -3.344384 | -3.344384 | -3.344384 | ✅ 100% Exact Match |
+| **2025-Q3** | **-3.381205** | -3.381205 | -3.381205 | -3.381205 | ✅ 100% Exact Match |
+| **2025-Q4** | **-2.814096** | -2.814096 | -2.814096 | -2.814096 | ✅ 100% Exact Match |
+| **2026-Q1** | **-2.668661** | -2.668661 | -2.668661 | -2.668661 | ✅ 100% Exact Match |
+| **2026-Q2** | **-3.029274** | -3.029274 | -3.029274 | -3.029274 | ✅ 100% Exact Match |
+
+### 2. Synchronized Deliverables Across Platform
+1. **[EXCEL8EXAMPLE.xlsx](file:///c:/Users/Akram%20KAID/Desktop/FOREX/EXCEL8EXAMPLE.xlsx)**:
+   - Sheet `CA GDP DATA`: Fully updated rows 3–10 (Australia, Canada, Japan, Switzerland, New Zealand, United Kingdom, United States, Euro Area) from `2023-01` to `2026-09` with unrounded OECD SDMX float numbers. All pair differential formulas (`=B9-B5`) and rating lookups automatically update.
+   - Sheet `CA GDP (Quarterly)`: Added dedicated quarterly table (`2023-Q1` through `2026-Q2`) and direct portal benchmark table.
+2. **[macroDataset.ts](file:///c:/Users/Akram%20KAID/Desktop/FOREX/fx-macro-bias/frontend/src/data/macroDataset.ts)**:
+   - Updated `MASTER_MACRO_DATABASE["Current Account"]` across all 10 sovereign economies.
+   - Removed `.toFixed(1)` truncation in `getMacroMatrixData` and `getCombinedDifferentialData` to maintain full IEEE float precision without rounding.
+3. **[wari_scraper_app.py](file:///c:/Users/Akram%20KAID/Desktop/FOREX/Houari_project%20copie/Houari_project%20copie/For%20Win/wari_scraper_app.py)** (Windows & macOS):
+   - Added `"CA GDP DATA"` sheet alias alongside `"CA GDP (Quarterly)"` for seamless integration.
+4. **[verify_ca_scraper.py](file:///c:/Users/Akram%20KAID/Desktop/FOREX/verify_ca_scraper.py)**:
+   - Automated test runner verifying consistency across the live API, Excel, frontend, and backend database.
+
+

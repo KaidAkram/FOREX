@@ -19,7 +19,7 @@ def calculate_differential(pair_id: int, indicator_id: int, month) -> "Different
     Reads only active MacroDataPoints.
     """
     from apps.macro.models import (
-        Differential, FXPair, MacroDataPoint,
+        Differential, FXPair, MacroDataPoint, MacroIndicator,
     )
 
     pair = FXPair.objects.select_related("base_currency", "quote_currency").get(pk=pair_id)
@@ -35,6 +35,18 @@ def calculate_differential(pair_id: int, indicator_id: int, month) -> "Different
             return dp.value
         except MacroDataPoint.DoesNotExist:
             return None
+
+    indicator = MacroIndicator.objects.get(pk=indicator_id)
+    if indicator.slug == "equity":
+        # Equity is calculated directly for the FX pair (Synthetic Change vs Index Change)
+        diff = Differential.objects.filter(
+            pair_id=pair_id, indicator_id=indicator_id, month=month
+        ).first()
+        if diff and diff.base_value is not None and diff.quote_value is not None:
+            diff.difference = float(diff.base_value - diff.quote_value)
+            diff.is_complete = True
+            diff.save()
+            return diff
 
     base_val = _get_value(pair.base_currency_id)
     quote_val = _get_value(pair.quote_currency_id)
@@ -64,7 +76,18 @@ def apply_rating_rule(diff_value: float, indicator_id: int) -> tuple[Optional[in
     Look up the active RatingRule for this indicator and differential value.
     Returns (rating_value, rule_instance) or (None, None) if no rule matches.
     """
-    from apps.macro.models import RatingRule
+    from apps.macro.models import MacroIndicator, RatingRule
+
+    indicator = MacroIndicator.objects.get(pk=indicator_id)
+    if indicator.slug == "equity":
+        # Exact Equity Rating Table from EXCEL8EXAMPLE.xlsx ($BJ$7:$BK$29) & Equity Indicator.docx
+        BJ_GRID = [0.25, 0.20, 0.18, 0.16, 0.14, 0.12, 0.10, 0.08, 0.06, 0.04, 0.02, 0.00,
+                   -0.02, -0.04, -0.06, -0.08, -0.10, -0.12, -0.14, -0.16, -0.18, -0.20, -0.25]
+        BK_GRID = [2, 3, 5, 7, 9, 10, 9, 7, 5, 3, 2, 0,
+                   -2, -3, -5, -7, -9, -10, -9, -7, -5, -3, -2]
+        clamped = max(-0.25, min(0.25, float(diff_value)))
+        idx = min(range(len(BJ_GRID)), key=lambda i: abs(BJ_GRID[i] - clamped))
+        return int(BK_GRID[idx]), None
 
     rules = RatingRule.objects.filter(indicator_id=indicator_id, is_active=True).order_by("min_diff")
     for rule in rules:

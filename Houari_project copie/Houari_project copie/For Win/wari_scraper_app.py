@@ -299,10 +299,20 @@ def rate_current_account(diff):
     idx = min(range(len(ay)), key=lambda i: abs(ay[i] - clamped))
     return int(az[idx])
 
+def rate_equity(diff):
+    import numpy as np
+    if pd.isna(diff): return np.nan
+    # Exact lookup table from EXCEL8EXAMPLE.xlsx EQUITY sheet (Cols BJ & BK)
+    bj = [-0.25, -0.20, -0.18, -0.16, -0.14, -0.12, -0.10, -0.08, -0.06, -0.04, -0.02, 0.00, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25]
+    bk = [-2,    -3,    -5,    -7,    -9,    -10,   -9,    -7,    -5,    -3,    -2,    0,    2,    3,    5,    7,    9,    10,   9,    7,    5,    3,    2]
+    clamped = max(-0.25, min(0.25, float(diff)))
+    idx = min(range(len(bj)), key=lambda i: abs(bj[i] - clamped))
+    return int(bk[idx])
+
 def compute_post_scraping_math(matrices_val, matrices_color, log_fn=print):
     """
     Computes mathematical models following EXCEL8EXAMPLE specification:
-    1. Differentials & Rating for Interest Rate, Inflation (CPI), GDP Growth, and Current Account
+    1. Differentials & Rating for Interest Rate, Inflation (CPI), GDP Growth, Current Account, and Equity
     2. 12-Month rolling average monthly flow and spreads for FX Reserves
     3. Final COMPARATIVE MATRIX sheet compiling composite scores and macro bias
     """
@@ -422,7 +432,31 @@ def compute_post_scraping_math(matrices_val, matrices_color, log_fn=print):
             new_val["Rating - FX Reserves"] = pd.DataFrame(rating_rows)
             log_fn("  -> ✅ Calculated FX Reserves 12M Rolling Flow, Spreads & Ratings")
 
-    # 6. Build COMPARATIVE MATRIX
+    # 6. Process Equity Differentials & Ratings (Direct Pair Calculation from EQUITY sheet)
+    eq_key = "EQUITY" if "EQUITY" in matrices_val else ("Equity" if "Equity" in matrices_val else None)
+    if eq_key:
+        df_eq = matrices_val[eq_key].copy()
+        if "Pair" in df_eq.columns:
+            df_eq = df_eq.set_index("Pair")
+        timeframes = [c for c in df_eq.columns if c not in ["Pair", "Country", "Metric"]]
+        diff_rows = []
+        rating_rows = []
+        for pair_name, _, _ in PAIRS_DEF:
+            pair_clean = pair_name.replace("/", " ")
+            matching_idx = [i for i in df_eq.index if pair_clean in str(i) or pair_name in str(i)]
+            if matching_idx:
+                series = pd.to_numeric(df_eq.loc[matching_idx[0], timeframes], errors='coerce')
+                rate_series = series.apply(rate_equity)
+                diff_rows.append({"Pair": pair_name, **series.to_dict()})
+                rating_rows.append({"Pair": pair_name, **rate_series.to_dict()})
+                pair_ratings.setdefault(pair_name, {})["Equity"] = rate_series
+
+        if diff_rows:
+            new_val["Diff - Equity"] = pd.DataFrame(diff_rows)
+            new_val["Rating - Equity"] = pd.DataFrame(rating_rows)
+            log_fn("  -> ✅ Calculated Equity Differentials & Ratings")
+
+    # 7. Build COMPARATIVE MATRIX
     if pair_ratings:
         cm_rows = []
         for pair_name, ind_dict in pair_ratings.items():

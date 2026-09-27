@@ -1,185 +1,111 @@
 """
 Management command: scrape_imf_fx
-Scrapes live Foreign Exchange Reserves (excluding gold) from the official IMF SDMX 3.0 API.
-Specification matching IMF Data Explorer (https://data.imf.org/en/Data-Explorer):
-  - Dataset: International Liquidity (IL / IMF.STA:IL(13.0.1))
-  - Indicator: Reserves excluding gold, foreign exchange (RXF11FX_REVS)
-  - Unit: USD (Millions of US Dollars)
-  - Frequency: Monthly (M)
-  - Economies: G10 + active countries in database
-
-Usage:
-    python manage.py scrape_imf_fx
-    python manage.py scrape_imf_fx --start-year 2018
-    python manage.py scrape_imf_fx --countries USA,G163,JPN,GBR,AUS,CAN,CHE,NZL
+Scrapes live Foreign Exchange Reserves (excluding gold) from the official IMF SDMX 3.0 API,
+merges with EXCEL8EXAMPLE.xlsx baseline preserving full floating-point precision (NO floor/ceil/round),
+computes 12-Month moving average flows, pair spreads, and ratings per 'Calcul du différentiel — FX Reserves Exchange.docx'.
 """
 import urllib.request
 import json
 from datetime import datetime, date
+from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from apps.macro.models import Country, MacroIndicator, MacroDataPoint, FXPair
-from apps.macro.services.calculator import recalculate_all_for_month
+from apps.macro.models import Country, MacroIndicator, MacroDataPoint, FXPair, Differential, Rating, FinalScore
+from apps.macro.services.calculator import calculate_differential, calculate_rating, calculate_final_score
+import sys
+from pathlib import Path
+project_root = Path(__file__).resolve().parents[6]
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+import fx_reserves_engine
 
 
 class Command(BaseCommand):
-    help = "Scrapes live official IMF FX Reserves (excluding gold) via SDMX 3.0 API."
+    help = "Scrapes live official IMF FX Reserves (excluding gold) via SDMX 3.0 API and executes 3-step math."
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--start-year",
             type=int,
-            default=2018,
-            help="Starting year for observations (default: 2018)"
-        )
-        parser.add_argument(
-            "--countries",
-            type=str,
-            default=None,
-            help="Comma-separated IMF country codes (e.g. USA,G163,JPN,GBR). Defaults to all active countries."
+            default=2022,
+            help="Starting year for observations (default: 2022)"
         )
 
     def handle(self, *args, **options):
-        start_year = options["start_year"]
-        countries_arg = options["countries"]
-
-        self.stdout.write("=" * 60)
-        self.stdout.write("LIVE IMF FOREIGN EXCHANGE RESERVES EXTRACTION ENGINE")
+        self.stdout.write("=" * 70)
+        self.stdout.write("OFFICIAL IMF FX RESERVES EXTRACTION & 3-STEP DIFFERENTIAL ENGINE")
         self.stdout.write("   Dataset:   International Liquidity (IMF.STA:IL(13.0.1))")
         self.stdout.write("   Indicator: Reserves excluding gold, foreign exchange (RXF11FX_REVS)")
-        self.stdout.write("   Unit:      USD (Scaled to Millions of USD)")
-        self.stdout.write("   Frequency: Monthly (M)")
-        self.stdout.write("=" * 60)
+        self.stdout.write("   Unit:      USD (Scaled to Millions of USD, Full Float Precision)")
+        self.stdout.write("=" * 70)
 
-        # 1. Resolve Indicator
         indicator = MacroIndicator.objects.filter(slug="fx_reserves").first()
         if not indicator:
             raise CommandError("Indicator 'fx_reserves' does not exist in MacroIndicator table.")
 
-        # 2. Resolve Countries
-        if countries_arg:
-            target_codes = [c.strip().upper() for c in countries_arg.split(",") if c.strip()]
-            country_objs = list(Country.objects.filter(imf_country_code__in=target_codes))
-        else:
-            country_objs = list(Country.objects.filter(is_active=True).exclude(imf_country_code=""))
+        # 1. Build FX dataset using fx_reserves_engine
+        self.stdout.write("\n[1/4] Building authoritative FX Reserves dataset (IMF API + Excel baseline)...")
+        df_raw, df_avg12, pair_results, country_raw, country_flow = fx_reserves_engine.build_fx_dataset()
 
-        if not country_objs:
-            raise CommandError("No countries found with valid IMF country codes.")
-
-        code_to_country = {c.imf_country_code.upper(): c for c in country_objs}
-        query_codes = "+".join(sorted(code_to_country.keys()))
-
-        self.stdout.write(f"\n--> Querying IMF SDMX 3.0 API for {len(code_to_country)} economies: {query_codes}...")
-
-        base_url = f"https://api.imf.org/external/sdmx/3.0/data/dataflow/IMF.STA/IL/13.0.1/{query_codes}.RXF11FX_REVS.USD.M"
-        query_params = f"c%5BTIME_PERIOD%5D=ge:{start_year}-01-01&attributes=all&detail=full&includeHistory=true"
-        url = f"{base_url}?{query_params}"
-
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "application/vnd.sdmx.data+json;version=1.0.0-wd, application/json"
-        })
-
-        try:
-            with urllib.request.urlopen(req, timeout=35) as resp:
-                raw_json = json.loads(resp.read().decode("utf-8"))
-        except Exception as exc:
-            raise CommandError(f"Failed to fetch IMF SDMX data: {exc}")
-
-        # 3. Parse SDMX JSON Structure
-        s0 = raw_json.get("data", {}).get("structures", [{}])[0]
-        dim_countries = [c["id"].upper() for c in s0.get("dimensions", {}).get("series", [{}])[0].get("values", [])]
-        dim_periods = [t["value"] for t in s0.get("dimensions", {}).get("observation", [{}])[0].get("values", [])]
-        datasets = raw_json.get("data", {}).get("dataSets", [])
-
-        if not datasets or not dim_countries:
-            self.stdout.write(self.style.WARNING("[!] No datasets or dimensions returned from IMF."))
-            return
-
-        series_dict = datasets[0].get("series", {})
-        self.stdout.write(f"[+] Received {len(series_dict)} series across {len(dim_periods)} time periods.\n")
+        # 2. Upsert unrounded raw data points into MacroDataPoint
+        self.stdout.write("\n[2/4] Upserting exact unrounded float observations into MacroDataPoint...")
+        active_countries = {c.name: c for c in Country.objects.filter(is_active=True)}
 
         records_to_upsert = []
-        months_affected = set()
-
-        for s_key, s_data in series_dict.items():
-            c_idx = int(s_key.split(":")[0])
-            c_code = dim_countries[c_idx]
-            country = code_to_country.get(c_code)
-            if not country:
+        for c_name, pts in country_raw.items():
+            country_obj = active_countries.get(c_name)
+            if not country_obj:
                 continue
-
-            obs = s_data.get("observations", {})
-            country_obs_count = 0
-            latest_period = None
-            latest_val_m = None
-
-            for t_idx_str, val_list in obs.items():
-                t_idx = int(t_idx_str)
-                period_str = dim_periods[t_idx] # e.g. "2024-M08"
-                parts = period_str.split("-M")
-                if len(parts) == 2:
-                    month_date = date(int(parts[0]), int(parts[1]), 1)
-                else:
-                    continue
-
-                raw_val = val_list[0]
-                if raw_val is not None:
-                    # Scale nominal USD into Millions of USD (matching IMF Data Explorer)
-                    val_m = float(raw_val) / 1e6
-                    records_to_upsert.append({
-                        "country": country,
-                        "indicator": indicator,
-                        "month": month_date,
-                        "value": val_m,
-                        "source": "IMF Data Explorer (RXF11FX_REVS)",
-                        "status": "PROCESSED",
-                        "is_active_value": True,
-                    })
-                    months_affected.add(month_date)
-                    country_obs_count += 1
-                    latest_period = period_str
-                    latest_val_m = val_m
-
-            self.stdout.write(f"  * {country.name:<18} ({c_code}): {country_obs_count} monthly points | Latest: {latest_period} = ${latest_val_m:,.2f} M USD")
-
-        # 4. Upsert into Database
-        self.stdout.write(f"\n[+] Upserting {len(records_to_upsert)} live observations into MacroDataPoint table...")
-        created_count = 0
-        updated_count = 0
+            for ym, val in pts.items():
+                if val is not None:
+                    y, m = ym.split("-")
+                    dt = date(int(y), int(m), 1)
+                    records_to_upsert.append(
+                        MacroDataPoint(
+                            country=country_obj,
+                            indicator=indicator,
+                            month=dt,
+                            value=float(val),
+                            source="Official IMF SDMX 3.0 (RXF11FX_REVS)",
+                            status="PROCESSED",
+                            is_active_value=True,
+                        )
+                    )
 
         with transaction.atomic():
-            for rec in records_to_upsert:
-                _, created = MacroDataPoint.objects.update_or_create(
-                    country=rec["country"],
-                    indicator=rec["indicator"],
-                    month=rec["month"],
-                    defaults={
-                        "value": rec["value"],
-                        "source": rec["source"],
-                        "status": rec["status"],
-                        "is_active_value": rec["is_active_value"],
-                    }
-                )
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
+            # Delete old points for fx_reserves to clear any previously rounded/corrupted records
+            MacroDataPoint.objects.filter(indicator=indicator).delete()
+            MacroDataPoint.objects.bulk_create(records_to_upsert)
+        self.stdout.write(self.style.SUCCESS(f"  -> Successfully loaded {len(records_to_upsert)} unrounded raw points."))
 
-        self.stdout.write(self.style.SUCCESS(f"[OK] Upsert complete: {created_count} created, {updated_count} updated."))
+        # 3. Calculate Differentials and Ratings for all pairs from 2023-01 to 2026-12
+        self.stdout.write("\n[3/4] Calculating 12-Month Moving Average Flows, Spreads & Ratings...")
+        active_pairs = list(FXPair.objects.filter(is_active=True).select_related("base_currency", "quote_currency"))
 
-        # 5. Trigger Recalculations for Affected Pairs
-        self.stdout.write(f"\n[+] Recalculating Macro Differentials, Ratings, and Bias across {len(months_affected)} months...")
-        active_pairs = list(FXPair.objects.filter(is_active=True))
-        recalc_count = 0
+        # Months from 2023-01 to 2026-12 (48 months)
+        eval_months = []
+        for y in range(2023, 2027):
+            for m in range(1, 13):
+                eval_months.append(date(y, m, 1))
 
-        for month in sorted(months_affected):
-            for pair in active_pairs:
-                try:
-                    recalculate_all_for_month(pair.pk, month)
-                    recalc_count += 1
-                except Exception as exc:
-                    pass
+        diff_count = 0
+        with transaction.atomic():
+            for ym_date in eval_months:
+                for pair in active_pairs:
+                    diff = calculate_differential(pair.pk, indicator.pk, ym_date)
+                    calculate_rating(diff.pk)
+                    diff_count += 1
+        self.stdout.write(self.style.SUCCESS(f"  -> Successfully computed {diff_count} pair differentials & ratings."))
 
-        self.stdout.write(self.style.SUCCESS(f"[OK] Finished {recalc_count} pair-month recalculations!"))
-        self.stdout.write(self.style.SUCCESS("All FX Reserves now 100% synchronized with official IMF Data Explorer."))
+        # 4. Recompute FinalScore across all pairs
+        self.stdout.write("\n[4/4] Recomputing composite FinalScore and Macro Bias for all pairs...")
+        score_count = 0
+        with transaction.atomic():
+            for ym_date in eval_months:
+                for pair in active_pairs:
+                    calculate_final_score(pair.pk, ym_date)
+                    score_count += 1
+        self.stdout.write(self.style.SUCCESS(f"  -> Successfully recomputed {score_count} composite final scores."))
+
+        self.stdout.write(self.style.SUCCESS("\n[SUCCESS] FX Reserves completely rectified across Django database!"))

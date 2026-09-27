@@ -48,6 +48,64 @@ def calculate_differential(pair_id: int, indicator_id: int, month) -> "Different
             diff.save()
             return diff
 
+    if indicator.slug == "fx_reserves":
+        # 12-Month rolling average of monthly differences per 'Calcul du différentiel — FX Reserves Exchange.docx'
+        def _get_12m_flow(country_id) -> Optional[float]:
+            if isinstance(month, str):
+                y, m = [int(x) for x in month[:7].split("-")]
+            else:
+                y, m = month.year, month.month
+
+            months_to_fetch = []
+            for k in range(13):
+                cur_m = m - k
+                cur_y = y
+                while cur_m <= 0:
+                    cur_m += 12
+                    cur_y -= 1
+                months_to_fetch.append(f"{cur_y}-{cur_m:02d}-01")
+
+            dps = {
+                dp.month.strftime("%Y-%m-%d"): dp.value
+                for dp in MacroDataPoint.objects.filter(
+                    country_id=country_id,
+                    indicator_id=indicator_id,
+                    month__in=months_to_fetch,
+                    is_active_value=True,
+                )
+            }
+            deltas = []
+            for k in range(12):
+                cur_dt = months_to_fetch[k]
+                prev_dt = months_to_fetch[k + 1]
+                if cur_dt in dps and prev_dt in dps:
+                    deltas.append(float(dps[cur_dt] - dps[prev_dt]))
+
+            if deltas:
+                return float(sum(deltas) / len(deltas))
+            return None
+
+        base_val = _get_12m_flow(pair.base_currency_id)
+        quote_val = _get_12m_flow(pair.quote_currency_id)
+        diff_val = None
+        is_complete = False
+        if base_val is not None and quote_val is not None:
+            diff_val = float(base_val - quote_val)
+            is_complete = True
+
+        diff, _ = Differential.objects.update_or_create(
+            pair_id=pair_id,
+            indicator_id=indicator_id,
+            month=month,
+            defaults={
+                "base_value": base_val,
+                "quote_value": quote_val,
+                "difference": diff_val,
+                "is_complete": is_complete,
+            },
+        )
+        return diff
+
     base_val = _get_value(pair.base_currency_id)
     quote_val = _get_value(pair.quote_currency_id)
 
@@ -88,6 +146,14 @@ def apply_rating_rule(diff_value: float, indicator_id: int) -> tuple[Optional[in
         clamped = max(-0.25, min(0.25, float(diff_value)))
         idx = min(range(len(BJ_GRID)), key=lambda i: abs(BJ_GRID[i] - clamped))
         return int(BK_GRID[idx]), None
+
+    if indicator.slug == "fx_reserves":
+        # Exact FX Reserves Rating Table from EXCEL8EXAMPLE.xlsx ($BK$3:$BL$23)
+        BK_SPREAD = [-2000 + 200*i for i in range(21)]
+        BL_RATING = [10 - i for i in range(21)]
+        clamped = max(-2000.0, min(2000.0, float(diff_value)))
+        idx = min(range(len(BK_SPREAD)), key=lambda i: abs(BK_SPREAD[i] - clamped))
+        return int(BL_RATING[idx]), None
 
     rules = RatingRule.objects.filter(indicator_id=indicator_id, is_active=True).order_by("min_diff")
     for rule in rules:

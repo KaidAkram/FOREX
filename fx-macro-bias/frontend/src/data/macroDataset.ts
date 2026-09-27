@@ -4940,7 +4940,8 @@ export function getMacroMatrixData(indicator: string, year: number) {
         // Formatting based on indicator
         let formattedVal: string = "";
         if (indicator === "FX Reserves") {
-          formattedVal = Math.round(Number(raw)).toLocaleString();
+          // Exact unrounded IMF SDMX float number, NO ceiling/flooring/rounding
+          formattedVal = String(raw);
         } else if (indicator === "Current Account") {
           // Exact unrounded OECD SDMX float number, NO ceiling/flooring/rounding
           formattedVal = String(raw);
@@ -16587,32 +16588,27 @@ export function getCombinedDifferentialData(pairName: string, indicator: string,
 
       const baseFlow = getRollingAvg(baseMap, m);
       const quoteFlow = getRollingAvg(quoteMap, m);
-      diffNum = parseFloat((baseFlow - quoteFlow).toFixed(1));
-      baseVal = (baseFlow >= 0 ? "+" : "") + Math.round(baseFlow).toLocaleString();
-      quoteVal = (quoteFlow >= 0 ? "+" : "") + Math.round(quoteFlow).toLocaleString();
-      diff = (diffNum >= 0 ? "+" : "") + Math.round(diffNum).toLocaleString();
+      diffNum = baseFlow - quoteFlow;
+      baseVal = (baseFlow >= 0 ? "+" : "") + baseFlow.toFixed(2);
+      quoteVal = (quoteFlow >= 0 ? "+" : "") + quoteFlow.toFixed(2);
+      diff = (diffNum >= 0 ? "+" : "") + diffNum.toFixed(2);
 
-      if (diffNum >= 600) {
-        rating = 10;
-        rule = "+600M to +∞";
-        regime = "Strong Bullish Bias";
-      } else if (diffNum >= 200) {
-        rating = 5;
-        rule = "+200M to +600M";
-        regime = "Moderate Bullish Bias";
-      } else if (diffNum <= -600) {
-        rating = -10;
-        rule = "-∞ to -600M";
-        regime = "Strong Bearish Bias";
-      } else if (diffNum <= -200) {
-        rating = -5;
-        rule = "-600M to -200M";
-        regime = "Moderate Bearish Bias";
-      } else {
-        rating = 0;
-        rule = "-200M to +200M";
-        regime = "Neutral / Balanced";
+      // Exact FX Reserves Rating Table from EXCEL8EXAMPLE.xlsx (Cols BK & BL)
+      const BK_SPREAD = [-2000, -1800, -1600, -1400, -1200, -1000, -800, -600, -400, -200, 0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000];
+      const BL_RATING = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10];
+      const clamped = Math.max(-2000, Math.min(2000, diffNum));
+      let minIdx = 0;
+      let minDiff = Math.abs(BK_SPREAD[0] - clamped);
+      for (let i = 1; i < BK_SPREAD.length; i++) {
+        const d = Math.abs(BK_SPREAD[i] - clamped);
+        if (d < minDiff) {
+          minDiff = d;
+          minIdx = i;
+        }
       }
+      rating = BL_RATING[minIdx];
+      rule = `${diffNum >= 0 ? "+" : ""}${BK_SPREAD[minIdx]}M Grid`;
+      regime = rating > 0 ? "Bullish Bias" : rating < 0 ? "Bearish Bias" : "Neutral / Balanced";
     } else if (indicator === "CPI") {
       baseVal = rawBase.toFixed(1);
       quoteVal = rawQuote.toFixed(1);

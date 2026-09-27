@@ -7,6 +7,10 @@ import time
 import os
 import datetime
 import urllib.request
+import urllib.parse
+import base64
+import gzip
+import re
 import json
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
@@ -653,75 +657,123 @@ class WariScraperApp(ctk.CTk):
                     formatted_country_name = country.replace("-", " ").title()
                     self.log(f"  -> 🌍 Loading {formatted_country_name}...")
                     
-                    try:
-                        driver.get(url)
-                        time.sleep(4)
-                        
+                    extracted_for_country = False
+
+                    # Direct high-precision extraction for GDP Annual Growth Rate
+                    if indicator == "gdp-growth-annual":
                         try:
-                            driver.execute_script("var el = document.querySelector('a[href=\"#forecast\"]'); if(el) el.click();")
-                            time.sleep(3)
-                        except Exception:
-                            pass
-                        
-                        # Corrected JavaScript Highcharts extraction:
-                        # 1. Takes the active forecast chart (last chart instantiated)
-                        # 2. Rejects null/undefined separator points
-                        # 3. Normalizes timestamp to UTC Month (YYYY-MM-01)
-                        # 4. Accurately detects grey forecast points
-                        js_code = """
-                        try {
-                            var charts = Highcharts.charts.filter(c => !!c && c.series && c.series.length > 0);
-                            if (charts.length === 0) return { error: "No chart found" };
+                            req_page = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+                            with urllib.request.urlopen(req_page, timeout=12) as resp:
+                                html_te = resp.read().decode('utf-8')
+                            tok_m = re.search(r"TEChartsToken\s*=\s*'([^']+)'", html_te)
+                            token_val = tok_m.group(1) if tok_m else '20260324:loboantunes'
+                            sym_m = re.search(r"TESymbol\s*=\s*'([^']+)'", html_te)
+                            fc_m = re.search(r"TEForecast\s*=\s*(\[[^\]]+\])", html_te)
+                            forecasts_val = json.loads(fc_m.group(1)) if fc_m else []
 
-                            var chart = charts[charts.length - 1];
-                            var pts = [];
+                            if sym_m:
+                                symbol_val = sym_m.group(1)
+                                data_url = f"https://d3ii0wo49og5mi.cloudfront.net/economics/{urllib.parse.quote(symbol_val.lower())}?span=10y"
+                                req_d = urllib.request.Request(data_url, headers={'User-Agent': 'Mozilla/5.0', 'x-api-key': token_val, 'Referer': url})
+                                with urllib.request.urlopen(req_d, timeout=12) as resp_d:
+                                    raw_enc = json.loads(resp_d.read().decode('utf-8'))
+                                enc_b = base64.b64decode(raw_enc)
+                                k_bytes = "tradingeconomics-charts-core-api-key".encode('utf-8')
+                                dec_b = bytearray(b ^ k_bytes[i % len(k_bytes)] for i, b in enumerate(enc_b))
+                                gdp_json = json.loads(gzip.decompress(dec_b).decode('utf-8'))
+                                pts_raw = gdp_json[0]["series"][0]["serie"].get("data", [])
 
-                            for (var s = 0; s < chart.series.length; s++) {
-                                var series = chart.series[s];
-                                if (!series.data) continue;
+                                te_pts = []
+                                for pt in pts_raw:
+                                    te_pts.append({
+                                        "Country": formatted_country_name,
+                                        "Timeframe": pt[3][:10],
+                                        "Value": float(pt[0]),
+                                        "Is_Forecast": False
+                                    })
 
-                                for (var i = 0; i < series.data.length; i++) {
-                                    var p = series.data[i];
-                                    if (p && p.y !== null && p.y !== undefined) {
-                                        var xVal = p.category || p.name || p.x;
-                                        var dateStr = '';
-                                        if (!isNaN(xVal) && parseInt(xVal) > 1000000000000) {
-                                            var d = new Date(parseInt(xVal));
-                                            var yr = d.getUTCFullYear();
-                                            var mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-                                            dateStr = yr + '-' + mo + '-01';
-                                        } else {
-                                            dateStr = String(xVal);
+                                # If 2026 upcoming forecasts exist, append them
+                                if forecasts_val and len(te_pts) > 0:
+                                    last_tf = te_pts[-1]["Timeframe"]
+                                    l_yr, l_mo, _ = [int(x) for x in last_tf.split("-")]
+                                    if l_mo == 6:
+                                        if len(forecasts_val) > 0:
+                                            te_pts.append({"Country": formatted_country_name, "Timeframe": f"{l_yr}-09-01", "Value": float(forecasts_val[0]), "Is_Forecast": True})
+                                        if len(forecasts_val) > 1:
+                                            te_pts.append({"Country": formatted_country_name, "Timeframe": f"{l_yr}-12-01", "Value": float(forecasts_val[1]), "Is_Forecast": True})
+
+                                all_extracted_data.extend(te_pts)
+                                self.log(f"     ✅ Extracted {len(te_pts)} high-precision points for {formatted_country_name}")
+                                extracted_for_country = True
+                        except Exception as e_direct:
+                            self.log(f"     ℹ️ Direct extraction note: {e_direct}. Falling back to browser...")
+
+                    if not extracted_for_country:
+                        try:
+                            driver.get(url)
+                            time.sleep(4)
+                            
+                            try:
+                                driver.execute_script("var el = document.querySelector('a[href=\"#forecast\"]'); if(el) el.click();")
+                                time.sleep(3)
+                            except Exception:
+                                pass
+                            
+                            # JavaScript Highcharts extraction fallback
+                            js_code = """
+                            try {
+                                var charts = Highcharts.charts.filter(c => !!c && c.series && c.series.length > 0);
+                                if (charts.length === 0) return { error: "No chart found" };
+
+                                var chart = charts[charts.length - 1];
+                                var pts = [];
+
+                                for (var s = 0; s < chart.series.length; s++) {
+                                    var series = chart.series[s];
+                                    if (!series.data) continue;
+
+                                    for (var i = 0; i < series.data.length; i++) {
+                                        var p = series.data[i];
+                                        if (p && p.y !== null && p.y !== undefined) {
+                                            var xVal = p.category || p.name || p.x;
+                                            var dateStr = '';
+                                            if (!isNaN(xVal) && parseInt(xVal) > 1000000000000) {
+                                                var d = new Date(parseInt(xVal));
+                                                var yr = d.getUTCFullYear();
+                                                var mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+                                                dateStr = yr + '-' + mo + '-01';
+                                            } else {
+                                                dateStr = String(xVal);
+                                            }
+
+                                            var ptColor = String(p.color || series.color || '').toLowerCase();
+                                            if (p.graphic && p.graphic.element) {
+                                                ptColor = String(p.graphic.element.getAttribute('fill') || ptColor).toLowerCase();
+                                            }
+
+                                            var isForecast = (s > 0 || ptColor.includes('205') || ptColor.includes('cdcdcd') || ptColor.includes('ccc') || ptColor.includes('d9d9d9'));
+                                            pts.push({ "Timeframe": dateStr, "Value": p.y, "Is_Forecast": isForecast });
                                         }
-
-                                        var ptColor = String(p.color || series.color || '').toLowerCase();
-                                        if (p.graphic && p.graphic.element) {
-                                            ptColor = String(p.graphic.element.getAttribute('fill') || ptColor).toLowerCase();
-                                        }
-
-                                        var isForecast = (s > 0 || ptColor.includes('205') || ptColor.includes('cdcdcd') || ptColor.includes('ccc') || ptColor.includes('d9d9d9'));
-                                        pts.push({ "Timeframe": dateStr, "Value": p.y, "Is_Forecast": isForecast });
                                     }
                                 }
+                                return { points: pts };
+                            } catch(err) {
+                                return { error: err.message };
                             }
-                            return { points: pts };
-                        } catch(err) {
-                            return { error: err.message };
-                        }
-                        """
-                        
-                        res = driver.execute_script(js_code)
-                        if isinstance(res, dict) and "points" in res:
-                            pts = res["points"]
-                            for pt in pts:
-                                pt["Country"] = formatted_country_name
-                                all_extracted_data.append(pt)
-                            self.log(f"     ✅ Extracted {len(pts)} points for {formatted_country_name}")
-                        else:
-                            self.log(f"     ⚠️ Could not extract data for {formatted_country_name}. Skipping.")
+                            """
+                            
+                            res = driver.execute_script(js_code)
+                            if isinstance(res, dict) and "points" in res:
+                                pts = res["points"]
+                                for pt in pts:
+                                    pt["Country"] = formatted_country_name
+                                    all_extracted_data.append(pt)
+                                self.log(f"     ✅ Extracted {len(pts)} points for {formatted_country_name}")
+                            else:
+                                self.log(f"     ⚠️ Could not extract data for {formatted_country_name}. Skipping.")
 
-                    except Exception as e:
-                        self.log(f"     ❌ Error loading {formatted_country_name}: {e}")
+                        except Exception as e:
+                            self.log(f"     ❌ Error loading {formatted_country_name}: {e}")
 
                 if all_extracted_data:
                     df = pd.DataFrame(all_extracted_data)

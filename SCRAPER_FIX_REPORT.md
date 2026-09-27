@@ -291,4 +291,70 @@ From the official OECD Data Explorer portal (`Reference area: United States`, `M
 4. **[verify_ca_scraper.py](file:///c:/Users/Akram%20KAID/Desktop/FOREX/verify_ca_scraper.py)**:
    - Automated test runner verifying consistency across the live API, Excel, frontend, and backend database.
 
+---
+
+## 9. GDP Annual Growth Rate Rectification & Mathematical Score Audit
+
+### 1. The Problem: Stale Prints, Missing Revisions, & Forecast Mismatches
+When users tracked **GDP Annual Growth Rate** via `https://tradingeconomics.com/{country}/gdp-growth-annual`, the previous dataset contained outdated, unrevised historical values and inaccurate forecasts:
+- **New Zealand (NZD)**: Q2 2026 was recorded as `1.8`, whereas official live release was **`2.6`**; Q1 2026 was `1.5`, live is **`1.7`**.
+- **Switzerland (CHF)**: Q1 2026 was recorded as `0.3`, live is **`0.4`**; Q3 forecast was `0.8`, live is **`1.8`**.
+- **Australia (AUD)**: Q3 forecast was `1.4`, live updated to **`2.1`**; Q4 forecast was `0.8`, live updated to **`1.5`**.
+- **Canada (CAD)**: Q3 forecast was `1.1`, live updated to **`0.9`**; Q4 forecast was `1.9`, live updated to **`1.5`**.
+- **Japan (JPY)**: Q1 2026 was `0.6`, live updated to **`0.5`**.
+
+### 2. Reverse Engineering the High-Precision TradingEconomics CloudFront API
+Rather than relying on fragile DOM scraping of Highcharts canvases (which often suffer from grey-bar forecast detection failures and rounding), we reverse-engineered the underlying TradingEconomics API:
+- **Data Endpoint**: `https://d3ii0wo49og5mi.cloudfront.net/economics/{symbol}?span=10y`
+- **Decryption Pipeline**:
+  ```python
+  enc_b = base64.b64decode(raw_enc_payload)
+  k_bytes = b"tradingeconomics-charts-core-api-key"
+  dec_b = bytearray(b ^ k_bytes[i % len(k_bytes)] for i, b in enumerate(enc_b))
+  gdp_json = json.loads(gzip.decompress(dec_b).decode("utf-8"))
+  ```
+- **Extracted Datasets**:
+  - Exactly 40 quarters (10 years) of high-precision quarterly GDP growth prints for all 10 sovereign economies.
+  - Forward-looking consensus forecasts (`TEForecast`) directly extracted from page headers for Q3 and Q4 2026.
+
+### 3. Comprehensive Ground Truth Verification Matrix (2025–2026)
+
+| Country | Code | 2025-Q2 | 2025-Q3 | 2025-Q4 | 2026-Q1 | 2026-Q2 (Live) | 2026-Q3 (Forecast) | 2026-Q4 (Forecast) | Synchronization Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **United States** | USD | 2.1 | 2.4 | 2.5 | 2.7 | **2.1** | 1.8 | 1.6 | ✅ 100% Synchronized |
+| **Euro Area** | EUR | 1.4 | 1.0 | 1.2 | 0.6 | **1.2** | 1.0 | 0.7 | ✅ 100% Synchronized |
+| **Japan** | JPY | -0.7 | 0.6 | 0.9 | 0.5 | **0.7** | 0.9 | 1.1 | ✅ 100% Synchronized |
+| **United Kingdom**| GBP | 1.3 | 1.0 | 1.5 | 0.9 | **1.2** | 1.7 | 1.4 | ✅ 100% Synchronized |
+| **Canada** | CAD | 2.0 | 1.8 | 2.1 | 0.1 | **1.1** | 0.9 | 1.5 | ✅ 100% Synchronized |
+| **Australia** | AUD | 1.9 | 1.4 | 1.3 | 2.5 | **2.1** | 2.1 | 1.5 | ✅ 100% Synchronized |
+| **Switzerland** | CHF | 1.4 | 1.1 | 1.3 | 0.4 | **2.3** | 1.8 | 1.7 | ✅ 100% Synchronized |
+| **New Zealand** | NZD | -0.9 | 0.7 | 0.7 | 1.7 | **2.6** | 2.0 | 2.1 | ✅ 100% Synchronized |
+| **Sweden** | SEK | 0.7 | 0.9 | 0.7 | 1.3 | **1.0** | 1.7 | 2.1 | ✅ 100% Synchronized |
+| **Norway** | NOK | 1.5 | 0.6 | 0.7 | 0.9 | **1.1** | 1.6 | 1.9 | ✅ 100% Synchronized |
+
+### 4. Mathematical Audit: Differentials, Ratings, & Final Scores
+Executed [verify_gdp_math.py](file:///c:/Users/Akram%20KAID/Desktop/FOREX/verify_gdp_math.py) auditing all 28 pair combinations and active currency pairs across all layers:
+
+#### Primary Pairs 2026 Audit:
+| FX Pair | Reference Period | Base GDP | Quote GDP | Differential (Base - Quote) | GDP Rating | Rule Status | Composite Final Score | Macro Bias |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **EUR/USD** | 2026-03 (Q1 Actual) | 0.60% | 2.70% | -2.1000% | **-10** | [PASS] | -2.5000 | **DOWN** |
+| **EUR/USD** | 2026-06 (Q2 Actual) | 1.20% | 2.10% | -0.9000% | **0** | [PASS] | -0.8333 | **NEUTRAL** |
+| **EUR/USD** | 2026-09 (Q3 Forecast)| 1.00% | 1.80% | -0.8000% | **0** | [PASS] | +2.5000 | **UP** |
+| **GBP/USD** | 2026-06 (Q2 Actual) | 1.20% | 2.10% | -0.9000% | **0** | [PASS] | +1.6667 | **UP** |
+| **USD/JPY** | 2026-06 (Q2 Actual) | 2.10% | 0.70% | +1.4000% | **+5** | [PASS] | 0.0000 | **NEUTRAL** |
+| **USD/JPY** | 2026-09 (Q3 Forecast)| 1.80% | 0.90% | +0.9000% | **0** | [PASS] | +2.5000 | **UP** |
+| **AUD/USD** | 2026-06 (Q2 Actual) | 2.10% | 2.10% | +0.0000% | **0** | [PASS] | +1.6667 | **UP** |
+| **USD/CAD** | 2026-06 (Q2 Actual) | 2.10% | 1.10% | +1.0000% | **+5** | [PASS] | -1.6667 | **DOWN** |
+| **USD/CHF** | 2026-06 (Q2 Actual) | 2.10% | 2.30% | -0.2000% | **0** | [PASS] | 0.0000 | **NEUTRAL** |
+| **NZD/USD** | 2026-06 (Q2 Actual) | 2.60% | 2.10% | +0.5000% | **0** | [PASS] | -2.5000 | **DOWN** |
+
+### 5. Platform Deliverables
+1. **[scrape_gdp.py](file:///c:/Users/Akram%20KAID/Desktop/FOREX/fx-macro-bias/backend/apps/macro/management/commands/scrape_gdp.py)**: Django management command with live CloudFront extraction, quarterly-to-monthly expansion, and atomic matrix recalculation.
+2. **[EXCEL8EXAMPLE.xlsx](file:///c:/Users/Akram%20KAID/Desktop/FOREX/EXCEL8EXAMPLE.xlsx)**: Updated `GDP data` sheet rows 2–9 across all 48 reference months (`2023-01` through `2026-12`). All formula differentials (rows 12–34) and rating lookups (rows 38–60) automatically updated.
+3. **[macroDataset.ts](file:///c:/Users/Akram%20KAID/Desktop/FOREX/fx-macro-bias/frontend/src/data/macroDataset.ts)** & **[macroDataset.json](file:///c:/Users/Akram%20KAID/Desktop/FOREX/fx-macro-bias/frontend/src/data/macroDataset.json)**: Updated GDP series for all 10 countries across 2020–2026 without artificial rounding.
+4. **Desktop Scrapers (Windows & macOS)**: Integrated direct CloudFront API extraction into `Houari_project copie/For Win/wari_scraper_app.py` and `Houari_project copie/ForMac/wari_scraper_app.py`.
+5. **[verify_gdp_math.py](file:///c:/Users/Akram%20KAID/Desktop/FOREX/verify_gdp_math.py)**: Automated verification script ensuring 100% exact math parity across DB, Excel, and frontend.
+
+
 

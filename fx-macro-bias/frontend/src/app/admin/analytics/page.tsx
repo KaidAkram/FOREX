@@ -44,8 +44,8 @@ const generateTremorData = (points = 20) => {
 
 const FlagStack = ({ base, quote }: { base: string; quote: string }) => (
   <div className="flex items-center flex-shrink-0 mr-[4px]">
-    <img src={`/flags/${base}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#1E2028] z-10 shadow-sm" alt={base} />
-    <img src={`/flags/${quote}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#1E2028] -ml-[8px] z-0 shadow-sm" alt={quote} />
+    <img src={`/flags/${base}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#0B453A] z-10 shadow-sm" alt={base} />
+    <img src={`/flags/${quote}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#0B453A] -ml-[8px] z-0 shadow-sm" alt={quote} />
   </div>
 );
 
@@ -74,14 +74,14 @@ const CustomDropdown = ({ options, value, onChange, label, isPair = false }: { o
     <div className="relative z-50" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-[8px] bg-[#1E2028] hover:bg-[#242731] border border-white/10 px-[16px] py-[8px] rounded-[12px] transition-colors h-[40px]"
+        className="flex items-center gap-[8px] bg-[#06302B] hover:bg-[#095544] border border-[#0B453A] px-[16px] py-[8px] rounded-[12px] transition-colors h-[40px] cursor-pointer"
       >
-        <span className="font-sans font-medium text-[13px] text-[#A0A5B1]">{label}:</span>
+        <span className="font-sans font-medium text-[13px] text-[#AACBC4]">{label}:</span>
         <div className="flex items-center gap-[6px]">
           {isPair && getFlags(value)}
-          <span className="font-sans font-bold text-[13px] text-white">{value}</span>
+          <span className="font-sans font-bold text-[13px] text-[#F1F7F6]">{value}</span>
         </div>
-        <ChevronDown size={14} className={clsx("text-[#A0A5B1] transition-transform duration-300", isOpen && "rotate-180")} />
+        <ChevronDown size={14} className={clsx("text-[#AACBC4] transition-transform duration-300", isOpen && "rotate-180")} />
       </button>
 
       <AnimatePresence>
@@ -91,22 +91,22 @@ const CustomDropdown = ({ options, value, onChange, label, isPair = false }: { o
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="absolute top-[calc(100%+8px)] left-0 w-[200px] bg-[#1E2028] border border-white/10 rounded-[12px] shadow-2xl overflow-hidden"
+            className="absolute top-[calc(100%+8px)] left-0 w-[200px] bg-[#032221] border border-[#0B453A] rounded-[12px] shadow-2xl overflow-hidden z-50"
           >
             <div className="flex flex-col py-[8px]">
               {options.map((opt) => (
                 <button
                   key={opt}
                   onClick={() => { onChange(opt); setIsOpen(false); }}
-                  className="flex items-center justify-between w-full px-[16px] py-[10px] hover:bg-white/5 transition-colors text-left"
+                  className="flex items-center justify-between w-full px-[16px] py-[10px] hover:bg-[#06302B] transition-colors text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-[6px]">
                     {isPair && getFlags(opt)}
-                    <span className={clsx("font-sans text-[13px]", value === opt ? "font-bold text-[#D2F646]" : "font-medium text-white")}>
+                    <span className={clsx("font-sans text-[13px]", value === opt ? "font-bold text-[#00DF81]" : "font-medium text-[#F1F7F6]")}>
                       {opt}
                     </span>
                   </div>
-                  {value === opt && <Check size={14} className="text-[#D2F646]" />}
+                  {value === opt && <Check size={14} className="text-[#00DF81]" />}
                 </button>
               ))}
             </div>
@@ -131,12 +131,12 @@ const LightweightChart = ({ data, color, type = "line" }: { data: any[], color: 
       const chart = createChart(chartContainerRef.current, {
         layout: {
           background: { type: ColorType.Solid, color: "transparent" },
-          textColor: "#8B949E",
+          textColor: "#AACBC4",
           fontFamily: "'JetBrains Mono', monospace",
         },
         grid: {
-          vertLines: { color: "rgba(255, 255, 255, 0.03)" },
-          horzLines: { color: "rgba(255, 255, 255, 0.03)" },
+          vertLines: { color: "rgba(11, 69, 58, 0.4)" },
+          horzLines: { color: "rgba(11, 69, 58, 0.4)" },
         },
         crosshair: { mode: CrosshairMode.Magnet },
         rightPriceScale: { borderVisible: false },
@@ -149,7 +149,7 @@ const LightweightChart = ({ data, color, type = "line" }: { data: any[], color: 
       if (type === "area") {
         series = chart.addSeries(AreaSeries, {
           lineColor: color,
-          topColor: `${color}80`,
+          topColor: `${color}60`,
           bottomColor: `${color}00`,
           lineWidth: 2,
         });
@@ -172,7 +172,7 @@ const LightweightChart = ({ data, color, type = "line" }: { data: any[], color: 
     seriesRef.current.setData(data);
     chartInstanceRef.current.timeScale().fitContent();
 
-  }, [data, color, type]); // We intentionally depend on data here
+  }, [data, color, type]);
 
   return <div ref={chartContainerRef} className="w-full h-full absolute inset-0" />;
 };
@@ -189,14 +189,12 @@ export default function AnalyticsPage() {
   const [scoreData, setScoreData] = useState<any[]>([]);
 
   useEffect(() => {
-    // Generate new mock data when indicator changes to simulate fetching
     const seed = Math.random() > 0.5 ? 1 : -1;
     const points = timeRange === "1W" ? 7 : timeRange === "1M" ? 30 : 365;
     setMacroData(generateTimeSeriesData(points, 2024, 1.5, 120, seed));
   }, [activeIndicator, activePairMacro, timeRange]);
 
   useEffect(() => {
-    // Generate new mock score data when pair changes
     const seed = Math.random() > 0.5 ? 1.2 : 0.8;
     setScoreData(generateTimeSeriesData(730, 2024, 0.5, 5, seed));
   }, [activePairScore]);
@@ -216,8 +214,8 @@ export default function AnalyticsPage() {
     >
       <header className="w-full flex items-center justify-between p-[40px_48px] pb-[32px]">
         <div className="flex flex-col gap-[8px]">
-          <span className="font-sans font-medium text-[16px] text-[#A0A5B1]">Platform Telemetry</span>
-          <h1 className="font-sans font-bold text-[40px] text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
+          <span className="font-sans font-medium text-[16px] text-[#AACBC4]">Platform Telemetry</span>
+          <h1 className="font-sans font-bold text-[40px] text-[#F1F7F6] tracking-tight">
             Analytics Dashboard
           </h1>
         </div>
@@ -233,14 +231,14 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[24px]">
           <motion.div 
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className="bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col justify-between h-[170px]"
+            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[170px]"
           >
             <div className="flex justify-between items-start">
-              <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Bullish Bias Confidence</span>
-              <span className="bg-[#6FF542]/10 text-[#6FF542] border border-[#6FF542]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px]">+14.2%</span>
+              <span className="font-sans font-medium text-[15px] text-[#AACBC4]">Bullish Bias Confidence</span>
+              <span className="bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px] shadow-[0_0_10px_rgba(0,223,129,0.2)]">+14.2%</span>
             </div>
             <div className="flex items-end gap-[16px] h-[60px] w-full">
-              <span className="font-sans font-bold text-[36px] text-white leading-none font-mono">82.4%</span>
+              <span className="font-sans font-bold text-[36px] text-[#F1F7F6] leading-none font-mono">82.4%</span>
               <div className="h-full flex-1 w-full ml-auto">
                 <SparkAreaChart
                   data={tremorData1}
@@ -255,14 +253,14 @@ export default function AnalyticsPage() {
 
           <motion.div 
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className="bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col justify-between h-[170px]"
+            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[170px]"
           >
             <div className="flex justify-between items-start">
-              <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Bearish Divergence Rate</span>
-              <span className="bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px]">-5.1%</span>
+              <span className="font-sans font-medium text-[15px] text-[#AACBC4]">Bearish Divergence Rate</span>
+              <span className="bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px]">-5.1%</span>
             </div>
             <div className="flex items-end gap-[16px] h-[60px] w-full">
-              <span className="font-sans font-bold text-[36px] text-white leading-none font-mono">14.1%</span>
+              <span className="font-sans font-bold text-[36px] text-[#F1F7F6] leading-none font-mono">14.1%</span>
               <div className="h-full flex-1 w-full ml-auto">
                 <SparkAreaChart
                   data={tremorData2}
@@ -277,20 +275,20 @@ export default function AnalyticsPage() {
 
           <motion.div 
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className="bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col justify-between h-[170px]"
+            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[170px]"
           >
             <div className="flex justify-between items-start">
-              <span className="font-sans font-medium text-[15px] text-[#A0A5B1]">Macro Data Ingestion</span>
-              <span className="bg-[#D2F646]/10 text-[#D2F646] border border-[#D2F646]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px]">Stable</span>
+              <span className="font-sans font-medium text-[15px] text-[#AACBC4]">Macro Data Ingestion</span>
+              <span className="bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px]">Stable</span>
             </div>
             <div className="flex items-end gap-[16px] h-[60px] w-full">
-              <span className="font-sans font-bold text-[36px] text-white leading-none font-mono">99.9%</span>
+              <span className="font-sans font-bold text-[36px] text-[#F1F7F6] leading-none font-mono">99.9%</span>
               <div className="h-full flex-1 w-full ml-auto opacity-70">
                 <SparkAreaChart
                   data={tremorData3}
                   categories={["Performance"]}
                   index="month"
-                  colors={["slate"]}
+                  colors={["teal"]}
                   className="h-full w-full"
                 />
               </div>
@@ -298,31 +296,31 @@ export default function AnalyticsPage() {
           </motion.div>
         </div>
 
-        {/* TradingView Heavy Chart Row 1 - MACRO METRIC */}
-        <div className="bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] p-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col h-[420px] relative overflow-hidden z-20">
+        {/* TradingView Chart Row 1 - MACRO METRIC */}
+        <div className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] p-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col h-[420px] relative overflow-hidden z-20">
           <div className="flex justify-between items-start z-10 mb-[16px]">
             <div className="flex flex-col">
-              <h3 className="font-sans font-bold text-[20px] text-white mb-[8px]">Historical Macro Metric</h3>
+              <h3 className="font-sans font-bold text-[20px] text-[#F1F7F6] mb-[8px]">Historical Macro Metric</h3>
               <div className="flex gap-[12px]">
                 <CustomDropdown options={FX_PAIR_NAMES} value={activePairMacro} onChange={setActivePairMacro} label="Pair" isPair />
                 <CustomDropdown options={INDICATORS} value={activeIndicator} onChange={setActiveIndicator} label="Metric" />
               </div>
             </div>
-            <div className="flex items-center bg-[#1D202B]/80 p-1.5 rounded-2xl border border-white/5">
+            <div className="flex items-center bg-[#06302B] p-1.5 rounded-2xl border border-[#0B453A]">
               {["1W", "1M", "1Y"].map((range) => (
                 <button 
                   key={range}
                   onClick={() => setTimeRange(range)}
                   className={clsx(
-                    "relative px-[16px] py-[6px] rounded-xl text-[12px] font-bold font-mono transition-colors z-10",
-                    timeRange === range ? "text-[#121418]" : "text-[#A0A5B1] hover:text-white"
+                    "relative px-[16px] py-[6px] rounded-xl text-[12px] font-bold font-mono transition-colors z-10 cursor-pointer",
+                    timeRange === range ? "text-[#021B1A]" : "text-[#AACBC4] hover:text-[#F1F7F6]"
                   )}
                 >
                   {range}
                   {timeRange === range && (
                     <motion.div
                       layoutId="activeRangePill"
-                      className="absolute inset-0 bg-[#D2F646] rounded-xl z-[-1] shadow-[0_0_12px_rgba(210,246,70,0.4)]"
+                      className="absolute inset-0 bg-[#00DF81] rounded-xl z-[-1] shadow-[0_0_12px_rgba(0,223,129,0.35)]"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -331,22 +329,22 @@ export default function AnalyticsPage() {
             </div>
           </div>
           <div className="flex-1 w-full relative mt-[8px]">
-             {macroData.length > 0 && <LightweightChart data={macroData} color="#D2F646" type="line" />}
+             {macroData.length > 0 && <LightweightChart data={macroData} color="#00DF81" type="line" />}
           </div>
         </div>
 
-        {/* TradingView Heavy Chart Row 2 - FINAL SCORE */}
-        <div className="bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] p-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)] flex flex-col h-[420px] relative overflow-hidden z-10">
+        {/* TradingView Chart Row 2 - FINAL SCORE */}
+        <div className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] p-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col h-[420px] relative overflow-hidden z-10">
           <div className="flex justify-between items-start z-10 mb-[16px]">
             <div className="flex flex-col">
-              <h3 className="font-sans font-bold text-[20px] text-white mb-[8px]">Final Score Trajectory</h3>
+              <h3 className="font-sans font-bold text-[20px] text-[#F1F7F6] mb-[8px]">Final Score Trajectory</h3>
               <div className="flex gap-[12px]">
                  <CustomDropdown options={FX_PAIR_NAMES} value={activePairScore} onChange={setActivePairScore} label="Pair" isPair />
               </div>
             </div>
           </div>
           <div className="flex-1 w-full relative mt-[8px]">
-             {scoreData.length > 0 && <LightweightChart data={scoreData} color="#00E5FF" type="area" />}
+             {scoreData.length > 0 && <LightweightChart data={scoreData} color="#2CC295" type="area" />}
           </div>
         </div>
 

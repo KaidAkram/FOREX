@@ -47,7 +47,7 @@ import {
   MACRO_YEARS 
 } from "@/data/macroDataset";
 
-const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
+const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)]";
 
 // Presets
 const CRON_PRESETS = [
@@ -500,16 +500,16 @@ export default function AdminSettingsPage() {
       <header className="w-full flex items-center justify-between px-12 pt-9 pb-5 opacity-0 animate-fadeIn flex-shrink-0">
         <div className="flex flex-col gap-1 min-w-max">
           <div className="flex items-center gap-3">
-            <span className="font-sans font-medium text-xs text-[#A0A5B1] tracking-wide">
+            <span className="font-sans font-medium text-xs text-[#AACBC4] tracking-wide">
               Engine Configuration & Verification
             </span>
             <span className={clsx(
               "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border font-mono text-[11px] font-semibold transition-colors",
               cronActive 
-                ? "bg-[#D2F646]/10 border-[#D2F646]/25 text-[#D2F646]"
-                : "bg-white/5 border-white/10 text-[#A0A5B1]"
+                ? "bg-[#00DF81]/10 border-[#00DF81]/25 text-[#00DF81]"
+                : "bg-white/5 border-white/10 text-[#AACBC4]"
             )}>
-              <span className={clsx("w-1.5 h-1.5 rounded-full", cronActive ? "bg-[#D2F646] animate-pulse" : "bg-[#A0A5B1]")} />
+              <span className={clsx("w-1.5 h-1.5 rounded-full", cronActive ? "bg-[#00DF81] animate-pulse" : "bg-[#AACBC4]")} />
               Cron Engine: {cronActive ? "Active" : "Paused"}
             </span>
           </div>
@@ -531,12 +531,12 @@ export default function AdminSettingsPage() {
               "flex items-center gap-2 px-4 py-2.5 rounded-xl font-sans font-bold text-xs shadow-lg transition-all cursor-pointer whitespace-nowrap",
               isScrapingNow
                 ? "bg-white/10 text-white border border-white/10 cursor-not-allowed"
-                : "bg-[#D2F646] text-[#121418] shadow-[0_0_20px_rgba(210,246,70,0.35)]"
+                : "bg-[#00DF81] text-[#021B1A] shadow-[0_0_20px_rgba(210,246,70,0.35)]"
             )}
           >
             {isScrapingNow ? (
               <>
-                <RefreshCw size={14} className="animate-spin text-[#121418]" />
+                <RefreshCw size={14} className="animate-spin text-[#021B1A]" />
                 <span>Running Pipeline ({scrapeStep}/5)...</span>
               </>
             ) : (
@@ -558,18 +558,18 @@ export default function AdminSettingsPage() {
             initial={{ opacity: 0, y: -12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            className="mx-12 mb-4 p-3.5 rounded-2xl bg-[#D2F646]/10 border border-[#D2F646]/30 flex items-center justify-between gap-4 shadow-[0_0_25px_rgba(210,246,70,0.15)]"
+            className="mx-12 mb-4 p-3.5 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/30 flex items-center justify-between gap-4 shadow-[0_0_25px_rgba(210,246,70,0.15)]"
           >
             <div className="flex items-center gap-3">
-              <CheckCircle2 size={18} className="text-[#D2F646] flex-shrink-0" />
+              <CheckCircle2 size={18} className="text-[#00DF81] flex-shrink-0" />
               <div className="flex flex-col gap-0.5">
                 <span className="font-sans font-bold text-xs text-white">Settings Persisted & Applied Live</span>
-                <span className="font-sans text-[11px] text-[#A0A5B1]">{saveSuccessMsg}</span>
+                <span className="font-sans text-[11px] text-[#AACBC4]">{saveSuccessMsg}</span>
               </div>
             </div>
             <button
               onClick={() => setSaveSuccessMsg(null)}
-              className="text-xs font-mono text-[#A0A5B1] hover:text-white px-2 py-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+              className="text-xs font-mono text-[#AACBC4] hover:text-white px-2 py-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
             >
               Dismiss
             </button>
@@ -584,18 +584,18 @@ export default function AdminSettingsPage() {
             initial={{ opacity: 0, y: -15, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            className="mx-12 mb-4 p-4 rounded-2xl bg-[#6FF542]/10 border border-[#6FF542]/30 flex items-start justify-between gap-4 shadow-[0_0_30px_rgba(111,245,66,0.15)]"
+            className="mx-12 mb-4 p-4 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/30 flex items-start justify-between gap-4 shadow-[0_0_30px_rgba(111,245,66,0.15)]"
           >
             <div className="flex items-start gap-3">
-              <CheckCircle2 size={20} className="text-[#6FF542] flex-shrink-0 mt-0.5" />
+              <CheckCircle2 size={20} className="text-[#00DF81] flex-shrink-0 mt-0.5" />
               <div className="flex flex-col gap-0.5">
                 <span className="font-sans font-bold text-sm text-white">Pipeline Execution Done & Validated</span>
-                <span className="font-sans text-xs text-[#A0A5B1]">{cronFinishedNotice}</span>
+                <span className="font-sans text-xs text-[#AACBC4]">{cronFinishedNotice}</span>
               </div>
             </div>
             <button
               onClick={() => setCronFinishedNotice(null)}
-              className="text-xs font-mono text-[#A0A5B1] hover:text-white px-2 py-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+              className="text-xs font-mono text-[#AACBC4] hover:text-white px-2 py-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
             >
               Dismiss
             </button>
@@ -608,7 +608,7 @@ export default function AdminSettingsPage() {
 
         {/* Section Tabs Switcher (Modular 5-Tab Architecture to completely eliminate crowdedness) */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
-          <div className="flex items-center gap-1.5 bg-[#14161E] border border-white/10 p-1.5 rounded-2xl overflow-x-auto no-scrollbar shadow-lg">
+          <div className="flex items-center gap-1.5 bg-[#06302B] border border-white/10 p-1.5 rounded-2xl overflow-x-auto no-scrollbar shadow-lg">
             
             {/* Tab 1: Cron */}
             <button
@@ -617,8 +617,8 @@ export default function AdminSettingsPage() {
               className={clsx(
                 "flex items-center gap-2 px-4 py-2 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
                 activeTab === "cron"
-                  ? "bg-[#D2F646] text-[#121418] shadow-md shadow-[#D2F646]/20"
-                  : "text-[#A0A5B1] hover:text-white hover:bg-white/5"
+                  ? "bg-[#00DF81] text-[#021B1A] shadow-md shadow-[#00DF81]/20"
+                  : "text-[#AACBC4] hover:text-white hover:bg-white/5"
               )}
             >
               <Clock size={14} />
@@ -632,8 +632,8 @@ export default function AdminSettingsPage() {
               className={clsx(
                 "flex items-center gap-2 px-4 py-2 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
                 activeTab === "ingestion"
-                  ? "bg-[#D2F646] text-[#121418] shadow-md shadow-[#D2F646]/20"
-                  : "text-[#A0A5B1] hover:text-white hover:bg-white/5"
+                  ? "bg-[#00DF81] text-[#021B1A] shadow-md shadow-[#00DF81]/20"
+                  : "text-[#AACBC4] hover:text-white hover:bg-white/5"
               )}
             >
               <Calendar size={14} />
@@ -647,8 +647,8 @@ export default function AdminSettingsPage() {
               className={clsx(
                 "flex items-center gap-2 px-4 py-2 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
                 activeTab === "safety"
-                  ? "bg-[#D2F646] text-[#121418] shadow-md shadow-[#D2F646]/20"
-                  : "text-[#A0A5B1] hover:text-white hover:bg-white/5"
+                  ? "bg-[#00DF81] text-[#021B1A] shadow-md shadow-[#00DF81]/20"
+                  : "text-[#AACBC4] hover:text-white hover:bg-white/5"
               )}
             >
               <Server size={14} />
@@ -662,15 +662,15 @@ export default function AdminSettingsPage() {
               className={clsx(
                 "flex items-center gap-2 px-4 py-2 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer whitespace-nowrap relative",
                 activeTab === "audit_logs"
-                  ? "bg-[#6FF542] text-[#121418] shadow-md shadow-[#6FF542]/20"
-                  : "text-[#6FF542] hover:bg-[#6FF542]/10"
+                  ? "bg-[#00DF81] text-[#021B1A] shadow-md shadow-[#00DF81]/20"
+                  : "text-[#00DF81] hover:bg-[#00DF81]/10"
               )}
             >
               <ShieldCheck size={14} />
               <span>Execution & Math Logs</span>
               <span className={clsx(
                 "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-black",
-                activeTab === "audit_logs" ? "bg-[#121418] text-[#6FF542]" : "bg-[#6FF542]/20 text-[#6FF542]"
+                activeTab === "audit_logs" ? "bg-[#021B1A] text-[#00DF81]" : "bg-[#00DF81]/20 text-[#00DF81]"
               )}>
                 6/6 Live
               </span>
@@ -683,8 +683,8 @@ export default function AdminSettingsPage() {
               className={clsx(
                 "flex items-center gap-2 px-4 py-2 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
                 activeTab === "architecture"
-                  ? "bg-[#D2F646] text-[#121418] shadow-md shadow-[#D2F646]/20"
-                  : "text-[#A0A5B1] hover:text-white hover:bg-white/5"
+                  ? "bg-[#00DF81] text-[#021B1A] shadow-md shadow-[#00DF81]/20"
+                  : "text-[#AACBC4] hover:text-white hover:bg-white/5"
               )}
             >
               <BookOpen size={14} />
@@ -694,8 +694,8 @@ export default function AdminSettingsPage() {
 
           {/* Secondary Toolbar: Fix clipping & overlap with robust flex-shrink-0 */}
           <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded-xl px-3.5 py-2 text-xs font-mono text-[#A0A5B1] whitespace-nowrap flex-shrink-0">
-              <Clock size={14} className="text-[#D2F646]" />
+            <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded-xl px-3.5 py-2 text-xs font-mono text-[#AACBC4] whitespace-nowrap flex-shrink-0">
+              <Clock size={14} className="text-[#00DF81]" />
               <span>Last Ingestion: <strong className="text-white">{lastScrapeTime}</strong></span>
             </div>
 
@@ -707,11 +707,11 @@ export default function AdminSettingsPage() {
               className={clsx(
                 "flex items-center gap-2 px-5 py-2 rounded-xl font-sans font-bold text-xs transition-all cursor-pointer shadow-md flex-shrink-0 whitespace-nowrap",
                 isSaved
-                  ? "bg-[#6FF542]/20 border border-[#6FF542]/40 text-[#6FF542]"
+                  ? "bg-[#00DF81]/20 border border-[#00DF81]/40 text-[#00DF81]"
                   : "bg-white/10 hover:bg-white/15 border border-white/10 text-white"
               )}
             >
-              {isSaved ? <Check size={14} className="text-[#6FF542]" /> : isSaving ? <RefreshCw size={14} className="animate-spin text-white" /> : <Save size={14} />}
+              {isSaved ? <Check size={14} className="text-[#00DF81]" /> : isSaving ? <RefreshCw size={14} className="animate-spin text-white" /> : <Save size={14} />}
               <span>{isSaved ? "Saved Successfully!" : isSaving ? "Applying..." : "Save Settings"}</span>
             </motion.button>
           </div>
@@ -724,16 +724,16 @@ export default function AdminSettingsPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className={clsx("p-6 overflow-hidden border border-[#D2F646]/30", matteCard)}
+              className={clsx("p-6 overflow-hidden border border-[#00DF81]/30", matteCard)}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-[#D2F646]/15 border border-[#D2F646]/30 flex items-center justify-center text-[#D2F646]">
+                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/15 border border-[#00DF81]/30 flex items-center justify-center text-[#00DF81]">
                     <RefreshCw size={16} className="animate-spin" />
                   </div>
                   <div className="flex flex-col">
                     <span className="font-sans font-bold text-sm text-white">Automated Ingestion In Progress</span>
-                    <span className="text-xs font-mono text-[#D2F646]">
+                    <span className="text-xs font-mono text-[#00DF81]">
                       {scrapeStep === 1 && "Connecting to 9 Central Bank & IMF SDMX 3.0 API endpoints..."}
                       {scrapeStep === 2 && "Scraping & parsing 6 indicators across 10 currencies (EN & FR)..."}
                       {scrapeStep === 3 && "Computing pairwise country differentials (Base Country − Quote Country)..."}
@@ -742,13 +742,13 @@ export default function AdminSettingsPage() {
                     </span>
                   </div>
                 </div>
-                <span className="font-mono text-xs text-[#A0A5B1]">Stage {scrapeStep} / 5</span>
+                <span className="font-mono text-xs text-[#AACBC4]">Stage {scrapeStep} / 5</span>
               </div>
 
               {/* Progress Line */}
               <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-[#D2F646] to-[#00E5FF]"
+                  className="h-full bg-gradient-to-r from-[#00DF81] to-[#2CC295]"
                   animate={{ width: `${(scrapeStep / 5) * 100}%` }}
                   transition={{ duration: 0.4 }}
                 />
@@ -768,12 +768,12 @@ export default function AdminSettingsPage() {
               <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
                 <div className="flex items-center justify-between border-b border-white/5 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#D2F646]/10 border border-[#D2F646]/20 flex items-center justify-center text-[#D2F646]">
+                    <div className="w-10 h-10 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/20 flex items-center justify-center text-[#00DF81]">
                       <Clock size={20} />
                     </div>
                     <div className="flex flex-col">
                       <h2 className="font-sans font-bold text-lg text-white">Cron Cadence Presets</h2>
-                      <span className="text-xs text-[#A0A5B1]">Select automated polling frequency for macro data</span>
+                      <span className="text-xs text-[#AACBC4]">Select automated polling frequency for macro data</span>
                     </div>
                   </div>
 
@@ -784,18 +784,18 @@ export default function AdminSettingsPage() {
                     className={clsx(
                       "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-mono font-bold transition-all cursor-pointer",
                       cronActive
-                        ? "bg-[#6FF542]/10 border-[#6FF542]/30 text-[#6FF542]"
-                        : "bg-white/5 border-white/10 text-[#A0A5B1]"
+                        ? "bg-[#00DF81]/10 border-[#00DF81]/30 text-[#00DF81]"
+                        : "bg-white/5 border-white/10 text-[#AACBC4]"
                     )}
                   >
-                    <span className={clsx("w-2 h-2 rounded-full", cronActive ? "bg-[#6FF542] animate-pulse" : "bg-[#A0A5B1]")} />
+                    <span className={clsx("w-2 h-2 rounded-full", cronActive ? "bg-[#00DF81] animate-pulse" : "bg-[#AACBC4]")} />
                     <span>{cronActive ? "Cron Active" : "Cron Paused"}</span>
                   </button>
                 </div>
 
                 {/* Preset Frequency Cards */}
                 <div className="flex flex-col gap-3">
-                  <label className="font-sans text-xs font-semibold text-[#A0A5B1]">Scraping Frequency Preset</label>
+                  <label className="font-sans text-xs font-semibold text-[#AACBC4]">Scraping Frequency Preset</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {CRON_PRESETS.map((p) => {
                       const isSelected = cronPreset === p.id;
@@ -810,21 +810,21 @@ export default function AdminSettingsPage() {
                           className={clsx(
                             "flex flex-col text-left p-3.5 rounded-2xl border transition-all cursor-pointer",
                             isSelected
-                              ? "bg-[#D2F646]/10 border-[#D2F646]/40 shadow-sm"
+                              ? "bg-[#00DF81]/10 border-[#00DF81]/40 shadow-sm"
                               : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
                           )}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <span className={clsx("font-sans font-bold text-xs", isSelected ? "text-[#D2F646]" : "text-white")}>
+                            <span className={clsx("font-sans font-bold text-xs", isSelected ? "text-[#00DF81]" : "text-white")}>
                               {p.label}
                             </span>
                             {p.expression && (
-                              <span className="font-mono text-[10px] text-[#A0A5B1] bg-white/5 px-2 py-0.5 rounded-md">
+                              <span className="font-mono text-[10px] text-[#AACBC4] bg-white/5 px-2 py-0.5 rounded-md">
                                 {p.expression}
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-[#A0A5B1] leading-tight">{p.desc}</span>
+                          <span className="text-[11px] text-[#AACBC4] leading-tight">{p.desc}</span>
                         </button>
                       );
                     })}
@@ -836,15 +836,15 @@ export default function AdminSettingsPage() {
               <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
                 <div className="flex items-center justify-between border-b border-white/5 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#00E5FF]/10 border border-[#00E5FF]/20 flex items-center justify-center text-[#00E5FF]">
+                    <div className="w-10 h-10 rounded-2xl bg-[#2CC295]/10 border border-[#2CC295]/20 flex items-center justify-center text-[#2CC295]">
                       <Terminal size={20} />
                     </div>
                     <div className="flex flex-col">
                       <h2 className="font-sans font-bold text-lg text-white">Crontab Expression & Timezone</h2>
-                      <span className="text-xs text-[#A0A5B1]">Direct crontab evaluation & execution schedule</span>
+                      <span className="text-xs text-[#AACBC4]">Direct crontab evaluation & execution schedule</span>
                     </div>
                   </div>
-                  <span className="font-mono text-xs text-[#00E5FF] bg-[#00E5FF]/10 border border-[#00E5FF]/20 px-2.5 py-1 rounded-full">
+                  <span className="font-mono text-xs text-[#2CC295] bg-[#2CC295]/10 border border-[#2CC295]/20 px-2.5 py-1 rounded-full">
                     {timezone}
                   </span>
                 </div>
@@ -852,11 +852,11 @@ export default function AdminSettingsPage() {
                 {/* Custom Cron Expression Input */}
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <label className="font-sans text-xs font-semibold text-[#A0A5B1]">Crontab Expression</label>
-                    <span className="font-mono text-[11px] text-[#00E5FF]">{timezone} Standard</span>
+                    <label className="font-sans text-xs font-semibold text-[#AACBC4]">Crontab Expression</label>
+                    <span className="font-mono text-[11px] text-[#2CC295]">{timezone} Standard</span>
                   </div>
-                  <div className="flex items-center gap-3 bg-[#1A1C25]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#D2F646]/50">
-                    <Terminal size={16} className="text-[#A0A5B1]" />
+                  <div className="flex items-center gap-3 bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#00DF81]/50">
+                    <Terminal size={16} className="text-[#AACBC4]" />
                     <input
                       type="text"
                       value={customCron}
@@ -865,21 +865,21 @@ export default function AdminSettingsPage() {
                         setCronPreset("custom");
                       }}
                       placeholder="0 */4 * * *"
-                      className="w-full bg-transparent border-none outline-none font-mono text-sm text-white placeholder:text-[#A0A5B1]/40"
+                      className="w-full bg-transparent border-none outline-none font-mono text-sm text-white placeholder:text-[#AACBC4]/40"
                     />
                   </div>
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-[#A0A5B1]">
-                    Evaluates to: <span className="text-[#D2F646] font-mono font-semibold">{getCronExplanation(customCron, cronPreset)}</span>
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-[#AACBC4]">
+                    Evaluates to: <span className="text-[#00DF81] font-mono font-semibold">{getCronExplanation(customCron, cronPreset)}</span>
                   </div>
                 </div>
 
                 {/* Timezone Configuration */}
                 <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                  <span className="font-sans text-xs text-[#A0A5B1]">Execution Timezone</span>
+                  <span className="font-sans text-xs text-[#AACBC4]">Execution Timezone</span>
                   <select
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
-                    className="bg-[#1A1C25] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-white outline-none cursor-pointer"
+                    className="bg-[#06302B] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-white outline-none cursor-pointer"
                   >
                     <option value="UTC">UTC (Universal Coordinated)</option>
                     <option value="Europe/London">Europe/London (GMT / BST)</option>
@@ -903,22 +903,22 @@ export default function AdminSettingsPage() {
             <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
               <div className="flex items-center justify-between border-b border-white/5 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#00E5FF]/10 border border-[#00E5FF]/20 flex items-center justify-center text-[#00E5FF]">
+                  <div className="w-10 h-10 rounded-2xl bg-[#2CC295]/10 border border-[#2CC295]/20 flex items-center justify-center text-[#2CC295]">
                     <Calendar size={20} />
                   </div>
                   <div className="flex flex-col">
                     <h2 className="font-sans font-bold text-lg text-white">Scraping Ingestion Horizon</h2>
-                    <span className="text-xs text-[#A0A5B1]">Define historical lookback window & live update window</span>
+                    <span className="text-xs text-[#AACBC4]">Define historical lookback window & live update window</span>
                   </div>
                 </div>
-                <span className="font-mono text-xs text-[#00E5FF] bg-[#00E5FF]/10 border border-[#00E5FF]/20 px-2.5 py-1 rounded-full">
+                <span className="font-mono text-xs text-[#2CC295] bg-[#2CC295]/10 border border-[#2CC295]/20 px-2.5 py-1 rounded-full">
                   G10 Sovereigns
                 </span>
               </div>
 
               {/* Preset Ranges */}
               <div className="flex flex-col gap-3">
-                <label className="font-sans text-xs font-semibold text-[#A0A5B1]">Select Ingestion Horizon Preset</label>
+                <label className="font-sans text-xs font-semibold text-[#AACBC4]">Select Ingestion Horizon Preset</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
                   {DATE_RANGE_PRESETS.map((r) => {
                     const isSelected = rangePreset === r.id;
@@ -930,14 +930,14 @@ export default function AdminSettingsPage() {
                         className={clsx(
                           "flex flex-col text-left p-3.5 rounded-2xl border transition-all cursor-pointer",
                           isSelected
-                            ? "bg-[#00E5FF]/10 border-[#00E5FF]/40 shadow-sm"
+                            ? "bg-[#2CC295]/10 border-[#2CC295]/40 shadow-sm"
                             : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
                         )}
                       >
-                        <span className={clsx("font-sans font-bold text-xs mb-1", isSelected ? "text-[#00E5FF]" : "text-white")}>
+                        <span className={clsx("font-sans font-bold text-xs mb-1", isSelected ? "text-[#2CC295]" : "text-white")}>
                           {r.label}
                         </span>
-                        <span className="text-[11px] text-[#A0A5B1] leading-tight">{r.desc}</span>
+                        <span className="text-[11px] text-[#AACBC4] leading-tight">{r.desc}</span>
                       </button>
                     );
                   })}
@@ -947,9 +947,9 @@ export default function AdminSettingsPage() {
               {/* Explicit Date From / To Pickers */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-sans text-xs font-semibold text-[#A0A5B1]">Scrape From (Start Date)</label>
-                  <div className="flex items-center gap-2 bg-[#1A1C25]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#00E5FF]/50">
-                    <Calendar size={16} className="text-[#A0A5B1]" />
+                  <label className="font-sans text-xs font-semibold text-[#AACBC4]">Scrape From (Start Date)</label>
+                  <div className="flex items-center gap-2 bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#2CC295]/50">
+                    <Calendar size={16} className="text-[#AACBC4]" />
                     <input
                       type="date"
                       value={startDate}
@@ -963,9 +963,9 @@ export default function AdminSettingsPage() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-sans text-xs font-semibold text-[#A0A5B1]">Scrape To (End Date)</label>
-                  <div className="flex items-center gap-2 bg-[#1A1C25]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#00E5FF]/50">
-                    <Calendar size={16} className="text-[#A0A5B1]" />
+                  <label className="font-sans text-xs font-semibold text-[#AACBC4]">Scrape To (End Date)</label>
+                  <div className="flex items-center gap-2 bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#2CC295]/50">
+                    <Calendar size={16} className="text-[#AACBC4]" />
                     <input
                       type="date"
                       value={endDate}
@@ -980,8 +980,8 @@ export default function AdminSettingsPage() {
               </div>
 
               <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs">
-                <span className="text-[#A0A5B1]">Historical GDP & CPI Revision Handling</span>
-                <span className="text-[#6FF542] font-semibold">Auto-Retrofit Enabled (Central Bank Baseline Anchoring)</span>
+                <span className="text-[#AACBC4]">Historical GDP & CPI Revision Handling</span>
+                <span className="text-[#00DF81] font-semibold">Auto-Retrofit Enabled (Central Bank Baseline Anchoring)</span>
               </div>
             </div>
 
@@ -994,10 +994,10 @@ export default function AdminSettingsPage() {
                   </div>
                   <div className="flex flex-col">
                     <h2 className="font-sans font-bold text-lg text-white">Ingestion Feed Registry</h2>
-                    <span className="text-xs text-[#A0A5B1]">10 connected central bank statistical feeds & market APIs</span>
+                    <span className="text-xs text-[#AACBC4]">10 connected central bank statistical feeds & market APIs</span>
                   </div>
                 </div>
-                <span className="text-xs font-mono text-[#6FF542] bg-[#6FF542]/10 border border-[#6FF542]/20 px-3 py-1 rounded-full">
+                <span className="text-xs font-mono text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/20 px-3 py-1 rounded-full">
                   10 / 10 Feeds Operational
                 </span>
               </div>
@@ -1005,7 +1005,7 @@ export default function AdminSettingsPage() {
               <div className="w-full overflow-x-auto no-scrollbar">
                 <table className="w-full text-left border-collapse min-w-[900px]">
                   <thead>
-                    <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#A0A5B1]">
+                    <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#AACBC4]">
                       <th className="py-3 px-4">Source Name</th>
                       <th className="py-3 px-4">Type</th>
                       <th className="py-3 px-4">Languages</th>
@@ -1017,14 +1017,14 @@ export default function AdminSettingsPage() {
                     {DATA_SOURCES.map((s) => (
                       <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3.5 px-4 font-sans font-bold text-white flex items-center gap-2.5">
-                          <div className="w-2 h-2 rounded-full bg-[#6FF542]" />
+                          <div className="w-2 h-2 rounded-full bg-[#00DF81]" />
                           <span>{s.name}</span>
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-[#A0A5B1]">{s.type}</td>
-                        <td className="py-3.5 px-4 font-mono text-[#00E5FF]">{s.lang}</td>
-                        <td className="py-3.5 px-4 text-[#A0A5B1]">{s.coverage}</td>
+                        <td className="py-3.5 px-4 font-mono text-[#AACBC4]">{s.type}</td>
+                        <td className="py-3.5 px-4 font-mono text-[#2CC295]">{s.lang}</td>
+                        <td className="py-3.5 px-4 text-[#AACBC4]">{s.coverage}</td>
                         <td className="py-3.5 px-4 text-right">
-                          <span className="px-2.5 py-1 rounded-full bg-[#6FF542]/10 border border-[#6FF542]/20 text-[#6FF542] font-mono text-[10px] font-bold">
+                          <span className="px-2.5 py-1 rounded-full bg-[#00DF81]/10 border border-[#00DF81]/20 text-[#00DF81] font-mono text-[10px] font-bold">
                             {s.status}
                           </span>
                         </td>
@@ -1048,15 +1048,15 @@ export default function AdminSettingsPage() {
               <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
                 <div className="flex items-center justify-between border-b border-white/5 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#6FF542]/10 border border-[#6FF542]/20 flex items-center justify-center text-[#6FF542]">
+                    <div className="w-10 h-10 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/20 flex items-center justify-center text-[#00DF81]">
                       <Server size={20} />
                     </div>
                     <div className="flex flex-col">
                       <h2 className="font-sans font-bold text-lg text-white">Engine Concurrency & Safety</h2>
-                      <span className="text-xs text-[#A0A5B1]">Concurrency, proxies, retry budgets & webhooks</span>
+                      <span className="text-xs text-[#AACBC4]">Concurrency, proxies, retry budgets & webhooks</span>
                     </div>
                   </div>
-                  <span className="font-mono text-xs text-[#6FF542] bg-[#6FF542]/10 border border-[#6FF542]/20 px-2.5 py-1 rounded-full">
+                  <span className="font-mono text-xs text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/20 px-2.5 py-1 rounded-full">
                     Resilient
                   </span>
                 </div>
@@ -1064,33 +1064,33 @@ export default function AdminSettingsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   {/* Concurrency */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="font-sans text-xs font-semibold text-[#A0A5B1]">Scraper Concurrency</label>
-                    <div className="bg-[#1A1C25]/90 border border-white/10 rounded-2xl px-4 py-3">
+                    <label className="font-sans text-xs font-semibold text-[#AACBC4]">Scraper Concurrency</label>
+                    <div className="bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3">
                       <select
                         value={concurrency}
                         onChange={(e) => setConcurrency(Number(e.target.value))}
                         className="w-full bg-transparent border-none outline-none font-mono text-xs text-white cursor-pointer"
                       >
-                        <option value={1} className="bg-[#1A1C25]">1 Worker (Gentle)</option>
-                        <option value={2} className="bg-[#1A1C25]">2 Workers (Balanced)</option>
-                        <option value={4} className="bg-[#1A1C25]">4 Workers (Recommended)</option>
-                        <option value={8} className="bg-[#1A1C25]">8 Workers (High Throughput)</option>
+                        <option value={1} className="bg-[#06302B]">1 Worker (Gentle)</option>
+                        <option value={2} className="bg-[#06302B]">2 Workers (Balanced)</option>
+                        <option value={4} className="bg-[#06302B]">4 Workers (Recommended)</option>
+                        <option value={8} className="bg-[#06302B]">8 Workers (High Throughput)</option>
                       </select>
                     </div>
                   </div>
 
                   {/* Timeout */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="font-sans text-xs font-semibold text-[#A0A5B1]">Request Timeout</label>
-                    <div className="bg-[#1A1C25]/90 border border-white/10 rounded-2xl px-4 py-3">
+                    <label className="font-sans text-xs font-semibold text-[#AACBC4]">Request Timeout</label>
+                    <div className="bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3">
                       <select
                         value={timeoutSec}
                         onChange={(e) => setTimeoutSec(Number(e.target.value))}
                         className="w-full bg-transparent border-none outline-none font-mono text-xs text-white cursor-pointer"
                       >
-                        <option value={15} className="bg-[#1A1C25]">15 Seconds</option>
-                        <option value={30} className="bg-[#1A1C25]">30 Seconds (Default)</option>
-                        <option value={60} className="bg-[#1A1C25]">60 Seconds (Slow Feeds)</option>
+                        <option value={15} className="bg-[#06302B]">15 Seconds</option>
+                        <option value={30} className="bg-[#06302B]">30 Seconds (Default)</option>
+                        <option value={60} className="bg-[#06302B]">60 Seconds (Slow Feeds)</option>
                       </select>
                     </div>
                   </div>
@@ -1100,18 +1100,18 @@ export default function AdminSettingsPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.02] border border-white/5">
                   <div className="flex flex-col">
                     <span className="font-sans font-bold text-xs text-white">Proxy & Header Rotation</span>
-                    <span className="text-[11px] text-[#A0A5B1]">Prevents HTTP 429 rate limiting on statistical servers</span>
+                    <span className="text-[11px] text-[#AACBC4]">Prevents HTTP 429 rate limiting on statistical servers</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setProxyRotation(!proxyRotation)}
                     className={clsx(
                       "w-11 h-6 rounded-full transition-colors relative cursor-pointer",
-                      proxyRotation ? "bg-[#D2F646]" : "bg-white/10"
+                      proxyRotation ? "bg-[#00DF81]" : "bg-white/10"
                     )}
                   >
                     <span className={clsx(
-                      "w-5 h-5 rounded-full bg-[#121418] absolute top-0.5 transition-transform",
+                      "w-5 h-5 rounded-full bg-[#021B1A] absolute top-0.5 transition-transform",
                       proxyRotation ? "right-0.5" : "left-0.5"
                     )} />
                   </button>
@@ -1120,17 +1120,17 @@ export default function AdminSettingsPage() {
                 {/* Webhook Alert URL */}
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="font-sans text-xs font-semibold text-[#A0A5B1]">Completion & Error Webhook</label>
-                    <span className="text-[10px] font-mono text-[#A0A5B1]">Discord / Slack / Telegram</span>
+                    <label className="font-sans text-xs font-semibold text-[#AACBC4]">Completion & Error Webhook</label>
+                    <span className="text-[10px] font-mono text-[#AACBC4]">Discord / Slack / Telegram</span>
                   </div>
-                  <div className="flex items-center gap-3 bg-[#1A1C25]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#D2F646]/50">
-                    <Bell size={16} className="text-[#A0A5B1]" />
+                  <div className="flex items-center gap-3 bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#00DF81]/50">
+                    <Bell size={16} className="text-[#AACBC4]" />
                     <input
                       type="url"
                       value={webhookUrl}
                       onChange={(e) => setWebhookUrl(e.target.value)}
                       placeholder="https://webhook.site/..."
-                      className="w-full bg-transparent border-none outline-none font-mono text-xs text-white placeholder:text-[#A0A5B1]/40"
+                      className="w-full bg-transparent border-none outline-none font-mono text-xs text-white placeholder:text-[#AACBC4]/40"
                     />
                   </div>
                 </div>
@@ -1140,22 +1140,22 @@ export default function AdminSettingsPage() {
               <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
                 <div className="flex items-center justify-between border-b border-white/5 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#D2F646]/10 border border-[#D2F646]/20 flex items-center justify-center text-[#D2F646]">
+                    <div className="w-10 h-10 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/20 flex items-center justify-center text-[#00DF81]">
                       <Globe2 size={20} />
                     </div>
                     <div className="flex flex-col">
                       <h2 className="font-sans font-bold text-lg text-white">Language & Localization (FR / EN)</h2>
-                      <span className="text-xs text-[#A0A5B1]">Parser mappings for French & English releases</span>
+                      <span className="text-xs text-[#AACBC4]">Parser mappings for French & English releases</span>
                     </div>
                   </div>
-                  <span className="font-mono text-xs text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20 px-2.5 py-1 rounded-full">
+                  <span className="font-mono text-xs text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/20 px-2.5 py-1 rounded-full">
                     Multi-Lingual
                   </span>
                 </div>
 
                 {/* Scraper Parsing Language */}
                 <div className="flex flex-col gap-3">
-                  <label className="font-sans text-xs font-semibold text-[#A0A5B1]">Scraper Source Extraction Mode</label>
+                  <label className="font-sans text-xs font-semibold text-[#AACBC4]">Scraper Source Extraction Mode</label>
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
@@ -1163,12 +1163,12 @@ export default function AdminSettingsPage() {
                       className={clsx(
                         "p-3 rounded-2xl border text-center transition-all cursor-pointer",
                         scraperLang === "bilingual"
-                          ? "bg-[#D2F646]/10 border-[#D2F646]/40 text-[#D2F646] font-bold"
-                          : "bg-white/[0.02] border-white/5 text-[#A0A5B1] hover:text-white"
+                          ? "bg-[#00DF81]/10 border-[#00DF81]/40 text-[#00DF81] font-bold"
+                          : "bg-white/[0.02] border-white/5 text-[#AACBC4] hover:text-white"
                       )}
                     >
                       <span className="block text-xs">Bilingual (FR + EN)</span>
-                      <span className="text-[10px] text-[#A0A5B1] block mt-0.5">Auto-Standardized</span>
+                      <span className="text-[10px] text-[#AACBC4] block mt-0.5">Auto-Standardized</span>
                     </button>
 
                     <button
@@ -1177,12 +1177,12 @@ export default function AdminSettingsPage() {
                       className={clsx(
                         "p-3 rounded-2xl border text-center transition-all cursor-pointer",
                         scraperLang === "en"
-                          ? "bg-[#D2F646]/10 border-[#D2F646]/40 text-[#D2F646] font-bold"
-                          : "bg-white/[0.02] border-white/5 text-[#A0A5B1] hover:text-white"
+                          ? "bg-[#00DF81]/10 border-[#00DF81]/40 text-[#00DF81] font-bold"
+                          : "bg-white/[0.02] border-white/5 text-[#AACBC4] hover:text-white"
                       )}
                     >
                       <span className="block text-xs">English Only (EN)</span>
-                      <span className="text-[10px] text-[#A0A5B1] block mt-0.5">Fed, BoE, TE</span>
+                      <span className="text-[10px] text-[#AACBC4] block mt-0.5">Fed, BoE, TE</span>
                     </button>
 
                     <button
@@ -1191,63 +1191,63 @@ export default function AdminSettingsPage() {
                       className={clsx(
                         "p-3 rounded-2xl border text-center transition-all cursor-pointer",
                         scraperLang === "fr"
-                          ? "bg-[#D2F646]/10 border-[#D2F646]/40 text-[#D2F646] font-bold"
-                          : "bg-white/[0.02] border-white/5 text-[#A0A5B1] hover:text-white"
+                          ? "bg-[#00DF81]/10 border-[#00DF81]/40 text-[#00DF81] font-bold"
+                          : "bg-white/[0.02] border-white/5 text-[#AACBC4] hover:text-white"
                       )}
                     >
                       <span className="block text-xs">Français Only (FR)</span>
-                      <span className="text-[10px] text-[#A0A5B1] block mt-0.5">INSEE, BdF</span>
+                      <span className="text-[10px] text-[#AACBC4] block mt-0.5">INSEE, BdF</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Dictionary Mapping Preview */}
                 <div className="flex flex-col gap-2">
-                  <span className="font-sans text-xs font-semibold text-[#A0A5B1]">Indicator Dual-Language Mapping Lexicon</span>
-                  <div className="bg-[#14161E] border border-white/5 rounded-2xl p-4 flex flex-col gap-2 text-xs">
-                    <div className="flex items-center justify-between text-[#A0A5B1] pb-1 border-b border-white/5 font-mono text-[11px]">
+                  <span className="font-sans text-xs font-semibold text-[#AACBC4]">Indicator Dual-Language Mapping Lexicon</span>
+                  <div className="bg-[#06302B] border border-white/5 rounded-2xl p-4 flex flex-col gap-2 text-xs">
+                    <div className="flex items-center justify-between text-[#AACBC4] pb-1 border-b border-white/5 font-mono text-[11px]">
                       <span>Indicator Code</span>
                       <span>Français (FR)</span>
                       <span>English (EN)</span>
                     </div>
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-mono text-[#D2F646]">CPI</span>
+                      <span className="font-mono text-[#00DF81]">CPI</span>
                       <span className="text-white">Indice des prix à la consommation</span>
-                      <span className="text-[#A0A5B1]">Consumer Price Index</span>
+                      <span className="text-[#AACBC4]">Consumer Price Index</span>
                     </div>
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-mono text-[#D2F646]">GDP</span>
+                      <span className="font-mono text-[#00DF81]">GDP</span>
                       <span className="text-white">Croissance du PIB (Glissement annuel)</span>
-                      <span className="text-[#A0A5B1]">GDP Annual Growth Rate</span>
+                      <span className="text-[#AACBC4]">GDP Annual Growth Rate</span>
                     </div>
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-mono text-[#D2F646]">RATE</span>
+                      <span className="font-mono text-[#00DF81]">RATE</span>
                       <span className="text-white">Taux directeur de la banque centrale</span>
-                      <span className="text-[#A0A5B1]">Central Bank Policy Rate</span>
+                      <span className="text-[#AACBC4]">Central Bank Policy Rate</span>
                     </div>
                     <div className="flex items-center justify-between py-1">
-                      <span className="font-mono text-[#D2F646]">CA</span>
+                      <span className="font-mono text-[#00DF81]">CA</span>
                       <span className="text-white">Compte courant / PIB</span>
-                      <span className="text-[#A0A5B1]">Current Account to GDP</span>
+                      <span className="text-[#AACBC4]">Current Account to GDP</span>
                     </div>
                   </div>
                 </div>
 
                 {/* System UI Reference Language */}
                 <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                  <span className="font-sans text-xs text-[#A0A5B1]">System Documentation & Export Language</span>
+                  <span className="font-sans text-xs text-[#AACBC4]">System Documentation & Export Language</span>
                   <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl">
                     <button
                       type="button"
                       onClick={() => setSystemUIRefLang("en")}
-                      className={clsx("px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer", systemUIRefLang === "en" ? "bg-[#D2F646] text-[#121418]" : "text-[#A0A5B1]")}
+                      className={clsx("px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer", systemUIRefLang === "en" ? "bg-[#00DF81] text-[#021B1A]" : "text-[#AACBC4]")}
                     >
                       English
                     </button>
                     <button
                       type="button"
                       onClick={() => setSystemUIRefLang("fr")}
-                      className={clsx("px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer", systemUIRefLang === "fr" ? "bg-[#D2F646] text-[#121418]" : "text-[#A0A5B1]")}
+                      className={clsx("px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer", systemUIRefLang === "fr" ? "bg-[#00DF81] text-[#021B1A]" : "text-[#AACBC4]")}
                     >
                       Français
                     </button>
@@ -1271,14 +1271,14 @@ export default function AdminSettingsPage() {
               {/* Metric 1 */}
               <div className={clsx("p-6 flex flex-col justify-between gap-3", matteCard)}>
                 <div className="flex items-center justify-between">
-                  <span className="font-sans text-xs font-medium text-[#A0A5B1]">Scraper Ingestion Health</span>
-                  <div className="w-8 h-8 rounded-xl bg-[#6FF542]/10 text-[#6FF542] flex items-center justify-center">
+                  <span className="font-sans text-xs font-medium text-[#AACBC4]">Scraper Ingestion Health</span>
+                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/10 text-[#00DF81] flex items-center justify-center">
                     <CheckCircle2 size={16} />
                   </div>
                 </div>
                 <div className="flex flex-col">
                   <span className="font-mono text-2xl font-bold text-white">6 / 6 Indicators Active</span>
-                  <span className="text-[11px] text-[#6FF542] font-semibold mt-0.5">
+                  <span className="text-[11px] text-[#00DF81] font-semibold mt-0.5">
                     100% Endpoints Verified (IMF SDMX + Central Banks)
                   </span>
                 </div>
@@ -1287,14 +1287,14 @@ export default function AdminSettingsPage() {
               {/* Metric 2 */}
               <div className={clsx("p-6 flex flex-col justify-between gap-3", matteCard)}>
                 <div className="flex items-center justify-between">
-                  <span className="font-sans text-xs font-medium text-[#A0A5B1]">Math Model Accuracy Proof</span>
-                  <div className="w-8 h-8 rounded-xl bg-[#00E5FF]/10 text-[#00E5FF] flex items-center justify-center">
+                  <span className="font-sans text-xs font-medium text-[#AACBC4]">Math Model Accuracy Proof</span>
+                  <div className="w-8 h-8 rounded-xl bg-[#2CC295]/10 text-[#2CC295] flex items-center justify-center">
                     <Calculator size={16} />
                   </div>
                 </div>
                 <div className="flex flex-col">
                   <span className="font-mono text-2xl font-bold text-white">100.0% Exact Formula Match</span>
-                  <span className="text-[11px] text-[#00E5FF] font-semibold mt-0.5">
+                  <span className="text-[11px] text-[#2CC295] font-semibold mt-0.5">
                     Differential → Rating Rule Lookup → Composite %
                   </span>
                 </div>
@@ -1303,14 +1303,14 @@ export default function AdminSettingsPage() {
               {/* Metric 3 */}
               <div className={clsx("p-6 flex flex-col justify-between gap-3", matteCard)}>
                 <div className="flex items-center justify-between">
-                  <span className="font-sans text-xs font-medium text-[#A0A5B1]">Live Verification Time</span>
-                  <div className="w-8 h-8 rounded-xl bg-[#D2F646]/10 text-[#D2F646] flex items-center justify-center">
+                  <span className="font-sans text-xs font-medium text-[#AACBC4]">Live Verification Time</span>
+                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/10 text-[#00DF81] flex items-center justify-center">
                     <Clock size={16} />
                   </div>
                 </div>
                 <div className="flex flex-col">
                   <span className="font-mono text-2xl font-bold text-white">{lastScrapeTime}</span>
-                  <span className="text-[11px] text-[#A0A5B1] font-mono mt-0.5">
+                  <span className="text-[11px] text-[#AACBC4] font-mono mt-0.5">
                     Live System Sync Period: <strong className="text-white">{selectedVerificationMonth}</strong>
                   </span>
                 </div>
@@ -1322,14 +1322,14 @@ export default function AdminSettingsPage() {
             <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#6FF542]/10 border border-[#6FF542]/20 flex items-center justify-center text-[#6FF542]">
+                  <div className="w-10 h-10 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/20 flex items-center justify-center text-[#00DF81]">
                     <Calculator size={20} />
                   </div>
                   <div className="flex flex-col">
                     <h2 className="font-sans font-bold text-lg text-white">
                       Live Mathematical Calculation Proof
                     </h2>
-                    <span className="text-xs text-[#A0A5B1]">
+                    <span className="text-xs text-[#AACBC4]">
                       Client audit breakdown: inspect real raw values, differentials, rating scores & final bias math
                     </span>
                   </div>
@@ -1337,33 +1337,33 @@ export default function AdminSettingsPage() {
 
                 {/* Pair & Month Selectors */}
                 <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 bg-[#1A1C25] border border-white/10 rounded-xl px-3 py-1.5 text-xs">
-                    <span className="text-[#A0A5B1] font-sans">Currency Pair:</span>
+                  <div className="flex items-center gap-2 bg-[#06302B] border border-white/10 rounded-xl px-3 py-1.5 text-xs">
+                    <span className="text-[#AACBC4] font-sans">Currency Pair:</span>
                     <select
                       value={selectedVerificationPair}
                       onChange={(e) => setSelectedVerificationPair(e.target.value)}
                       className="bg-transparent text-white font-bold outline-none cursor-pointer"
                     >
                       {PAIRS.map(p => (
-                        <option key={p.name} value={p.name} className="bg-[#1A1C25] text-white">
+                        <option key={p.name} value={p.name} className="bg-[#06302B] text-white">
                           {p.name} ({p.baseCountry} / {p.quoteCountry})
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-[#1A1C25] border border-white/10 rounded-xl px-3 py-1.5 text-xs">
-                    <span className="text-[#A0A5B1] font-sans">Period:</span>
+                  <div className="flex items-center gap-2 bg-[#06302B] border border-white/10 rounded-xl px-3 py-1.5 text-xs">
+                    <span className="text-[#AACBC4] font-sans">Period:</span>
                     <select
                       value={selectedVerificationMonth}
                       onChange={(e) => setSelectedVerificationMonth(e.target.value)}
                       className="bg-transparent text-white font-mono font-bold outline-none cursor-pointer"
                     >
-                      <option value="2026-09" className="bg-[#1A1C25] text-white">2026-09 (Current Live Month)</option>
-                      <option value="2026-08" className="bg-[#1A1C25] text-white">2026-08</option>
-                      <option value="2026-07" className="bg-[#1A1C25] text-white">2026-07</option>
-                      <option value="2026-06" className="bg-[#1A1C25] text-white">2026-06</option>
-                      <option value="2025-12" className="bg-[#1A1C25] text-white">2025-12 (Year-End Settlement)</option>
+                      <option value="2026-09" className="bg-[#06302B] text-white">2026-09 (Current Live Month)</option>
+                      <option value="2026-08" className="bg-[#06302B] text-white">2026-08</option>
+                      <option value="2026-07" className="bg-[#06302B] text-white">2026-07</option>
+                      <option value="2026-06" className="bg-[#06302B] text-white">2026-06</option>
+                      <option value="2025-12" className="bg-[#06302B] text-white">2025-12 (Year-End Settlement)</option>
                     </select>
                   </div>
                 </div>
@@ -1373,7 +1373,7 @@ export default function AdminSettingsPage() {
               <div className="w-full overflow-x-auto no-scrollbar">
                 <table className="w-full text-left border-collapse min-w-[950px]">
                   <thead>
-                    <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#A0A5B1]">
+                    <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#AACBC4]">
                       <th className="py-3 px-4">Indicator Pillar</th>
                       <th className="py-3 px-4">Data Source & Protocol</th>
                       <th className="py-3 px-4 text-center">{currentPairObj.baseCountry} (Base)</th>
@@ -1390,30 +1390,30 @@ export default function AdminSettingsPage() {
                         <td className="py-3.5 px-4">
                           <div className="flex flex-col">
                             <span className="font-bold text-white text-xs">{row.indicator}</span>
-                            <span className="text-[10px] text-[#A0A5B1] font-mono">{row.unit}</span>
+                            <span className="text-[10px] text-[#AACBC4] font-mono">{row.unit}</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-[11px] text-[#A0A5B1]">
+                        <td className="py-3.5 px-4 font-mono text-[11px] text-[#AACBC4]">
                           <div className="flex flex-col">
                             <span className="text-white">{row.source}</span>
-                            <span className="text-[10px] text-[#00E5FF]">{row.protocol}</span>
+                            <span className="text-[10px] text-[#2CC295]">{row.protocol}</span>
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-center font-mono font-bold text-white">
                           {row.baseVal}
                         </td>
-                        <td className="py-3.5 px-4 text-center font-mono font-bold text-[#A0A5B1]">
+                        <td className="py-3.5 px-4 text-center font-mono font-bold text-[#AACBC4]">
                           {row.quoteVal}
                         </td>
                         <td className="py-3.5 px-4 text-center font-mono">
                           <span className={clsx(
                             "px-2 py-0.5 rounded-md font-bold",
-                            String(row.diff).startsWith("-") ? "text-[#FF5B5B] bg-[#FF5B5B]/10" : "text-[#6FF542] bg-[#6FF542]/10"
+                            String(row.diff).startsWith("-") ? "text-[#FF5555] bg-[#FF5555]/10" : "text-[#00DF81] bg-[#00DF81]/10"
                           )}>
                             {row.diff}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-center font-mono text-[11px] text-[#A0A5B1]">
+                        <td className="py-3.5 px-4 text-center font-mono text-[11px] text-[#AACBC4]">
                           <span className="bg-white/5 px-2 py-0.5 rounded">
                             Rule: {row.rule}
                           </span>
@@ -1422,10 +1422,10 @@ export default function AdminSettingsPage() {
                           <span className={clsx(
                             "px-2.5 py-1 rounded-full font-bold text-xs",
                             row.rating > 0 
-                              ? "bg-[#6FF542]/15 text-[#6FF542] border border-[#6FF542]/30" 
+                              ? "bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30" 
                               : row.rating < 0 
-                                ? "bg-[#FF5B5B]/15 text-[#FF5B5B] border border-[#FF5B5B]/30" 
-                                : "bg-white/5 text-[#A0A5B1] border border-white/10"
+                                ? "bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30" 
+                                : "bg-white/5 text-[#AACBC4] border border-white/10"
                           )}>
                             {row.rating > 0 ? `+${row.rating}` : row.rating}
                           </span>
@@ -1440,23 +1440,23 @@ export default function AdminSettingsPage() {
               </div>
 
               {/* Step 2: Step-by-Step Mathematical Aggregation Proof Card */}
-              <div className="p-6 rounded-2xl bg-[#14161E] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="p-6 rounded-2xl bg-[#06302B] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
                 
                 {/* Mathematical Equation & Numbers */}
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#6FF542]">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#00DF81]">
                     Mathematical Equation Verification
                   </span>
                   <div className="font-mono text-sm text-white font-semibold flex items-center gap-2">
                     <span>Final Score (%) =</span>
-                    <span className="bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 text-[#6FF542]">
+                    <span className="bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 text-[#00DF81]">
                       ( &Sigma; Indicator Ratings / 60 ) &times; 100
                     </span>
                   </div>
-                  <div className="font-mono text-xs text-[#A0A5B1] flex items-center gap-2 flex-wrap">
+                  <div className="font-mono text-xs text-[#AACBC4] flex items-center gap-2 flex-wrap">
                     <span>Active Substitution:</span>
                     <span className="text-white font-bold bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
-                      ({mathProofRows.map(r => r.rating > 0 ? `+${r.rating}` : String(r.rating)).join(" + ")}) = {totalRatingSum > 0 ? `+${totalRatingSum}` : totalRatingSum} / 60 &times; 100 = <strong className="text-[#6FF542]">{Number(finalScorePercentage) > 0 ? `+${finalScorePercentage}` : finalScorePercentage}%</strong>
+                      ({mathProofRows.map(r => r.rating > 0 ? `+${r.rating}` : String(r.rating)).join(" + ")}) = {totalRatingSum > 0 ? `+${totalRatingSum}` : totalRatingSum} / 60 &times; 100 = <strong className="text-[#00DF81]">{Number(finalScorePercentage) > 0 ? `+${finalScorePercentage}` : finalScorePercentage}%</strong>
                     </span>
                   </div>
                 </div>
@@ -1464,21 +1464,21 @@ export default function AdminSettingsPage() {
                 {/* Final Classification Result */}
                 <div className="flex items-center gap-4 flex-shrink-0">
                   <div className="flex flex-col text-right">
-                    <span className="text-xs text-[#A0A5B1] font-mono">Calculated Bias Regime:</span>
+                    <span className="text-xs text-[#AACBC4] font-mono">Calculated Bias Regime:</span>
                     <span className={clsx(
                       "font-sans font-black text-xl tracking-tight",
-                      biasClassification === "BULLISH" ? "text-[#6FF542]" : biasClassification === "BEARISH" ? "text-[#FF4444]" : "text-[#A0A5B1]"
+                      biasClassification === "BULLISH" ? "text-[#00DF81]" : biasClassification === "BEARISH" ? "text-[#FF5555]" : "text-[#AACBC4]"
                     )}>
                       {biasClassification}
                     </span>
-                    <span className="text-[10px] text-[#A0A5B1] font-mono">
+                    <span className="text-[10px] text-[#AACBC4] font-mono">
                       {biasClassification === "BULLISH" ? "≥ +20.0% Threshold Satisfied" : biasClassification === "BEARISH" ? "≤ −20.0% Threshold Satisfied" : "Within [−20%, +20%] Neutral Range"}
                     </span>
                   </div>
 
                   <div className={clsx(
                     "w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-black text-lg border",
-                    biasClassification === "BULLISH" ? "bg-[#6FF542]/10 border-[#6FF542]/30 text-[#6FF542]" : biasClassification === "BEARISH" ? "bg-[#FF4444]/10 border-[#FF4444]/30 text-[#FF4444]" : "bg-white/5 border-white/10 text-white"
+                    biasClassification === "BULLISH" ? "bg-[#00DF81]/10 border-[#00DF81]/30 text-[#00DF81]" : biasClassification === "BEARISH" ? "bg-[#FF5555]/10 border-[#FF5555]/30 text-[#FF5555]" : "bg-white/5 border-white/10 text-white"
                   )}>
                     {finalScorePercentage}%
                   </div>
@@ -1492,14 +1492,14 @@ export default function AdminSettingsPage() {
             <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#00E5FF]/10 border border-[#00E5FF]/20 flex items-center justify-center text-[#00E5FF]">
+                  <div className="w-10 h-10 rounded-2xl bg-[#2CC295]/10 border border-[#2CC295]/20 flex items-center justify-center text-[#2CC295]">
                     <Layers size={20} />
                   </div>
                   <div className="flex flex-col">
                     <h2 className="font-sans font-bold text-lg text-white">
                       6 Core Indicator Feeds & Formula Verification
                     </h2>
-                    <span className="text-xs text-[#A0A5B1]">
+                    <span className="text-xs text-[#AACBC4]">
                       Click an indicator filter to inspect its official scraping source, formula, and verification checksum
                     </span>
                   </div>
@@ -1513,8 +1513,8 @@ export default function AdminSettingsPage() {
                     className={clsx(
                       "px-3 py-1.5 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer",
                       selectedIndicatorFilter === "ALL"
-                        ? "bg-white text-[#121418] shadow"
-                        : "bg-white/5 text-[#A0A5B1] hover:text-white"
+                        ? "bg-white text-[#021B1A] shadow"
+                        : "bg-white/5 text-[#AACBC4] hover:text-white"
                     )}
                   >
                     All Indicators (6)
@@ -1527,8 +1527,8 @@ export default function AdminSettingsPage() {
                       className={clsx(
                         "px-3 py-1.5 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer",
                         selectedIndicatorFilter === ind
-                          ? "bg-[#00E5FF] text-[#121418] shadow"
-                          : "bg-white/5 text-[#A0A5B1] hover:text-white"
+                          ? "bg-[#2CC295] text-[#021B1A] shadow"
+                          : "bg-white/5 text-[#AACBC4] hover:text-white"
                       )}
                     >
                       {ind}
@@ -1554,31 +1554,31 @@ export default function AdminSettingsPage() {
                   return (
                     <div 
                       key={ind} 
-                      className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between gap-4 hover:border-[#00E5FF]/30 transition-all"
+                      className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between gap-4 hover:border-[#2CC295]/30 transition-all"
                     >
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-xs font-black text-[#00E5FF] bg-[#00E5FF]/10 px-2 py-0.5 rounded-md">
+                          <span className="font-mono text-xs font-black text-[#2CC295] bg-[#2CC295]/10 px-2 py-0.5 rounded-md">
                             {ind}
                           </span>
-                          <span className="text-[10px] font-mono text-[#6FF542] flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#6FF542]" />
+                          <span className="text-[10px] font-mono text-[#00DF81] flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#00DF81]" />
                             {spec.verificationHash}
                           </span>
                         </div>
                         <h3 className="font-sans font-bold text-sm text-white mt-1">
                           {spec.fullName}
                         </h3>
-                        <div className="text-xs text-[#A0A5B1] space-y-1 mt-1 font-sans">
+                        <div className="text-xs text-[#AACBC4] space-y-1 mt-1 font-sans">
                           <div><strong className="text-white">Source:</strong> {spec.source}</div>
                           <div><strong className="text-white">Protocol:</strong> {spec.protocol}</div>
                           <div><strong className="text-white">Frequency:</strong> {spec.frequency}</div>
                         </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-[#14161E] border border-white/5 text-[11px] font-mono space-y-1">
-                        <div className="text-[#D2F646] font-semibold">{spec.formula}</div>
-                        <div className="text-[#A0A5B1]">{spec.scoringRule}</div>
+                      <div className="p-3 rounded-xl bg-[#06302B] border border-white/5 text-[11px] font-mono space-y-1">
+                        <div className="text-[#00DF81] font-semibold">{spec.formula}</div>
+                        <div className="text-[#AACBC4]">{spec.scoringRule}</div>
                       </div>
                     </div>
                   );
@@ -1597,12 +1597,12 @@ export default function AdminSettingsPage() {
                     <h2 className="font-sans font-bold text-lg text-white">
                       Scraper Execution Runs & Timestamp Audit Log
                     </h2>
-                    <span className="text-xs text-[#A0A5B1]">
+                    <span className="text-xs text-[#AACBC4]">
                       Chronological immutable telemetry records with exact timestamps, updated records, and status
                     </span>
                   </div>
                 </div>
-                <span className="text-xs font-mono text-[#A0A5B1]">
+                <span className="text-xs font-mono text-[#AACBC4]">
                   Showing last {executionRuns.length} executions
                 </span>
               </div>
@@ -1610,7 +1610,7 @@ export default function AdminSettingsPage() {
               <div className="w-full overflow-x-auto no-scrollbar">
                 <table className="w-full text-left border-collapse min-w-[900px]">
                   <thead>
-                    <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#A0A5B1]">
+                    <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#AACBC4]">
                       <th className="py-3 px-4">Run ID</th>
                       <th className="py-3 px-4">Execution Timestamp (UTC)</th>
                       <th className="py-3 px-4">Triggered By</th>
@@ -1622,23 +1622,23 @@ export default function AdminSettingsPage() {
                   <tbody className="divide-y divide-white/[0.03] text-xs">
                     {executionRuns.map((run: any) => (
                       <tr key={run.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-bold text-[#D2F646]">
+                        <td className="py-3.5 px-4 font-mono font-bold text-[#00DF81]">
                           {run.id}
                         </td>
                         <td className="py-3.5 px-4 font-mono text-white">
                           {run.timestamp}
                         </td>
-                        <td className="py-3.5 px-4 font-sans text-[#A0A5B1]">
+                        <td className="py-3.5 px-4 font-sans text-[#AACBC4]">
                           {run.user}
                         </td>
                         <td className="py-3.5 px-4 font-mono text-white">
                           {run.records_updated.toLocaleString()} pair-months
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-[11px] text-[#00E5FF]">
+                        <td className="py-3.5 px-4 font-mono text-[11px] text-[#2CC295]">
                           {run.hash || "SHA-256 Valid"}
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <span className="px-2.5 py-1 rounded-full bg-[#6FF542]/10 border border-[#6FF542]/20 text-[#6FF542] font-mono text-[10px] font-bold">
+                          <span className="px-2.5 py-1 rounded-full bg-[#00DF81]/10 border border-[#00DF81]/20 text-[#00DF81] font-mono text-[10px] font-bold">
                             {run.status}
                           </span>
                         </td>
@@ -1659,9 +1659,9 @@ export default function AdminSettingsPage() {
           <div className="flex flex-col gap-8 opacity-0 animate-fadeIn">
             
             {/* Guide Language Selector Banner */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-[#161822] border border-white/10">
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-[#032221] border border-white/10">
               <div className="flex items-center gap-3">
-                <Info size={18} className="text-[#D2F646]" />
+                <Info size={18} className="text-[#00DF81]" />
                 <span className="font-sans text-xs text-white">
                   {guideLang === "EN" 
                     ? "Interactive client guide explaining where data is scrapped from, how differentials are calculated, and how rating rules work."
@@ -1673,14 +1673,14 @@ export default function AdminSettingsPage() {
                 <button
                   type="button"
                   onClick={() => setGuideLang("EN")}
-                  className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer", guideLang === "EN" ? "bg-[#D2F646] text-[#121418]" : "text-[#A0A5B1]")}
+                  className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer", guideLang === "EN" ? "bg-[#00DF81] text-[#021B1A]" : "text-[#AACBC4]")}
                 >
                   English Version
                 </button>
                 <button
                   type="button"
                   onClick={() => setGuideLang("FR")}
-                  className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer", guideLang === "FR" ? "bg-[#D2F646] text-[#121418]" : "text-[#A0A5B1]")}
+                  className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer", guideLang === "FR" ? "bg-[#00DF81] text-[#021B1A]" : "text-[#AACBC4]")}
                 >
                   Version Française
                 </button>
@@ -1690,13 +1690,13 @@ export default function AdminSettingsPage() {
             {/* Step-by-Step Interactive Pipeline Diagram */}
             <div className={clsx("p-8 md:p-10 flex flex-col gap-8", matteCard)}>
               <div className="flex flex-col gap-2 border-b border-white/5 pb-6">
-                <span className="text-xs font-mono font-bold uppercase tracking-widest text-[#D2F646]">
+                <span className="text-xs font-mono font-bold uppercase tracking-widest text-[#00DF81]">
                   {guideLang === "EN" ? "End-to-End Pipeline Workflow" : "Flux de Traitement de Bout en Bout"}
                 </span>
                 <h2 className="font-sans font-bold text-2xl text-white">
                   {guideLang === "EN" ? "How ShiftFX Scrapes & Processes Macro Bias" : "Fonctionnement du Moteur Macro FX Differential"}
                 </h2>
-                <p className="text-sm text-[#A0A5B1]">
+                <p className="text-sm text-[#AACBC4]">
                   {guideLang === "EN" 
                     ? "ShiftFX is an institutional macroeconomic analysis service for Forex traders. Proposition: 'Know the macro bias before looking for a trade.'"
                     : "FX Differential est un service web d'analyse macroéconomique destiné aux traders Forex. Proposition de valeur : 'Know the macro bias before looking for a trade.'"}
@@ -1707,83 +1707,83 @@ export default function AdminSettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 
                 {/* Stage 1 */}
-                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#D2F646]/30 transition-all">
-                  <div className="w-8 h-8 rounded-xl bg-[#D2F646]/10 text-[#D2F646] font-mono font-bold text-xs flex items-center justify-center">
+                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#00DF81]/30 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/10 text-[#00DF81] font-mono font-bold text-xs flex items-center justify-center">
                     01
                   </div>
                   <span className="font-sans font-bold text-sm text-white">
                     {guideLang === "EN" ? "Data Ingestion" : "Ingestion des Données"}
                   </span>
-                  <p className="text-xs text-[#A0A5B1] leading-relaxed">
+                  <p className="text-xs text-[#AACBC4] leading-relaxed">
                     {guideLang === "EN"
                       ? "Scrapes 6 core indicators across G10 economies from Trading Economics, FRED, and Central Banks."
                       : "Scraping de 6 indicateurs fondamentaux des économies du G10 via Trading Economics, FRED et Banques Centrales."}
                   </p>
-                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#D2F646]">Raw Economic Data</div>
+                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#00DF81]">Raw Economic Data</div>
                 </div>
 
                 {/* Stage 2 */}
-                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#00E5FF]/30 transition-all">
-                  <div className="w-8 h-8 rounded-xl bg-[#00E5FF]/10 text-[#00E5FF] font-mono font-bold text-xs flex items-center justify-center">
+                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#2CC295]/30 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-[#2CC295]/10 text-[#2CC295] font-mono font-bold text-xs flex items-center justify-center">
                     02
                   </div>
                   <span className="font-sans font-bold text-sm text-white">
                     {guideLang === "EN" ? "Country Differential" : "Calcul du Différentiel"}
                   </span>
-                  <p className="text-xs text-[#A0A5B1] leading-relaxed">
+                  <p className="text-xs text-[#AACBC4] leading-relaxed">
                     {guideLang === "EN"
                       ? "Compares Country A against Country B: Differential = Country A − Country B."
                       : "Compare le Pays A au Pays B : Différentiel = Pays A − Pays B pour chaque indicateur."}
                   </p>
-                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#00E5FF]">Diff = Country A - Country B</div>
+                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#2CC295]">Diff = Country A - Country B</div>
                 </div>
 
                 {/* Stage 3 */}
-                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#D2F646]/30 transition-all">
-                  <div className="w-8 h-8 rounded-xl bg-[#D2F646]/10 text-[#D2F646] font-mono font-bold text-xs flex items-center justify-center">
+                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#00DF81]/30 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/10 text-[#00DF81] font-mono font-bold text-xs flex items-center justify-center">
                     03
                   </div>
                   <span className="font-sans font-bold text-sm text-white">
                     {guideLang === "EN" ? "Rating Tables" : "Tables de Rating"}
                   </span>
-                  <p className="text-xs text-[#A0A5B1] leading-relaxed">
+                  <p className="text-xs text-[#AACBC4] leading-relaxed">
                     {guideLang === "EN"
                       ? "Maps differential intervals into standardized scores ranging from -10 to +10."
                       : "Convertit chaque différentiel en score borné entre -10 et +10 selon les intervalles configurés."}
                   </p>
-                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#D2F646]">Indicator Score (-10 to +10)</div>
+                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#00DF81]">Indicator Score (-10 to +10)</div>
                 </div>
 
                 {/* Stage 4 */}
-                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#00E5FF]/30 transition-all">
-                  <div className="w-8 h-8 rounded-xl bg-[#00E5FF]/10 text-[#00E5FF] font-mono font-bold text-xs flex items-center justify-center">
+                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#2CC295]/30 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-[#2CC295]/10 text-[#2CC295] font-mono font-bold text-xs flex items-center justify-center">
                     04
                   </div>
                   <span className="font-sans font-bold text-sm text-white">
                     {guideLang === "EN" ? "Score Normalization" : "Normalisation du Score"}
                   </span>
-                  <p className="text-xs text-[#A0A5B1] leading-relaxed">
+                  <p className="text-xs text-[#AACBC4] leading-relaxed">
                     {guideLang === "EN"
                       ? "Sums all 6 indicator scores (-60 to +60) and normalizes to -100% to +100%."
                       : "Additionne les 6 scores (-60 à +60) et normalise de -100% à +100% via la formule / 60 × 100."}
                   </p>
-                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#00E5FF]">Final Score % (-100% to +100%)</div>
+                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#2CC295]">Final Score % (-100% to +100%)</div>
                 </div>
 
                 {/* Stage 5 */}
-                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#6FF542]/30 transition-all">
-                  <div className="w-8 h-8 rounded-xl bg-[#6FF542]/10 text-[#6FF542] font-mono font-bold text-xs flex items-center justify-center">
+                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#00DF81]/30 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/10 text-[#00DF81] font-mono font-bold text-xs flex items-center justify-center">
                     05
                   </div>
                   <span className="font-sans font-bold text-sm text-white">
                     {guideLang === "EN" ? "Bias Regime Radar" : "Biais & Radar Terminal"}
                   </span>
-                  <p className="text-xs text-[#A0A5B1] leading-relaxed">
+                  <p className="text-xs text-[#AACBC4] leading-relaxed">
                     {guideLang === "EN"
                       ? "Dispatches final bias (Bullish, Bearish, Neutral) to the Trader Terminal & Admin Suite."
                       : "Attribue le biais (Bullish, Bearish, Neutre) et diffuse le résultat dans le terminal de trading."}
                   </p>
-                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#6FF542]">BULLISH / BEARISH / NEUTRAL</div>
+                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#00DF81]">BULLISH / BEARISH / NEUTRAL</div>
                 </div>
 
               </div>
@@ -1795,14 +1795,14 @@ export default function AdminSettingsPage() {
               {/* Box 1: The 6 Macro Indicators */}
               <div className={clsx("p-8 flex flex-col gap-5", matteCard)}>
                 <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                  <div className="w-10 h-10 rounded-2xl bg-[#D2F646]/10 text-[#D2F646] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-[#00DF81]/10 text-[#00DF81] flex items-center justify-center">
                     <Layers size={20} />
                   </div>
                   <div className="flex flex-col">
                     <h3 className="font-sans font-bold text-base text-white">
                       {guideLang === "EN" ? "The 6 Core Economic Indicators" : "Les 6 Indicateurs Fondamentaux"}
                     </h3>
-                    <span className="text-xs text-[#A0A5B1]">
+                    <span className="text-xs text-[#AACBC4]">
                       {guideLang === "EN" ? "Why these 6 metrics govern currency strength" : "Pourquoi ces 6 métriques déterminent la valeur des devises"}
                     </span>
                   </div>
@@ -1812,9 +1812,9 @@ export default function AdminSettingsPage() {
                   <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white">1. GDP Annual Growth (Croissance du PIB)</span>
-                      <span className="font-mono text-[#D2F646]">Growth Engine</span>
+                      <span className="font-mono text-[#00DF81]">Growth Engine</span>
                     </div>
-                    <span className="text-[#A0A5B1]">
+                    <span className="text-[#AACBC4]">
                       {guideLang === "EN" 
                         ? "Measures economic expansion. A faster growing economy attracts capital inflows and institutional foreign direct investment."
                         : "Mesure l'expansion économique. Une économie en croissance attire les flux de capitaux et investissements étrangers."}
@@ -1824,9 +1824,9 @@ export default function AdminSettingsPage() {
                   <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white">2. Current Account / GDP (Compte Courant / PIB)</span>
-                      <span className="font-mono text-[#00E5FF]">Trade Balance</span>
+                      <span className="font-mono text-[#2CC295]">Trade Balance</span>
                     </div>
-                    <span className="text-[#A0A5B1]">
+                    <span className="text-[#AACBC4]">
                       {guideLang === "EN"
                         ? "Reflects the net flow of goods, services, and transfers. A surplus creates structural demand for the domestic currency."
                         : "Reflète le solde net des échanges. Un surplus génère une demande structurelle pour la devise nationale."}
@@ -1836,9 +1836,9 @@ export default function AdminSettingsPage() {
                   <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white">3. FX Reserves Excluding Gold (Réserves de Change)</span>
-                      <span className="font-mono text-[#D2F646]">Liquidity Shield</span>
+                      <span className="font-mono text-[#00DF81]">Liquidity Shield</span>
                     </div>
-                    <span className="text-[#A0A5B1]">
+                    <span className="text-[#AACBC4]">
                       {guideLang === "EN"
                         ? "Buffer held by the central bank to intervene and stabilize exchange rates during liquidity crunches."
                         : "Coussin financier de la banque centrale pour stabiliser sa devise et absorber les chocs de liquidité."}
@@ -1848,9 +1848,9 @@ export default function AdminSettingsPage() {
                   <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white">4. CPI Inflation (Indice des Prix à la Consommation)</span>
-                      <span className="font-mono text-[#FF5B5B]">Price Pressures</span>
+                      <span className="font-mono text-[#FF5555]">Price Pressures</span>
                     </div>
-                    <span className="text-[#A0A5B1]">
+                    <span className="text-[#AACBC4]">
                       {guideLang === "EN"
                         ? "Purchasing power dynamics. Influences whether central banks will raise or slash benchmark rates."
                         : "Dynamique du pouvoir d'achat. Influence directement les hausses ou baisses de taux des banques centrales."}
@@ -1860,9 +1860,9 @@ export default function AdminSettingsPage() {
                   <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white">5. Central Bank Interest Rate (Taux Directeur)</span>
-                      <span className="font-mono text-[#6FF542]">Yield & Carry</span>
+                      <span className="font-mono text-[#00DF81]">Yield & Carry</span>
                     </div>
-                    <span className="text-[#A0A5B1]">
+                    <span className="text-[#AACBC4]">
                       {guideLang === "EN"
                         ? "The primary catalyst of carry trades. Capital shifts rapidly toward high-yielding currencies."
                         : "Le moteur principal du carry trade. Les capitaux migrent vers les devises offrant le rendement le plus élevé."}
@@ -1872,9 +1872,9 @@ export default function AdminSettingsPage() {
                   <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white">6. Benchmark Equity Index (Performance Boursière)</span>
-                      <span className="font-mono text-[#00E5FF]">Risk Sentiment</span>
+                      <span className="font-mono text-[#2CC295]">Risk Sentiment</span>
                     </div>
-                    <span className="text-[#A0A5B1]">
+                    <span className="text-[#AACBC4]">
                       {guideLang === "EN"
                         ? "Serves as a barometer for market risk appetite and domestic equity market strength."
                         : "Baromètre de l'appétit pour le risque et de la vigueur des marchés actions domestiques."}
@@ -1886,14 +1886,14 @@ export default function AdminSettingsPage() {
               {/* Box 2: Concrete Differential & Scoring Example */}
               <div className={clsx("p-8 flex flex-col gap-5", matteCard)}>
                 <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                  <div className="w-10 h-10 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-[#2CC295]/10 text-[#2CC295] flex items-center justify-center">
                     <Cpu size={20} />
                   </div>
                   <div className="flex flex-col">
                     <h3 className="font-sans font-bold text-base text-white">
                       {guideLang === "EN" ? "EUR/USD Concrete Calculation Example" : "Exemple Chiffré : Calcul EUR/USD"}
                     </h3>
-                    <span className="text-xs text-[#A0A5B1]">
+                    <span className="text-xs text-[#AACBC4]">
                       {guideLang === "EN" ? "Walkthrough of exact math from raw data to final bias" : "Démonstration pas à pas du calcul mathématique exact"}
                     </span>
                   </div>
@@ -1901,23 +1901,23 @@ export default function AdminSettingsPage() {
 
                 <div className="flex flex-col gap-4 text-xs">
                   {/* Step 1: Raw Diff */}
-                  <div className="p-4 rounded-xl bg-[#14161E] border border-white/5 flex flex-col gap-2">
+                  <div className="p-4 rounded-xl bg-[#06302B] border border-white/5 flex flex-col gap-2">
                     <span className="font-bold text-white text-xs">
                       {guideLang === "EN" ? "Step 1: Compute Raw Differential (Zone Euro − USA)" : "Étape 1 : Calcul du Différentiel Brut (Zone Euro − USA)"}
                     </span>
-                    <div className="font-mono text-[11px] text-[#A0A5B1] space-y-1">
+                    <div className="font-mono text-[11px] text-[#AACBC4] space-y-1">
                       <div>EUR GDP Growth = <span className="text-white">1.8%</span></div>
                       <div>USD GDP Growth = <span className="text-white">2.5%</span></div>
-                      <div className="text-[#D2F646]">Differential = 1.8% − 2.5% = <strong className="text-white">−0.7%</strong></div>
+                      <div className="text-[#00DF81]">Differential = 1.8% − 2.5% = <strong className="text-white">−0.7%</strong></div>
                     </div>
                   </div>
 
                   {/* Step 2: Rating Tables Application */}
-                  <div className="p-4 rounded-xl bg-[#14161E] border border-white/5 flex flex-col gap-2">
+                  <div className="p-4 rounded-xl bg-[#06302B] border border-white/5 flex flex-col gap-2">
                     <span className="font-bold text-white text-xs">
                       {guideLang === "EN" ? "Step 2: Lookup in Rating Table (-10 to +10)" : "Étape 2 : Consultation de la Table de Rating (-10 à +10)"}
                     </span>
-                    <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-[#A0A5B1]">
+                    <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-[#AACBC4]">
                       <div>GDP Growth: <strong className="text-white">+6</strong></div>
                       <div>Current Account: <strong className="text-white">+4</strong></div>
                       <div>FX Reserves: <strong className="text-white">+5</strong></div>
@@ -1927,28 +1927,28 @@ export default function AdminSettingsPage() {
                     </div>
                     <div className="pt-2 border-t border-white/5 flex items-center justify-between font-mono text-xs text-white">
                       <span>Total Differential Score:</span>
-                      <span className="text-[#D2F646] font-bold">+24 / 60</span>
+                      <span className="text-[#00DF81] font-bold">+24 / 60</span>
                     </div>
                   </div>
 
                   {/* Step 3: Final Normalization */}
-                  <div className="p-4 rounded-xl bg-[#14161E] border border-white/5 flex flex-col gap-2">
+                  <div className="p-4 rounded-xl bg-[#06302B] border border-white/5 flex flex-col gap-2">
                     <span className="font-bold text-white text-xs">
                       {guideLang === "EN" ? "Step 3: Normalization to Percentage" : "Étape 3 : Normalisation en Pourcentage"}
                     </span>
-                    <div className="font-mono text-xs bg-white/5 p-2.5 rounded-lg text-center text-[#D2F646]">
+                    <div className="font-mono text-xs bg-white/5 p-2.5 rounded-lg text-center text-[#00DF81]">
                       Final Score (%) = Total Score / 60 × 100 = 24 / 60 × 100 = <strong>+40.0%</strong>
                     </div>
                     <div className="flex items-center justify-between pt-1 text-xs">
-                      <span className="text-[#A0A5B1]">Classification Threshold:</span>
-                      <span className="px-2.5 py-1 rounded-full bg-[#6FF542]/10 text-[#6FF542] font-bold border border-[#6FF542]/20">
+                      <span className="text-[#AACBC4]">Classification Threshold:</span>
+                      <span className="px-2.5 py-1 rounded-full bg-[#00DF81]/10 text-[#00DF81] font-bold border border-[#00DF81]/20">
                         BULLISH (Favorable to EUR)
                       </span>
                     </div>
                   </div>
 
                   {/* Core Value Proposition Quote */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-[#D2F646]/10 to-transparent border-l-2 border-[#D2F646] text-[#A0A5B1] italic leading-relaxed">
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-[#00DF81]/10 to-transparent border-l-2 border-[#00DF81] text-[#AACBC4] italic leading-relaxed">
                     {guideLang === "EN"
                       ? "“A currency is not simply 'strong' or 'weak' in a vacuum. It is strong or weak relative to another currency. ShiftFX reveals this structural divergence.”"
                       : "« Une devise n'est pas simplement « forte » ou « faible » de manière isolée. Elle est forte ou faible relativement à une autre devise. FX Differential révèle cette divergence structurelle. »"}

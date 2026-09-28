@@ -1,13 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-space-grotesk: 'Space Grotesk', sans-serif;
-  --font-jetbrains-mono: 'JetBrains Mono', monospace;
-  --font-inter: 'Inter', sans-serif;
+  /* Brand Typography Stack */
+  --font-jakarta: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Axiforma', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-hero: 'Axiforma', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Primary Palette Tokens */
+  --color-rich-black: #021B1A;
+  --color-dark-green: #032221;
+  --color-bangladesh: #03624C;
+  --color-meadow: #2CC295;
+  --color-caribbean: #00DF81;
+  --color-anti-flash: #F1F7F6;
+
+  /* Secondary Palette Tokens */
+  --color-pine: #06302B;
+  --color-basil: #0B453A;
+  --color-forest: #095544;
+  --color-frog: #17876D;
+  --color-mint: #2FA98C;
+  --color-stone: #707D7D;
+  --color-pistachio: #AACBC4;
 }
 
 @layer base {
@@ -21,73 +40,84 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    background-color: var(--color-rich-black);
+    color: var(--color-anti-flash);
   }
 
   body {
-    background-color: theme('colors.void');
-    background-image: radial-gradient(circle at 50% -10%, rgba(37,99,235,0.12) 0%, transparent 60%);
-    color: theme('colors.text-primary');
-    font-family: var(--font-inter);
+    background-color: var(--color-rich-black);
+    color: var(--color-anti-flash);
+    font-family: var(--font-sans);
     min-height: 100vh;
     overflow-x: hidden;
   }
 
+  /* Custom Emerald Scrollbar */
   ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: var(--color-rich-black);
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 2px;
+    background: var(--color-basil);
+    border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--color-bangladesh);
   }
 }
 
 @layer components {
-  /* Glass card base */
+  /* Ultra-sleek Glass Card with Basil borders and Dark Green fill */
   .glass-card {
-    @apply bg-surface border border-white/[0.07] rounded-card backdrop-blur-xl shadow-card;
+    @apply bg-dark-green/90 border border-basil/70 rounded-card backdrop-blur-2xl shadow-card;
+  }
+
+  .matte-panel {
+    @apply bg-dark-green/95 border border-basil/80 rounded-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6)];
   }
 
   /* Typography shortcuts */
   .kpi-title {
-    @apply font-hero text-kpi-xl text-white tracking-tight;
+    @apply font-sans text-kpi-xl text-anti-flash font-extrabold tracking-tight;
   }
   .data-cell {
-    @apply font-mono text-data font-medium;
+    @apply font-mono text-data font-semibold text-anti-flash;
   }
   .table-header {
-    @apply font-sans text-th uppercase tracking-wider text-text-muted;
+    @apply font-sans text-th uppercase tracking-wider text-pistachio;
   }
 
-  /* Badge variants */
+  /* Badges matching Senior Graphic Designer spec */
   .badge {
-    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-pill text-xs font-semibold;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-pill text-xs font-bold font-mono tracking-wide;
   }
   .badge-bullish {
-    @apply badge bg-mint/10 text-mint border border-mint/40 shadow-glow-mint;
+    @apply badge bg-caribbean/15 text-caribbean border border-caribbean/35 shadow-[0_0_12px_rgba(0,223,129,0.25)];
   }
   .badge-bearish {
-    @apply badge bg-coral/10 text-coral border border-coral/40 shadow-glow-coral;
+    @apply badge bg-coral-bg text-coral border border-coral-border shadow-glow-coral;
   }
   .badge-neutral {
-    @apply badge bg-cyan/10 text-cyan border border-cyan/40;
+    @apply badge bg-pine text-pistachio border border-basil;
   }
 
   /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-panel text-sm font-semibold font-sans
-           bg-mint text-void transition-all duration-200
-           hover:brightness-110 hover:shadow-glow-mint active:scale-95;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-panel text-xs font-bold font-sans
+           bg-caribbean text-rich-black transition-all duration-200
+           hover:brightness-110 hover:shadow-glow-caribbean active:scale-95 cursor-pointer;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-panel text-xs font-bold font-sans
+           bg-pine text-anti-flash border border-basil transition-all duration-200
+           hover:bg-forest hover:border-bangladesh active:scale-95 cursor-pointer;
   }
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-panel text-sm font-medium font-sans
-           text-text-muted border border-white/[0.07] transition-all duration-200
-           hover:text-text-primary hover:border-white/20 hover:bg-white/5 active:scale-95;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-panel text-xs font-medium font-sans
+           text-pistachio border border-basil/50 transition-all duration-200
+           hover:text-anti-flash hover:border-bangladesh hover:bg-pine/50 active:scale-95 cursor-pointer;
   }
 }

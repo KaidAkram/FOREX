@@ -25,13 +25,13 @@ import { COUNTRIES, PAIRS, INDICATORS, getMacroMatrixData, getCombinedDifferenti
 const TABS = ["Macro Data Matrix", "Differential & Rating"];
 const YEARS = MACRO_YEARS;
 
-// Translucent Glass Cards with Specular Highlight
-const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[24px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
+// Translucent Glass Cards with Specular Highlight and Basil borders
+const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)]";
 
 const FlagStack = ({ base, quote }: { base: string; quote: string }) => (
   <div className="flex items-center flex-shrink-0">
-    <img src={`/flags/${base}.svg`} className="w-[18px] h-[18px] rounded-full border border-white/20 z-10 shadow-sm" alt={base} />
-    <img src={`/flags/${quote}.svg`} className="w-[18px] h-[18px] rounded-full border border-white/20 -ml-[6px] z-0 shadow-sm" alt={quote} />
+    <img src={`/flags/${base}.svg`} className="w-[18px] h-[18px] rounded-full border border-[#0B453A] z-10 shadow-sm" alt={base} />
+    <img src={`/flags/${quote}.svg`} className="w-[18px] h-[18px] rounded-full border border-[#0B453A] -ml-[6px] z-0 shadow-sm" alt={quote} />
   </div>
 );
 
@@ -60,7 +60,7 @@ export default function MacroDataPage() {
         if (stored) {
           setAssumptions(JSON.parse(stored));
         } else {
-          // Default demonstration assumptions for 2026-10 so the user immediately sees the visual distinction
+          // Default demonstration assumptions for 2026-10
           const defaultAssumptions: Record<string, string> = {
             "GDP_USA_2026-10": "2.2",
             "GDP_Euro Area_2026-10": "1.1",
@@ -103,12 +103,6 @@ export default function MacroDataPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Define months:
-  // For 2026 (current live year, since we are in 09/2026):
-  //   - 9 Published Official Months (2026-01 to 2026-09)
-  //   - 3 Upcoming Forward Assumption Months (2026-10, 2026-11, 2026-12)
-  // For past historical years (e.g. 2025, 2024, etc.):
-  //   - All 12 months (01 to 12) have already passed and are official published releases!
   const isCurrentLiveYear = selectedYear === SYSTEM_CURRENT_YEAR;
 
   const publishedMonths = Array.from({ 
@@ -129,9 +123,6 @@ export default function MacroDataPage() {
     const baseRows = getMacroMatrixData(indicator, year);
 
     return baseRows.map(row => {
-      // 1. Published data slice:
-      // In 2026: 9 months (2026-01 to 2026-09)
-      // In historical years (< 2026): all 12 months (e.g. 2025-01 to 2025-12)
       const publishedCells = row.data.map((cell, idx) => {
         const monthKey = `${year}-${(idx + 1).toString().padStart(2, "0")}`;
         const overrideKey = `${indicator}_${row.country}_${monthKey}`;
@@ -148,8 +139,6 @@ export default function MacroDataPage() {
         };
       });
 
-      // 2. Upcoming Assumption Columns: ONLY exist for current year 2026 (months 10, 11, 12)
-      // For past years (like 2025), those months passed already so no assumption columns exist!
       const upcomingCells = isCurrentLiveYear ? upcomingMonths.map(m => {
         const assumptionKey = `${indicator}_${row.country}_${m}`;
         const val = assumptions[assumptionKey];
@@ -174,7 +163,6 @@ export default function MacroDataPage() {
     const baseReleases = getCombinedDifferentialData(pair, indicator, year);
     const pairObj = PAIRS.find(p => p.name === pair) || PAIRS[0];
 
-    // Compute upcoming assumption rows for this pair
     const upcomingReleases = upcomingMonths.map(m => {
       const baseKey = `${indicator}_${pairObj.baseCountry}_${m}`;
       const quoteKey = `${indicator}_${pairObj.quoteCountry}_${m}`;
@@ -285,11 +273,11 @@ export default function MacroDataPage() {
   return (
     <div className="flex flex-col w-full h-full min-h-screen bg-transparent relative justify-between">
       
-      {/* 1. Header: Elegant comfortable spacing matching Dashboard & Analytics */}
+      {/* 1. Header */}
       <header className="w-full flex items-center justify-between px-12 pt-9 pb-5 opacity-0 animate-fadeIn flex-shrink-0">
         <div className="flex flex-col gap-1">
-          <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine Data Pipeline</span>
-          <h1 className="font-sans font-bold text-3xl text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
+          <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Data Pipeline</span>
+          <h1 className="font-sans font-bold text-3xl text-[#F1F7F6] tracking-tight">
             Macro Data Center
           </h1>
         </div>
@@ -300,15 +288,15 @@ export default function MacroDataPage() {
         </div>
       </header>
 
-      {/* 2. Main Content Container: Clean spacious layout */}
+      {/* 2. Main Content Container */}
       <main className="flex-1 flex flex-col px-12 gap-5 pb-8 max-w-[1600px] w-full mx-auto justify-between">
         
-        {/* Controls Toolbar: Elevated z-index so dropdowns float ON TOP of tables */}
+        {/* Controls Toolbar */}
         <div className="relative z-50 flex items-center justify-between gap-3 opacity-0 animate-slideUp">
           
           <div className="flex items-center gap-3 flex-wrap">
             {/* View Mode Switcher */}
-            <div className="flex items-center bg-[#1D202B]/90 p-1 rounded-2xl border border-white/5 shadow-lg">
+            <div className="flex items-center bg-[#06302B]/90 p-1 rounded-2xl border border-[#0B453A] shadow-lg">
               {TABS.map((tab) => (
                 <button
                   key={tab}
@@ -319,14 +307,14 @@ export default function MacroDataPage() {
                   }}
                   className={clsx(
                     "relative px-4 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 z-10 cursor-pointer",
-                    activeTab === tab ? "text-[#121418]" : "text-[#A0A5B1] hover:text-white"
+                    activeTab === tab ? "text-[#021B1A]" : "text-[#AACBC4] hover:text-[#F1F7F6]"
                   )}
                 >
                   {tab}
                   {activeTab === tab && (
                     <motion.div
                       layoutId="activeMacroDataTab"
-                      className="absolute inset-0 bg-[#D2F646] rounded-xl z-[-1] shadow-[0_0_14px_rgba(210,246,70,0.35)]"
+                      className="absolute inset-0 bg-[#00DF81] rounded-xl z-[-1] shadow-[0_0_14px_rgba(0,223,129,0.35)]"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -336,14 +324,16 @@ export default function MacroDataPage() {
 
             {/* Indicator Pills for Matrix View */}
             {activeTab === "Macro Data Matrix" ? (
-              <div className="flex items-center bg-[#1E2028]/90 backdrop-blur-xl border border-white/5 p-1 rounded-2xl shadow-lg">
+              <div className="flex items-center bg-[#06302B]/90 backdrop-blur-xl border border-[#0B453A] p-1 rounded-2xl shadow-lg">
                 {INDICATORS.map(ind => (
                   <button 
                     key={ind} 
                     onClick={() => setActiveInd(ind)} 
                     className={clsx(
                       "px-3 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 cursor-pointer", 
-                      activeInd === ind ? "bg-white/10 text-white shadow-sm" : "text-[#A0A5B1] hover:text-white hover:bg-white/5"
+                      activeInd === ind 
+                        ? "bg-[#00DF81]/20 text-[#00DF81] border border-[#00DF81]/40 shadow-sm" 
+                        : "text-[#AACBC4] hover:text-[#F1F7F6] hover:bg-[#095544]/50"
                     )}
                   >
                     {ind}
@@ -363,11 +353,11 @@ export default function MacroDataPage() {
                       setIsOpenIndDropdown(false);
                       setIsOpenYearDropdown(false);
                     }}
-                    className="flex items-center gap-2.5 bg-[#1E2028]/90 hover:bg-[#242733] border border-white/10 hover:border-white/20 rounded-2xl px-3.5 py-1.5 shadow-lg transition-all cursor-pointer min-w-[160px] text-left outline-none"
+                    className="flex items-center gap-2.5 bg-[#06302B]/90 hover:bg-[#095544] border border-[#0B453A] hover:border-[#03624C] rounded-2xl px-3.5 py-1.5 shadow-lg transition-all cursor-pointer min-w-[160px] text-left outline-none"
                   >
                     <FlagStack base={activePairObj.base} quote={activePairObj.quote} />
-                    <span className="font-sans font-bold text-xs text-white">{activePair}</span>
-                    <ChevronDown size={14} className={clsx("text-[#A0A5B1] transition-transform ml-auto", isOpenPairDropdown && "rotate-180")} />
+                    <span className="font-sans font-bold text-xs text-[#F1F7F6]">{activePair}</span>
+                    <ChevronDown size={14} className={clsx("text-[#AACBC4] transition-transform ml-auto", isOpenPairDropdown && "rotate-180")} />
                   </button>
 
                   <AnimatePresence>
@@ -377,9 +367,9 @@ export default function MacroDataPage() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.97 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-[calc(100%+8px)] left-0 w-[210px] bg-[#161822]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] p-1.5 flex flex-col gap-1"
+                        className="absolute top-[calc(100%+8px)] left-0 w-[210px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-2xl shadow-[0_20px_50px_rgba(2,27,26,0.9)] z-[100] p-1.5 flex flex-col gap-1"
                       >
-                        <div className="px-2.5 py-1 text-[10px] font-mono text-[#A0A5B1] uppercase tracking-wider">
+                        <div className="px-2.5 py-1 text-[10px] font-mono text-[#AACBC4] uppercase tracking-wider">
                           Select Currency Pair
                         </div>
                         {PAIRS.map(p => (
@@ -392,7 +382,7 @@ export default function MacroDataPage() {
                             }}
                             className={clsx(
                               "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all text-left cursor-pointer",
-                              activePair === p.name ? "bg-[#D2F646]/15 text-white" : "hover:bg-white/5 text-[#A0A5B1] hover:text-white"
+                              activePair === p.name ? "bg-[#00DF81]/15 text-[#00DF81]" : "hover:bg-[#06302B] text-[#AACBC4] hover:text-[#F1F7F6]"
                             )}
                           >
                             <FlagStack base={p.base} quote={p.quote} />
@@ -413,10 +403,10 @@ export default function MacroDataPage() {
                       setIsOpenPairDropdown(false);
                       setIsOpenYearDropdown(false);
                     }}
-                    className="flex items-center gap-2 bg-[#1E2028]/90 hover:bg-[#242733] border border-white/10 hover:border-white/20 rounded-2xl px-3.5 py-1.5 shadow-lg transition-all cursor-pointer min-w-[140px] text-left outline-none"
+                    className="flex items-center gap-2 bg-[#06302B]/90 hover:bg-[#095544] border border-[#0B453A] hover:border-[#03624C] rounded-2xl px-3.5 py-1.5 shadow-lg transition-all cursor-pointer min-w-[140px] text-left outline-none"
                   >
-                    <span className="font-sans font-bold text-xs text-white">{activeInd}</span>
-                    <ChevronDown size={14} className={clsx("text-[#A0A5B1] transition-transform ml-auto", isOpenIndDropdown && "rotate-180")} />
+                    <span className="font-sans font-bold text-xs text-[#F1F7F6]">{activeInd}</span>
+                    <ChevronDown size={14} className={clsx("text-[#AACBC4] transition-transform ml-auto", isOpenIndDropdown && "rotate-180")} />
                   </button>
 
                   <AnimatePresence>
@@ -426,9 +416,9 @@ export default function MacroDataPage() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.97 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-[calc(100%+8px)] left-0 w-[170px] bg-[#161822]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] p-1.5 flex flex-col gap-1"
+                        className="absolute top-[calc(100%+8px)] left-0 w-[170px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-2xl shadow-[0_20px_50px_rgba(2,27,26,0.9)] z-[100] p-1.5 flex flex-col gap-1"
                       >
-                        <div className="px-2 py-1 text-[10px] font-mono text-[#A0A5B1] uppercase tracking-wider">
+                        <div className="px-2 py-1 text-[10px] font-mono text-[#AACBC4] uppercase tracking-wider">
                           Indicator
                         </div>
                         {INDICATORS.map(ind => (
@@ -441,7 +431,7 @@ export default function MacroDataPage() {
                             }}
                             className={clsx(
                               "w-full px-3 py-2 text-left font-sans font-bold text-xs transition-colors rounded-xl cursor-pointer",
-                              activeInd === ind ? "bg-[#D2F646]/15 text-[#D2F646]" : "text-[#A0A5B1] hover:bg-white/5 hover:text-white"
+                              activeInd === ind ? "bg-[#00DF81]/15 text-[#00DF81]" : "text-[#AACBC4] hover:bg-[#06302B] hover:text-[#F1F7F6]"
                             )}
                           >
                             {ind}
@@ -467,11 +457,11 @@ export default function MacroDataPage() {
                   setIsOpenPairDropdown(false);
                   setIsOpenIndDropdown(false);
                 }}
-                className="flex items-center gap-2 bg-[#1E2028]/90 hover:bg-[#242733] border border-white/10 hover:border-white/20 rounded-2xl px-3.5 py-1.5 shadow-lg transition-all cursor-pointer text-left outline-none"
+                className="flex items-center gap-2 bg-[#06302B]/90 hover:bg-[#095544] border border-[#0B453A] hover:border-[#03624C] rounded-2xl px-3.5 py-1.5 shadow-lg transition-all cursor-pointer text-left outline-none"
               >
-                <Calendar size={13} className="text-[#A0A5B1]" />
-                <span className="font-sans font-bold text-xs text-white">{selectedYear}</span>
-                <ChevronDown size={14} className={clsx("text-[#A0A5B1] transition-transform", isOpenYearDropdown && "rotate-180")} />
+                <Calendar size={13} className="text-[#AACBC4]" />
+                <span className="font-sans font-bold text-xs text-[#F1F7F6]">{selectedYear}</span>
+                <ChevronDown size={14} className={clsx("text-[#AACBC4] transition-transform", isOpenYearDropdown && "rotate-180")} />
               </button>
 
               <AnimatePresence>
@@ -481,9 +471,9 @@ export default function MacroDataPage() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 6, scale: 0.97 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#161822]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] p-1.5 flex flex-col gap-1"
+                    className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-2xl shadow-[0_20px_50px_rgba(2,27,26,0.9)] z-[100] p-1.5 flex flex-col gap-1"
                   >
-                    <div className="px-2 py-1 text-[10px] font-mono text-[#A0A5B1] uppercase tracking-wider">
+                    <div className="px-2 py-1 text-[10px] font-mono text-[#AACBC4] uppercase tracking-wider">
                       Year
                     </div>
                     {YEARS.map(year => (
@@ -496,7 +486,7 @@ export default function MacroDataPage() {
                         }}
                         className={clsx(
                           "w-full px-3 py-1.5 text-left font-sans font-bold text-xs transition-colors rounded-xl cursor-pointer",
-                          selectedYear === year ? "bg-[#D2F646]/15 text-[#D2F646]" : "text-[#A0A5B1] hover:bg-white/5 hover:text-white"
+                          selectedYear === year ? "bg-[#00DF81]/15 text-[#00DF81]" : "text-[#AACBC4] hover:bg-[#06302B] hover:text-[#F1F7F6]"
                         )}
                       >
                         {year}
@@ -508,64 +498,66 @@ export default function MacroDataPage() {
             </div>
 
             {/* Status Badge */}
-            <div className="flex items-center gap-2 bg-[#1E2028]/90 backdrop-blur-xl border border-white/5 rounded-2xl px-3.5 py-1.5 shadow-lg">
-               <CheckCircle2 size={15} className="text-[#6FF542]" />
-               <span className="font-sans font-medium text-xs text-[#A0A5B1]">Status: <span className="text-white font-bold">Data Complete</span></span>
+            <div className="flex items-center gap-2 bg-[#06302B]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3.5 py-1.5 shadow-lg">
+               <CheckCircle2 size={15} className="text-[#00DF81]" />
+               <span className="font-sans font-medium text-xs text-[#AACBC4]">Status: <span className="text-[#F1F7F6] font-bold">Data Complete</span></span>
             </div>
           </div>
         </div>
 
-        {/* 3. Table Card: Centered vertically in the middle of the screen */}
+        {/* 3. Table Card */}
         <div className="flex-1 flex flex-col justify-center my-auto w-full py-2">
-          <div className={clsx("flex flex-col relative z-0 overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>            {/* ============================================================== */}
+          <div className={clsx("flex flex-col relative z-0 overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
+            
+            {/* ============================================================== */}
             {/* TAB 1: MACRO DATA MATRIX (All Sovereign Economies)            */}
             {/* ============================================================== */}
             {activeTab === "Macro Data Matrix" && (
               <div className="flex flex-col w-full">
                 
                 {/* Header Info Banner */}
-                <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.01] flex-shrink-0">
+                <div className="flex items-center justify-between px-6 py-3 border-b border-[#0B453A] bg-[#021B1A]/40 flex-shrink-0">
                   <div className="flex items-center gap-2.5">
-                    <Database size={17} className="text-[#D2F646]" />
-                    <span className="font-sans font-bold text-sm text-white">
+                    <Database size={17} className="text-[#00DF81]" />
+                    <span className="font-sans font-bold text-sm text-[#F1F7F6]">
                       G10 Currency Sovereign Matrix: {activeInd} {activeInd === "FX Reserves" ? "(USD Millions)" : activeInd === "Interest Rate" ? "(% Policy Rate)" : activeInd === "CPI" ? "(% YoY Inflation)" : "(% Growth / Spread)"} ({selectedYear})
                     </span>
                   </div>
                   
-                  {/* Visual Legend with Distinct Indicator for Forward Assumptions */}
-                  <div className="flex items-center gap-4 text-xs font-mono text-[#A0A5B1]">
+                  {/* Visual Legend */}
+                  <div className="flex items-center gap-4 text-xs font-mono text-[#AACBC4]">
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#6FF542]" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#00DF81]" />
                       Published (Official)
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#A0A5B1]" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#AACBC4]" />
                       Manual Override
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF4444]" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF5555]" />
                       Missing Print
                     </span>
                     {isCurrentLiveYear ? (
-                      <span className="flex items-center gap-1.5 text-[#FFD066] font-bold bg-[#F5A623]/15 border border-[#F5A623]/30 px-3 py-1 rounded-full shadow-[0_0_12px_rgba(245,166,35,0.2)]">
-                        <Sparkles size={13} className="text-[#FFD066] animate-pulse" />
+                      <span className="flex items-center gap-1.5 text-[#2CC295] font-bold bg-[#2CC295]/15 border border-[#2CC295]/30 px-3 py-1 rounded-full shadow-[0_0_12px_rgba(44,194,149,0.2)]">
+                        <Sparkles size={13} className="text-[#2CC295] animate-pulse" />
                         User Assumption (Forward Dates: 2026-10 to 2026-12)
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1.5 text-[#6FF542] font-bold bg-[#6FF542]/10 border border-[#6FF542]/20 px-3 py-1 rounded-full">
-                        <CheckCircle2 size={13} className="text-[#6FF542]" />
+                      <span className="flex items-center gap-1.5 text-[#00DF81] font-bold bg-[#00DF81]/10 border border-[#00DF81]/20 px-3 py-1 rounded-full">
+                        <CheckCircle2 size={13} className="text-[#00DF81]" />
                         Historical Cycle Settled (12/12 Months Published)
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Matrix Table with All Sovereign Economies (Seamless Scroll) */}
+                {/* Matrix Table with All Sovereign Economies */}
                 <div className="overflow-x-auto overflow-y-auto max-h-[660px] w-full p-4">
                   <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-[#161822] z-20 shadow-md">
-                      <tr className="border-b border-white/10 bg-[#161822]">
-                        <th className="px-4 py-3 font-sans font-semibold text-sm text-[#A0A5B1] w-[200px] border-r border-white/5 bg-[#161822]">
+                    <thead className="sticky top-0 bg-[#032221] z-20 shadow-md">
+                      <tr className="border-b border-[#0B453A] bg-[#032221]">
+                        <th className="px-4 py-3 font-sans font-semibold text-sm text-[#AACBC4] w-[200px] border-r border-[#0B453A] bg-[#032221]">
                           Country / Sovereign
                         </th>
                         {displayMonths.map((m, j) => {
@@ -576,17 +568,17 @@ export default function MacroDataPage() {
                               className={clsx(
                                 "px-3 py-2.5 text-center min-w-[95px] transition-colors",
                                 isUpcoming ? 
-                                  "bg-[#F5A623]/[0.08] border-b-2 border-[#F5A623]/50" : 
-                                  "font-sans font-semibold text-sm text-[#A0A5B1] bg-[#161822]",
-                                isUpcoming && j === 9 && "border-l-2 border-dashed border-[#F5A623]/50"
+                                  "bg-[#06302B]/80 border-b-2 border-[#2CC295]/60" : 
+                                  "font-sans font-semibold text-sm text-[#AACBC4] bg-[#032221]",
+                                isUpcoming && j === 9 && "border-l-2 border-dashed border-[#2CC295]/50"
                               )}
                             >
                               {isUpcoming ? (
                                 <div className="flex flex-col items-center justify-center gap-0.5">
-                                  <span className="inline-flex items-center gap-1 text-[9px] font-mono font-black text-[#F5A623] bg-[#F5A623]/25 border border-[#F5A623]/45 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                                    <Sparkles size={9} className="text-[#FFD066]" /> Assumption
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-mono font-black text-[#2CC295] bg-[#2CC295]/20 border border-[#2CC295]/40 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                                    <Sparkles size={9} className="text-[#00DF81]" /> Assumption
                                   </span>
-                                  <span className="font-mono font-bold text-sm text-[#FFD066] tracking-tight">{m}</span>
+                                  <span className="font-mono font-bold text-sm text-[#2CC295] tracking-tight">{m}</span>
                                 </div>
                               ) : (
                                 <span>{m}</span>
@@ -596,38 +588,37 @@ export default function MacroDataPage() {
                         })}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/[0.03]">
+                    <tbody className="divide-y divide-[#0B453A]/40">
                       {matrixLoading ? (
                         Array.from({ length: 10 }).map((_, i) => (
                           <tr key={i}>
-                            <td className="px-4 py-3 border-r border-white/5"><div className="w-[130px] h-[24px] bg-white/5 rounded-md animate-pulse" /></td>
+                            <td className="px-4 py-3 border-r border-[#0B453A]"><div className="w-[130px] h-[24px] bg-[#06302B] rounded-md animate-pulse" /></td>
                             {displayMonths.map((m, j) => (
-                              <td key={j} className={clsx("p-2", isCurrentLiveYear && j >= 9 && "bg-[#F5A623]/[0.02]", isCurrentLiveYear && j === 9 && "border-l-2 border-dashed border-[#F5A623]/30")}>
-                                <div className="w-[80px] h-[36px] bg-white/5 rounded-xl animate-pulse mx-auto" />
+                              <td key={j} className={clsx("p-2", isCurrentLiveYear && j >= 9 && "bg-[#06302B]/30", isCurrentLiveYear && j === 9 && "border-l-2 border-dashed border-[#2CC295]/30")}>
+                                <div className="w-[80px] h-[36px] bg-[#06302B] rounded-xl animate-pulse mx-auto" />
                               </td>
                             ))}
                           </tr>
                         ))
                       ) : (
                         matrixData?.map((row: any, i: number) => (
-                          <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="px-4 py-3 border-r border-white/5">
+                          <tr key={i} className="hover:bg-[#06302B]/30 transition-colors">
+                            <td className="px-4 py-3 border-r border-[#0B453A]">
                               <div className="flex items-center gap-3 p-0.5 whitespace-nowrap">
-                                <img src={`/flags/${row.base}.svg`} className="w-6 h-6 rounded-full border border-white/10 shadow-sm flex-shrink-0" alt={row.base} />
-                                <span className="font-sans font-bold text-sm text-white">{row.country}</span>
+                                <img src={`/flags/${row.base}.svg`} className="w-6 h-6 rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={row.base} />
+                                <span className="font-sans font-bold text-sm text-[#F1F7F6]">{row.country}</span>
                               </div>
                             </td>
                             {row.data.map((cell: any, j: number) => {
                               const isUpcoming = cell.isAssumption === true;
 
                               if (isUpcoming) {
-                                // 3 Upcoming User Assumption Columns
                                 return (
                                   <td 
                                     key={j} 
                                     className={clsx(
-                                      "px-2 py-2 text-center relative group/cell bg-[#F5A623]/[0.03] hover:bg-[#F5A623]/[0.08] transition-colors",
-                                      j === 9 && "border-l-2 border-dashed border-[#F5A623]/50"
+                                      "px-2 py-2 text-center relative group/cell bg-[#06302B]/20 hover:bg-[#06302B]/50 transition-colors",
+                                      j === 9 && "border-l-2 border-dashed border-[#2CC295]/40"
                                     )}
                                   >
                                     <button
@@ -639,23 +630,23 @@ export default function MacroDataPage() {
                                       className={clsx(
                                         "inline-flex flex-col items-center justify-center w-[88px] py-1.5 px-1.5 rounded-xl transition-all duration-150 cursor-pointer hover:scale-[1.04]",
                                         cell.value ? 
-                                          "bg-[#F5A623]/15 hover:bg-[#F5A623]/25 border border-[#F5A623]/50 shadow-[0_0_12px_rgba(245,166,35,0.18)]" : 
-                                          "border border-dashed border-[#F5A623]/35 hover:border-[#F5A623]/70 bg-transparent hover:bg-[#F5A623]/10"
+                                          "bg-[#06302B] hover:bg-[#095544] border border-[#2CC295]/50 shadow-[0_0_12px_rgba(44,194,149,0.2)]" : 
+                                          "border border-dashed border-[#2CC295]/35 hover:border-[#2CC295]/70 bg-transparent hover:bg-[#06302B]/40"
                                       )}
                                     >
                                       <span className={clsx(
                                         "font-mono text-sm font-black transition-transform",
-                                        cell.value ? "text-[#FFD066] drop-shadow-[0_0_6px_rgba(245,166,35,0.3)]" : "text-[#F5A623]/70 italic font-medium"
+                                        cell.value ? "text-[#2CC295]" : "text-[#2CC295]/70 italic font-medium"
                                       )}>
                                         {cell.value ? `${cell.value}${activeInd === "FX Reserves" ? "" : "%"}` : "+ Set"}
                                       </span>
                                       <div className="mt-0.5">
                                         {cell.value ? (
-                                          <span className="inline-flex items-center gap-0.5 bg-[#F5A623]/25 text-[#FFD066] border border-[#F5A623]/50 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase shadow-sm">
+                                          <span className="inline-flex items-center gap-0.5 bg-[#2CC295]/20 text-[#2CC295] border border-[#2CC295]/40 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase shadow-sm">
                                             <Sparkles size={8} /> Est
                                           </span>
                                         ) : (
-                                          <span className="bg-[#F5A623]/10 text-[#F5A623]/80 border border-[#F5A623]/25 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase group-hover:bg-[#F5A623]/20 group-hover:text-[#FFD066]">
+                                          <span className="bg-[#2CC295]/10 text-[#2CC295]/80 border border-[#2CC295]/25 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase group-hover:bg-[#2CC295]/20 group-hover:text-[#F1F7F6]">
                                             Assume
                                           </span>
                                         )}
@@ -673,18 +664,18 @@ export default function MacroDataPage() {
                                       setSelectedCell({ c: row.country, m: displayMonths[j], val: cell.value || "N/A" });
                                       setOverrideInputVal(cell.value || "");
                                     }}
-                                    className="inline-flex flex-col items-center justify-center w-[88px] py-1.5 px-1.5 rounded-xl transition-all duration-150 hover:bg-[#242731] hover:scale-[1.03] cursor-pointer group-hover/cell:border-white/10 border border-transparent"
+                                    className="inline-flex flex-col items-center justify-center w-[88px] py-1.5 px-1.5 rounded-xl transition-all duration-150 hover:bg-[#06302B] hover:scale-[1.03] cursor-pointer group-hover/cell:border-[#0B453A] border border-transparent"
                                   >
                                     <span className={clsx(
                                       "font-mono text-sm font-bold transition-transform",
-                                      cell.status === "missing" ? "text-[#FF4444]" : "text-white"
+                                      cell.status === "missing" ? "text-[#FF5555]" : "text-[#F1F7F6]"
                                     )}>
                                       {cell.value || "—"}
                                     </span>
                                     <div className="mt-0.5">
-                                      {cell.status === "published" && <span className="bg-[#6FF542]/10 text-[#6FF542] border border-[#6FF542]/20 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">Pub</span>}
-                                      {cell.status === "manual" && <span className="bg-[#A0A5B1]/10 text-[#A0A5B1] border border-white/10 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">Man</span>}
-                                      {cell.status === "missing" && <span className="bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/20 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">Mis</span>}
+                                      {cell.status === "published" && <span className="bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">Pub</span>}
+                                      {cell.status === "manual" && <span className="bg-[#AACBC4]/15 text-[#AACBC4] border border-[#0B453A] px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">Man</span>}
+                                      {cell.status === "missing" && <span className="bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">Mis</span>}
                                     </div>
                                   </button>
                                 </td>
@@ -698,20 +689,20 @@ export default function MacroDataPage() {
                 </div>
 
                 {/* Bottom Summary Bar */}
-                <div className="flex items-center justify-between px-6 py-3.5 border-t border-white/5 bg-[#121418]/60 text-sm flex-shrink-0">
+                <div className="flex items-center justify-between px-6 py-3.5 border-t border-[#0B453A] bg-[#021B1A]/80 text-sm flex-shrink-0">
                   <div className="flex items-center gap-3">
-                    <span className="font-sans text-[#A0A5B1]">
-                      Showing all <strong className="text-white font-mono">{matrixData?.length || 10}</strong> sovereign economies • Seamless unified view
+                    <span className="font-sans text-[#AACBC4]">
+                      Showing all <strong className="text-[#F1F7F6] font-mono">{matrixData?.length || 10}</strong> sovereign economies • Unified macro view
                     </span>
-                    <span className="hidden sm:inline-block h-3.5 w-px bg-white/10" />
-                    <span className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-[#6FF542] font-bold">
-                      <span className="w-2 h-2 rounded-full bg-[#6FF542] animate-pulse" />
+                    <span className="hidden sm:inline-block h-3.5 w-px bg-[#0B453A]" />
+                    <span className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-[#00DF81] font-bold">
+                      <span className="w-2 h-2 rounded-full bg-[#00DF81] animate-pulse" />
                       {isCurrentLiveYear ? "9 Published Prints • 3 Forward Assumption Slots Active (Q4 2026)" : "12/12 Historical Releases Published • Cycle Settled"}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 font-mono text-xs text-[#A0A5B1]">
-                    <span>Sovereign Universe: <strong className="text-white font-bold">G10 Core Economies</strong></span>
+                  <div className="flex items-center gap-2 font-mono text-xs text-[#AACBC4]">
+                    <span>Sovereign Universe: <strong className="text-[#F1F7F6] font-bold">G10 Core Economies</strong></span>
                   </div>
                 </div>
               </div>
@@ -724,40 +715,40 @@ export default function MacroDataPage() {
               <div className="flex flex-col w-full">
                 
                 {/* Header Info Banner */}
-                <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.01] flex-shrink-0">
+                <div className="flex items-center justify-between px-6 py-3 border-b border-[#0B453A] bg-[#021B1A]/40 flex-shrink-0">
                   <div className="flex items-center gap-3">
                     <FlagStack base={activePairObj.base} quote={activePairObj.quote} />
-                    <span className="font-sans font-bold text-sm text-white">
+                    <span className="font-sans font-bold text-sm text-[#F1F7F6]">
                       Differential Transformation: {activePair} • {activeInd} ({selectedYear})
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 font-mono text-sm text-[#A0A5B1]">
+                  <div className="flex items-center gap-2 font-mono text-sm text-[#AACBC4]">
                     <span>Formula: </span>
-                    <span className="text-[#D2F646] font-bold">
+                    <span className="text-[#00DF81] font-bold">
                       {activeInd === "FX Reserves" ? `Diff = ${activePairObj.baseName} (USD M) − ${activePairObj.quoteName} (USD M)` : `Diff = ${activePairObj.baseName} (%) − ${activePairObj.quoteName} (%)`}
                     </span>
                   </div>
                 </div>
 
-                {/* Table with Monthly Releases & Forward Assumptions (Seamless Scroll) */}
+                {/* Table with Monthly Releases & Forward Assumptions */}
                 <div className="overflow-x-auto overflow-y-auto max-h-[660px] w-full p-4">
                   <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-[#161822] z-20 shadow-md">
-                      <tr className="border-b border-white/10 text-xs font-mono font-bold uppercase tracking-wider text-[#A0A5B1] bg-[#161822]">
-                        <th className="py-3.5 px-4 w-[160px] bg-[#161822]">Release Month</th>
-                        <th className="py-3.5 px-4 text-center w-[170px] bg-[#161822]">Base ({activePairObj.baseName})</th>
-                        <th className="py-3.5 px-4 text-center w-[170px] bg-[#161822]">Quote ({activePairObj.quoteName})</th>
-                        <th className="py-3.5 px-4 text-center w-[190px] bg-[#161822]">Calculated Differential</th>
-                        <th className="py-3.5 px-4 text-center w-[190px] bg-[#161822]">Rule Threshold</th>
-                        <th className="py-3.5 px-4 text-center w-[230px] bg-[#161822]">Engine Sentiment Regime</th>
-                        <th className="py-3.5 px-4 text-right w-[140px] bg-[#161822]">Rating Score</th>
+                    <thead className="sticky top-0 bg-[#032221] z-20 shadow-md">
+                      <tr className="border-b border-[#0B453A] text-xs font-mono font-bold uppercase tracking-wider text-[#AACBC4] bg-[#032221]">
+                        <th className="py-3.5 px-4 w-[160px] bg-[#032221]">Release Month</th>
+                        <th className="py-3.5 px-4 text-center w-[170px] bg-[#032221]">Base ({activePairObj.baseName})</th>
+                        <th className="py-3.5 px-4 text-center w-[170px] bg-[#032221]">Quote ({activePairObj.quoteName})</th>
+                        <th className="py-3.5 px-4 text-center w-[190px] bg-[#032221]">Calculated Differential</th>
+                        <th className="py-3.5 px-4 text-center w-[190px] bg-[#032221]">Rule Threshold</th>
+                        <th className="py-3.5 px-4 text-center w-[230px] bg-[#032221]">Engine Sentiment Regime</th>
+                        <th className="py-3.5 px-4 text-right w-[140px] bg-[#032221]">Rating Score</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/[0.03]">
+                    <tbody className="divide-y divide-[#0B453A]/40">
                       {combinedLoading ? (
                         Array.from({ length: 12 }).map((_, i) => (
                           <tr key={i}>
-                            <td colSpan={7} className="p-3"><div className="w-full h-[32px] bg-white/5 rounded-md animate-pulse" /></td>
+                            <td colSpan={7} className="p-3"><div className="w-full h-[32px] bg-[#06302B] rounded-md animate-pulse" /></td>
                           </tr>
                         ))
                       ) : (
@@ -771,7 +762,7 @@ export default function MacroDataPage() {
                               key={i} 
                               className={clsx(
                                 "transition-colors",
-                                isAssumptionRow ? "bg-[#F5A623]/[0.03] hover:bg-[#F5A623]/[0.06]" : "hover:bg-white/[0.02]"
+                                isAssumptionRow ? "bg-[#06302B]/20 hover:bg-[#06302B]/40" : "hover:bg-[#06302B]/30"
                               )}
                             >
                               {/* Month */}
@@ -779,20 +770,20 @@ export default function MacroDataPage() {
                                 <span className={clsx(
                                   "font-mono font-bold text-sm px-3 py-1 rounded-lg inline-flex items-center gap-1.5",
                                   isAssumptionRow ? 
-                                    "text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/35" : 
-                                    "text-white bg-white/5 border border-white/10"
+                                    "text-[#2CC295] bg-[#2CC295]/15 border border-[#2CC295]/35" : 
+                                    "text-[#F1F7F6] bg-[#06302B] border border-[#0B453A]"
                                 )}>
-                                  {isAssumptionRow && <Sparkles size={11} className="text-[#FFD066]" />}
+                                  {isAssumptionRow && <Sparkles size={11} className="text-[#00DF81]" />}
                                   {row.month}
-                                  {isAssumptionRow && <span className="text-[9px] uppercase font-bold text-[#F5A623]">Est</span>}
+                                  {isAssumptionRow && <span className="text-[9px] uppercase font-bold text-[#2CC295]">Est</span>}
                                 </span>
                               </td>
 
                               {/* Base */}
                               <td className="py-3.5 px-4 text-center">
-                                <div className="inline-flex items-center gap-2 font-mono text-sm text-[#A0A5B1]">
-                                  <img src={`/flags/${activePairObj.base}.svg`} className="w-5 h-5 rounded-full border border-white/10" alt={activePairObj.base} />
-                                  <span className={clsx("font-bold", isAssumptionRow ? "text-[#FFD066]" : "text-white")}>
+                                <div className="inline-flex items-center gap-2 font-mono text-sm text-[#AACBC4]">
+                                  <img src={`/flags/${activePairObj.base}.svg`} className="w-5 h-5 rounded-full border border-[#0B453A]" alt={activePairObj.base} />
+                                  <span className={clsx("font-bold", isAssumptionRow ? "text-[#2CC295]" : "text-[#F1F7F6]")}>
                                     {row.baseVal}{row.baseVal !== "—" && activeInd !== "FX Reserves" ? "%" : row.baseVal !== "—" ? "M" : ""}
                                   </span>
                                 </div>
@@ -800,9 +791,9 @@ export default function MacroDataPage() {
 
                               {/* Quote */}
                               <td className="py-3.5 px-4 text-center">
-                                <div className="inline-flex items-center gap-2 font-mono text-sm text-[#A0A5B1]">
-                                  <img src={`/flags/${activePairObj.quote}.svg`} className="w-5 h-5 rounded-full border border-white/10" alt={activePairObj.quote} />
-                                  <span className={clsx("font-bold", isAssumptionRow ? "text-[#FFD066]" : "text-white")}>
+                                <div className="inline-flex items-center gap-2 font-mono text-sm text-[#AACBC4]">
+                                  <img src={`/flags/${activePairObj.quote}.svg`} className="w-5 h-5 rounded-full border border-[#0B453A]" alt={activePairObj.quote} />
+                                  <span className={clsx("font-bold", isAssumptionRow ? "text-[#2CC295]" : "text-[#F1F7F6]")}>
                                     {row.quoteVal}{row.quoteVal !== "—" && activeInd !== "FX Reserves" ? "%" : row.quoteVal !== "—" ? "M" : ""}
                                   </span>
                                 </div>
@@ -812,10 +803,10 @@ export default function MacroDataPage() {
                               <td className="py-3.5 px-4 text-center">
                                 <span className={clsx(
                                   "inline-block font-mono font-extrabold text-sm px-3.5 py-1 rounded-xl",
-                                  isAssumptionRow ? "text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/30" :
-                                  row.diffNum > 0 ? "text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20" :
-                                  row.diffNum < 0 ? "text-[#FF5B5B] bg-[#FF4444]/10 border border-[#FF4444]/20" :
-                                  "text-white bg-white/5 border border-white/10"
+                                  isAssumptionRow ? "text-[#2CC295] bg-[#2CC295]/15 border border-[#2CC295]/30" :
+                                  row.diffNum > 0 ? "text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25" :
+                                  row.diffNum < 0 ? "text-[#FF5555] bg-[#FF5555]/10 border border-[#FF5555]/25" :
+                                  "text-[#F1F7F6] bg-[#06302B] border border-[#0B453A]"
                                 )}>
                                   {row.diff}{row.diff !== "—" && activeInd !== "FX Reserves" ? "%" : row.diff !== "—" ? "M" : ""}
                                 </span>
@@ -823,7 +814,7 @@ export default function MacroDataPage() {
 
                               {/* Rule Applied */}
                               <td className="py-3.5 px-4 text-center">
-                                <span className="font-mono text-xs text-[#A0A5B1] bg-white/[0.03] border border-white/5 px-3 py-1 rounded-lg">
+                                <span className="font-mono text-xs text-[#AACBC4] bg-[#06302B]/60 border border-[#0B453A] px-3 py-1 rounded-lg">
                                   {row.rule}
                                 </span>
                               </td>
@@ -832,22 +823,22 @@ export default function MacroDataPage() {
                               <td className="py-3.5 px-4 text-center">
                                 <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm font-semibold">
                                   {isAssumptionRow ? (
-                                    <span className="flex items-center gap-1.5 text-[#FFD066] bg-[#F5A623]/15 border border-[#F5A623]/30 px-3.5 py-1 rounded-full">
-                                      <Sparkles size={13} className="text-[#FFD066]" />
+                                    <span className="flex items-center gap-1.5 text-[#2CC295] bg-[#2CC295]/15 border border-[#2CC295]/30 px-3.5 py-1 rounded-full">
+                                      <Sparkles size={13} className="text-[#00DF81]" />
                                       <span>{row.regime}</span>
                                     </span>
                                   ) : isPositive ? (
-                                    <span className="flex items-center gap-1.5 text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/25 px-3.5 py-1 rounded-full">
+                                    <span className="flex items-center gap-1.5 text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-3.5 py-1 rounded-full">
                                       <TrendingUp size={14} />
                                       <span>{row.regime}</span>
                                     </span>
                                   ) : isNegative ? (
-                                    <span className="flex items-center gap-1.5 text-[#FF5B5B] bg-[#FF4444]/10 border border-[#FF4444]/25 px-3.5 py-1 rounded-full">
+                                    <span className="flex items-center gap-1.5 text-[#FF5555] bg-[#FF5555]/10 border border-[#FF5555]/25 px-3.5 py-1 rounded-full">
                                       <TrendingDown size={14} />
                                       <span>{row.regime}</span>
                                     </span>
                                   ) : (
-                                    <span className="flex items-center gap-1.5 text-[#A0A5B1] bg-white/5 border border-white/10 px-3.5 py-1 rounded-full">
+                                    <span className="flex items-center gap-1.5 text-[#AACBC4] bg-[#06302B] border border-[#0B453A] px-3.5 py-1 rounded-full">
                                       <Minus size={14} />
                                       <span>{row.regime}</span>
                                     </span>
@@ -859,10 +850,10 @@ export default function MacroDataPage() {
                               <td className="py-3.5 px-4 text-right">
                                 <span className={clsx(
                                   "inline-block px-3.5 py-1 rounded-xl font-mono font-black text-sm shadow-sm",
-                                  isAssumptionRow ? "bg-[#F5A623]/20 text-[#FFD066] border border-[#F5A623]/40" :
-                                  isPositive ? "bg-[#D2F646]/15 text-[#D2F646] border border-[#D2F646]/30" :
-                                  isNegative ? "bg-[#FF4444]/15 text-[#FF4444] border border-[#FF4444]/30" :
-                                  "bg-white/5 text-[#A0A5B1] border border-white/10"
+                                  isAssumptionRow ? "bg-[#2CC295]/20 text-[#2CC295] border border-[#2CC295]/40" :
+                                  isPositive ? "bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 shadow-[0_0_10px_rgba(0,223,129,0.15)]" :
+                                  isNegative ? "bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30" :
+                                  "bg-[#06302B] text-[#AACBC4] border border-[#0B453A]"
                                 )}>
                                   {isPositive ? `+${row.rating}` : row.rating}
                                 </span>
@@ -876,22 +867,22 @@ export default function MacroDataPage() {
                 </div>
 
                 {/* Bottom Summary Bar */}
-                <div className="flex items-center justify-between px-6 py-3.5 border-t border-white/5 bg-[#121418]/60 text-sm flex-shrink-0">
+                <div className="flex items-center justify-between px-6 py-3.5 border-t border-[#0B453A] bg-[#021B1A]/80 text-sm flex-shrink-0">
                   <div className="flex items-center gap-3">
-                    <span className="font-sans text-[#A0A5B1]">
-                      Showing all <strong className="text-white font-mono">{combinedData?.length || 0}</strong> observations ({activePair}) • Full annual cycle
+                    <span className="font-sans text-[#AACBC4]">
+                      Showing all <strong className="text-[#F1F7F6] font-mono">{combinedData?.length || 0}</strong> observations ({activePair}) • Full annual cycle
                     </span>
-                    <span className="hidden sm:inline-block h-3.5 w-px bg-white/10" />
+                    <span className="hidden sm:inline-block h-3.5 w-px bg-[#0B453A]" />
                     <div className="flex items-center gap-2 font-mono text-sm">
-                      <span className="text-[#A0A5B1]">Net Rating:</span>
-                      <span className="text-[#D2F646] font-bold bg-[#D2F646]/10 border border-[#D2F646]/20 px-3 py-1 rounded-lg">
+                      <span className="text-[#AACBC4]">Net Rating:</span>
+                      <span className="text-[#00DF81] font-bold bg-[#00DF81]/10 border border-[#00DF81]/20 px-3 py-1 rounded-lg">
                         {combinedData ? combinedData.reduce((acc: number, r: any) => acc + r.rating, 0) : 0} pts
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 font-mono text-xs text-[#A0A5B1]">
-                    <span>Pair Engine: <strong className="text-white font-bold">{activePair}</strong></span>
+                  <div className="flex items-center gap-2 font-mono text-xs text-[#AACBC4]">
+                    <span>Pair Engine: <strong className="text-[#F1F7F6] font-bold">{activePair}</strong></span>
                   </div>
                 </div>
               </div>
@@ -901,57 +892,57 @@ export default function MacroDataPage() {
         </div>
 
         {/* ============================================================== */}
-        {/* DRAWER 1: USER FORWARD ASSUMPTION DRAWER (NEW FUNCTIONALITY)   */}
+        {/* DRAWER 1: USER FORWARD ASSUMPTION DRAWER                       */}
         {/* ============================================================== */}
         {selectedAssumptionCell && (
           <motion.div 
             initial={{ opacity: 0, y: 30, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.96 }}
-            className="fixed bottom-6 right-8 w-[380px] bg-[#161822]/95 backdrop-blur-3xl border border-[#F5A623]/40 rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_30px_rgba(245,166,35,0.18)] p-6 z-50 animate-slideUp"
+            className="fixed bottom-6 right-8 w-[380px] bg-[#032221]/95 backdrop-blur-3xl border border-[#2CC295]/40 rounded-3xl shadow-[0_25px_60px_rgba(2,27,26,0.95),0_0_30px_rgba(44,194,149,0.18)] p-6 z-50 animate-slideUp"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#F5A623]/15 border border-[#F5A623]/35 flex items-center justify-center">
-                  <Sparkles size={16} className="text-[#FFD066]" />
+                <div className="w-8 h-8 rounded-xl bg-[#2CC295]/15 border border-[#2CC295]/35 flex items-center justify-center">
+                  <Sparkles size={16} className="text-[#00DF81]" />
                 </div>
                 <div>
-                  <h3 className="font-sans font-bold text-sm text-white">Forward Date Assumption</h3>
-                  <span className="text-[10px] font-mono text-[#F5A623] font-semibold">User Projection Model</span>
+                  <h3 className="font-sans font-bold text-sm text-[#F1F7F6]">Forward Date Assumption</h3>
+                  <span className="text-[10px] font-mono text-[#2CC295] font-semibold">User Projection Model</span>
                 </div>
               </div>
               <button 
                 onClick={() => setSelectedAssumptionCell(null)}
-                className="w-7 h-7 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer text-[#A0A5B1] hover:text-white"
+                className="w-7 h-7 rounded-xl bg-[#06302B] border border-[#0B453A] flex items-center justify-center hover:bg-[#095544] transition-colors cursor-pointer text-[#AACBC4] hover:text-[#F1F7F6]"
               >
                 <X size={15} />
               </button>
             </div>
 
             {/* Context Card */}
-            <div className="bg-[#121418] border border-white/5 rounded-2xl p-3 mb-4 flex items-center justify-between">
+            <div className="bg-[#021B1A] border border-[#0B453A] rounded-2xl p-3 mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <img 
                   src={`/flags/${COUNTRIES.find(c => c.country === selectedAssumptionCell.c)?.base}.svg`} 
-                  className="w-6 h-6 rounded-full border border-white/15" 
+                  className="w-6 h-6 rounded-full border border-[#0B453A]" 
                   alt={selectedAssumptionCell.c} 
                 />
                 <div>
-                  <div className="font-sans font-bold text-xs text-white">{selectedAssumptionCell.c}</div>
-                  <div className="text-[10px] font-mono text-[#A0A5B1]">{activeInd}</div>
+                  <div className="font-sans font-bold text-xs text-[#F1F7F6]">{selectedAssumptionCell.c}</div>
+                  <div className="text-[10px] font-mono text-[#AACBC4]">{activeInd}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[10px] font-mono uppercase text-[#A0A5B1]">Upcoming Release</div>
-                <div className="font-mono font-black text-sm text-[#FFD066]">{selectedAssumptionCell.m}</div>
+                <div className="text-[10px] font-mono uppercase text-[#AACBC4]">Upcoming Release</div>
+                <div className="font-mono font-black text-sm text-[#2CC295]">{selectedAssumptionCell.m}</div>
               </div>
             </div>
 
             {/* Input Form */}
             <div className="flex flex-col gap-3">
               <div>
-                <label className="text-[11px] font-sans font-medium text-[#A0A5B1] mb-1.5 block">
+                <label className="text-[11px] font-sans font-medium text-[#AACBC4] mb-1.5 block">
                   Fill Assumption Value {activeInd === "FX Reserves" ? "(USD Millions)" : "(%)"}
                 </label>
                 <div className="relative">
@@ -961,18 +952,18 @@ export default function MacroDataPage() {
                     value={assumptionInputVal} 
                     onChange={(e) => setAssumptionInputVal(e.target.value)}
                     placeholder="e.g. 2.4"
-                    className="w-full bg-[#121418] border border-[#F5A623]/40 rounded-xl px-4 py-2.5 font-mono font-bold text-base text-[#FFD066] outline-none focus:border-[#F5A623] focus:ring-2 focus:ring-[#F5A623]/25 transition-all placeholder:text-white/20" 
+                    className="w-full bg-[#021B1A] border border-[#2CC295]/40 rounded-xl px-4 py-2.5 font-mono font-bold text-base text-[#2CC295] outline-none focus:border-[#00DF81] focus:ring-2 focus:ring-[#00DF81]/25 transition-all placeholder:text-[#AACBC4]/30" 
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleSaveAssumption();
                     }}
                   />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-[#A0A5B1]">
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-[#AACBC4]">
                     {activeInd === "FX Reserves" ? "USD M" : "%"}
                   </span>
                 </div>
               </div>
 
-              <p className="text-[10px] text-[#A0A5B1] leading-relaxed">
+              <p className="text-[10px] text-[#AACBC4] leading-relaxed">
                 * This forward assumption allows you to model predictive macro differentials for future release dates without overwriting official historical releases.
               </p>
 
@@ -982,7 +973,7 @@ export default function MacroDataPage() {
                   <button 
                     type="button"
                     onClick={handleClearAssumption}
-                    className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-[#FF4444]/15 hover:text-[#FF4444] border border-white/10 hover:border-[#FF4444]/30 text-xs font-sans font-bold text-[#A0A5B1] transition-all cursor-pointer"
+                    className="px-3.5 py-2.5 rounded-xl bg-[#06302B] hover:bg-[#FF5555]/15 hover:text-[#FF5555] border border-[#0B453A] hover:border-[#FF5555]/30 text-xs font-sans font-bold text-[#AACBC4] transition-all cursor-pointer"
                   >
                     Clear
                   </button>
@@ -990,9 +981,9 @@ export default function MacroDataPage() {
                 <button 
                   type="button"
                   onClick={handleSaveAssumption}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#F5A623] to-[#FFD066] text-[#121418] font-sans font-extrabold text-xs hover:brightness-110 transition-all flex justify-center items-center gap-1.5 cursor-pointer shadow-[0_0_16px_rgba(245,166,35,0.35)]"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#2CC295] to-[#00DF81] text-[#021B1A] font-sans font-extrabold text-xs hover:brightness-110 transition-all flex justify-center items-center gap-1.5 cursor-pointer shadow-[0_0_16px_rgba(0,223,129,0.35)]"
                 >
-                  <Sparkles size={14} className="text-[#121418]" />
+                  <Sparkles size={14} className="text-[#021B1A]" />
                   <span>Save Assumption</span>
                 </button>
               </div>
@@ -1004,18 +995,18 @@ export default function MacroDataPage() {
         {/* DRAWER 2: MANUAL OVERRIDE DRAWER (FOR HISTORICAL PRINTS)       */}
         {/* ============================================================== */}
         {selectedCell && (
-          <div className="fixed bottom-6 right-8 w-[340px] bg-[#1E2028]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl p-6 z-50 animate-slideUp">
+          <div className="fixed bottom-6 right-8 w-[340px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-2xl shadow-2xl p-6 z-50 animate-slideUp">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-sans font-bold text-base text-white">Manual Value Override</h3>
+              <h3 className="font-sans font-bold text-base text-[#F1F7F6]">Manual Value Override</h3>
               <button 
                 onClick={() => setSelectedCell(null)}
-                className="w-8 h-8 rounded-xl bg-[#121418] border border-white/5 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-xl bg-[#06302B] border border-[#0B453A] flex items-center justify-center hover:bg-[#095544] transition-colors cursor-pointer text-[#AACBC4] hover:text-[#F1F7F6]"
               >
-                <ChevronDown size={18} className="text-[#A0A5B1]" />
+                <ChevronDown size={18} />
               </button>
             </div>
             <div className="flex flex-col gap-3.5">
-              <div className="flex justify-between font-sans text-xs font-medium text-[#A0A5B1]">
+              <div className="flex justify-between font-sans text-xs font-medium text-[#AACBC4]">
                 <span>{selectedCell.c} ({activeInd})</span>
                 <span>{selectedCell.m}</span>
               </div>
@@ -1023,11 +1014,11 @@ export default function MacroDataPage() {
                 type="text" 
                 value={overrideInputVal} 
                 onChange={(e) => setOverrideInputVal(e.target.value)}
-                className="w-full bg-[#121418] border border-white/10 rounded-xl px-4 py-2.5 font-mono font-bold text-base text-white outline-none focus:border-[#D2F646] transition-all" 
+                className="w-full bg-[#021B1A] border border-[#0B453A] rounded-xl px-4 py-2.5 font-mono font-bold text-base text-[#F1F7F6] outline-none focus:border-[#00DF81] transition-all" 
               />
               <button 
                 onClick={() => saveOverrideMutation.mutate({ country: selectedCell.c, month: selectedCell.m, value: overrideInputVal })}
-                className="w-full py-2.5 rounded-xl bg-[#D2F646] text-[#121418] font-sans font-bold text-xs hover:brightness-110 transition-all flex justify-center items-center gap-2 cursor-pointer shadow-md"
+                className="w-full py-2.5 rounded-xl bg-[#00DF81] text-[#021B1A] font-sans font-bold text-xs hover:brightness-110 transition-all flex justify-center items-center gap-2 cursor-pointer shadow-[0_0_16px_rgba(0,223,129,0.3)]"
               >
                 {saveOverrideMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : "Save Override"}
               </button>

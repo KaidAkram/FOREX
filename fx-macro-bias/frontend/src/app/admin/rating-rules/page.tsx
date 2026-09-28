@@ -23,7 +23,7 @@ import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
 const INDICATORS = ["GDP", "Current Account", "CPI", "Interest Rate", "FX Reserves", "Equity"];
-const matteCard = "bg-[#161822]/85 backdrop-blur-2xl border border-white/5 rounded-[24px] shadow-[0_16px_40px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)]";
+const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)]";
 
 // Helper to parse numeric or infinity bound
 const parseBound = (val: string): { isValid: boolean; num: number; display: string } => {
@@ -196,30 +196,30 @@ export default function RatingRulesPage() {
 
   return (
     <div className="flex flex-col w-full min-h-full bg-transparent relative justify-start">
-      {/* Header - Spacious Top Spacing */}
+      {/* Header */}
       <header className="w-full flex items-center justify-between px-12 pt-9 pb-5 opacity-0 animate-fadeIn flex-shrink-0">
         <div className="flex flex-col gap-0.5">
-          <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine Logic Configuration</span>
-          <h1 className="font-sans font-bold text-3xl text-white tracking-tight">
+          <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Logic Configuration</span>
+          <h1 className="font-sans font-bold text-3xl text-[#F1F7F6] tracking-tight">
             Rating Rules
           </h1>
         </div>
         <div className="flex items-center gap-3">
           <GlobalSearch placeholder="Search rating rules, thresholds..." />
-          <div className="flex items-center gap-2 bg-[#161822]/85 backdrop-blur-xl border border-white/5 rounded-2xl px-3.5 py-1.5 shadow-lg">
-             <ShieldCheck size={16} className="text-[#D2F646]" />
-             <span className="font-sans font-medium text-xs text-[#A0A5B1]">Engine: <span className="text-white font-bold">Live</span></span>
+          <div className="flex items-center gap-2 bg-[#06302B]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3.5 py-1.5 shadow-lg">
+             <ShieldCheck size={16} className="text-[#00DF81]" />
+             <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine: <span className="text-[#F1F7F6] font-bold">Live</span></span>
           </div>
           <AuthHeaderWidget />
         </div>
       </header>
 
-      {/* Main Container - Centered vertically in middle of screen */}
+      {/* Main Container */}
       <main className="flex-1 flex flex-col px-12 gap-5 pb-8 max-w-[1600px] w-full mx-auto justify-center">
         
         {/* Controls Toolbar */}
         <div className="flex items-center justify-between opacity-0 animate-slideUp">
-          <div className="flex items-center bg-[#1D202B]/85 p-1 rounded-2xl border border-white/5 shadow-lg">
+          <div className="flex items-center bg-[#06302B]/90 p-1 rounded-2xl border border-[#0B453A] shadow-lg">
             {INDICATORS.map((ind) => (
               <button
                 key={ind}
@@ -227,15 +227,15 @@ export default function RatingRulesPage() {
                 className={clsx(
                   "relative px-4 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 z-10 cursor-pointer",
                   activeIndicator === ind
-                    ? "text-[#121418]"
-                    : "text-[#A0A5B1] hover:text-white"
+                    ? "text-[#021B1A]"
+                    : "text-[#AACBC4] hover:text-[#F1F7F6]"
                 )}
               >
                 {ind}
                 {activeIndicator === ind && (
                   <motion.div
                     layoutId="activeRatingIndicator"
-                    className="absolute inset-0 bg-[#D2F646] rounded-xl z-[-1] shadow-[0_0_14px_rgba(210,246,70,0.35)]"
+                    className="absolute inset-0 bg-[#00DF81] rounded-xl z-[-1] shadow-[0_0_14px_rgba(0,223,129,0.35)]"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -247,33 +247,33 @@ export default function RatingRulesPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={openAddModal}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#D2F646] text-[#121418] font-sans font-bold text-xs transition-all hover:shadow-[0_0_16px_rgba(210,246,70,0.35)] cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00DF81] text-[#021B1A] font-sans font-bold text-xs transition-all hover:brightness-110 shadow-[0_0_16px_rgba(0,223,129,0.35)] cursor-pointer"
           >
             <Plus size={16} strokeWidth={2.5} />
             <span>Add New Rule</span>
           </motion.button>
         </div>
 
-        {/* Rules Table Card - Centered in middle of screen */}
+        {/* Rules Table Card */}
         <div className="flex-1 flex flex-col justify-center my-auto w-full py-2">
           <div className={clsx("p-6 flex flex-col gap-3.5 w-full opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <div className="flex items-center justify-between border-b border-[#0B453A] pb-3">
               <div>
-                <h2 className="font-sans font-bold text-lg text-[#FFFFFF] tracking-tight">
+                <h2 className="font-sans font-bold text-lg text-[#F1F7F6] tracking-tight">
                   {activeIndicator} Differential Transformation Table
                 </h2>
-                <p className="text-xs text-[#A0A5B1] mt-0.5">Threshold boundaries applied to pairwise economic differentials (Base − Quote)</p>
+                <p className="text-xs text-[#AACBC4] mt-0.5">Threshold boundaries applied to pairwise economic differentials (Base − Quote)</p>
               </div>
-              <span className="font-sans font-bold text-sm font-mono text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20 px-3.5 py-1.5 rounded-full">
+              <span className="font-sans font-bold text-sm font-mono text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-3.5 py-1.5 rounded-full">
                 Score Scale: −10 (Bearish) to +10 (Bullish)
               </span>
             </div>
 
-            {/* Centralized Table Layout with Design Connector */}
+            {/* Centralized Table Layout */}
             <div className="overflow-x-auto w-full">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-white/5 text-xs font-mono font-bold uppercase tracking-wider text-[#A0A5B1]">
+                  <tr className="border-b border-[#0B453A] text-xs font-mono font-bold uppercase tracking-wider text-[#AACBC4]">
                     <th className="py-3 px-4 text-left w-[120px]">Tier Level</th>
                     <th className="py-3 px-4 text-center w-[230px]">Differential Range (Base − Quote)</th>
                     <th className="py-3 px-4 text-center w-[290px]">Engine Sentiment & Macro Regime</th>
@@ -281,14 +281,14 @@ export default function RatingRulesPage() {
                     <th className="py-3 px-4 text-right w-[100px]">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.03]">
+                <tbody className="divide-y divide-[#0B453A]/40">
                   {isLoading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i}>
-                      <td className="py-3 px-4"><div className="w-[70px] h-[20px] bg-white/5 rounded-md animate-pulse" /></td>
-                      <td className="py-3 px-4"><div className="w-[160px] h-[22px] bg-white/5 rounded-md animate-pulse mx-auto" /></td>
-                      <td className="py-3 px-4"><div className="w-[180px] h-[22px] bg-white/5 rounded-md animate-pulse mx-auto" /></td>
-                      <td className="py-3 px-4"><div className="w-[50px] h-[22px] bg-white/5 rounded-md animate-pulse mx-auto" /></td>
+                      <td className="py-3 px-4"><div className="w-[70px] h-[20px] bg-[#06302B] rounded-md animate-pulse" /></td>
+                      <td className="py-3 px-4"><div className="w-[160px] h-[22px] bg-[#06302B] rounded-md animate-pulse mx-auto" /></td>
+                      <td className="py-3 px-4"><div className="w-[180px] h-[22px] bg-[#06302B] rounded-md animate-pulse mx-auto" /></td>
+                      <td className="py-3 px-4"><div className="w-[50px] h-[22px] bg-[#06302B] rounded-md animate-pulse mx-auto" /></td>
                       <td className="py-3 px-4"></td>
                     </tr>
                   ))
@@ -298,21 +298,21 @@ export default function RatingRulesPage() {
                     const isNegative = rule.rating < 0;
 
                     return (
-                      <tr key={rule.id} className="group hover:bg-white/[0.03] transition-colors">
+                      <tr key={rule.id} className="group hover:bg-[#06302B]/40 transition-colors">
                         
-                        {/* 1. Tier Level: Single line, number NEVER under text */}
+                        {/* 1. Tier Level */}
                         <td className="py-3.5 px-4 text-left">
-                          <span className="font-mono text-sm font-bold text-[#D2F646] bg-[#D2F646]/10 border border-[#D2F646]/20 px-3 py-1.5 rounded-lg whitespace-nowrap">
+                          <span className="font-mono text-sm font-bold text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-3 py-1.5 rounded-lg whitespace-nowrap">
                             Tier {i + 1}
                           </span>
                         </td>
 
-                        {/* 2. Differential Range: Centered with nice pill brackets */}
+                        {/* 2. Differential Range */}
                         <td className="py-3.5 px-4 text-center">
-                          <div className="inline-flex items-center gap-2 font-mono text-sm font-bold text-white bg-white/[0.03] border border-white/5 px-3.5 py-1.5 rounded-xl shadow-inner">
-                            <span className="text-[#D2F646]">{rule.min}</span>
-                            <span className="text-[#A0A5B1] font-sans text-xs font-normal">to</span>
-                            <span className="text-[#D2F646]">{rule.max}</span>
+                          <div className="inline-flex items-center gap-2 font-mono text-sm font-bold text-[#F1F7F6] bg-[#06302B] border border-[#0B453A] px-3.5 py-1.5 rounded-xl shadow-inner">
+                            <span className="text-[#00DF81]">{rule.min}</span>
+                            <span className="text-[#AACBC4] font-sans text-xs font-normal">to</span>
+                            <span className="text-[#00DF81]">{rule.max}</span>
                           </div>
                         </td>
 
@@ -320,19 +320,19 @@ export default function RatingRulesPage() {
                         <td className="py-3.5 px-4 text-center">
                           <div className="inline-flex items-center gap-2">
                             {isPositive && (
-                              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#D2F646]/10 border border-[#D2F646]/25 text-[#D2F646] text-sm font-semibold">
+                              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81] text-sm font-semibold">
                                 <TrendingUp size={14} />
                                 <span>{rule.regime || (rule.rating >= 8 ? "Strong Bullish Bias" : "Moderate Bullish Bias")}</span>
                               </div>
                             )}
                             {isNegative && (
-                              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FF4444]/10 border border-[#FF4444]/25 text-[#FF5B5B] text-sm font-semibold">
+                              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FF5555]/10 border border-[#FF5555]/25 text-[#FF5555] text-sm font-semibold">
                                 <TrendingDown size={14} />
                                 <span>{rule.regime || (rule.rating <= -8 ? "Strong Bearish Bias" : "Moderate Bearish Bias")}</span>
                               </div>
                             )}
                             {!isPositive && !isNegative && (
-                              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-[#A0A5B1] text-sm font-semibold">
+                              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#06302B] border border-[#0B453A] text-[#AACBC4] text-sm font-semibold">
                                 <Minus size={14} />
                                 <span>Neutral / Balanced Regime</span>
                               </div>
@@ -340,13 +340,13 @@ export default function RatingRulesPage() {
                           </div>
                         </td>
 
-                        {/* 4. Rating Impact Score: Centered */}
+                        {/* 4. Rating Impact Score */}
                         <td className="py-3.5 px-4 text-center">
                           <span className={clsx(
                             "inline-block min-w-[56px] px-3.5 py-1.5 rounded-xl font-mono font-black text-sm shadow-sm",
-                            isPositive ? "bg-[#D2F646]/15 text-[#D2F646] border border-[#D2F646]/30" :
-                            isNegative ? "bg-[#FF4444]/15 text-[#FF4444] border border-[#FF4444]/30" :
-                            "bg-white/5 text-[#A0A5B1] border border-white/10"
+                            isPositive ? "bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 shadow-[0_0_10px_rgba(0,223,129,0.15)]" :
+                            isNegative ? "bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30" :
+                            "bg-[#06302B] text-[#AACBC4] border border-[#0B453A]"
                           )}>
                             {isPositive ? `+${rule.rating}` : rule.rating}
                           </span>
@@ -357,14 +357,14 @@ export default function RatingRulesPage() {
                           <div className="flex justify-end gap-1.5">
                             <button 
                               onClick={() => openEditModal(rule)}
-                              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[#A0A5B1] hover:text-white transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg bg-[#06302B] hover:bg-[#095544] text-[#AACBC4] hover:text-[#F1F7F6] border border-[#0B453A] transition-colors cursor-pointer"
                               title="Modify Rule"
                             >
                               <Edit2 size={14} />
                             </button>
                             <button 
                               onClick={() => deleteRuleMutation.mutate(rule.id)}
-                              className="p-1.5 rounded-lg bg-white/5 hover:bg-[#FF4444]/10 text-[#A0A5B1] hover:text-[#FF4444] transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg bg-[#06302B] hover:bg-[#FF5555]/15 text-[#AACBC4] hover:text-[#FF5555] border border-[#0B453A] transition-colors cursor-pointer"
                               title="Delete Rule"
                             >
                               <Trash2 size={14} />
@@ -381,11 +381,12 @@ export default function RatingRulesPage() {
           </div>
 
           {/* Bottom Summary Bar */}
-          <div className="flex items-center justify-between px-6 py-3 border-t border-white/5 bg-[#121418]/60 text-sm mt-1">
-            <span className="font-sans text-[#A0A5B1]">
-              Continuous Coverage: <strong className="text-white">5 Active Differential Tiers</strong> (−∞ to +∞) for {activeIndicator}.
+          <div className="flex items-center justify-between px-6 py-3 border-t border-[#0B453A] bg-[#021B1A]/80 text-sm mt-1">
+            <span className="font-sans text-[#AACBC4]">
+              Continuous Coverage: <strong className="text-[#F1F7F6]">5 Active Differential Tiers</strong> (−∞ to +∞) for {activeIndicator}.
             </span>
-            <span className="font-mono text-[#D2F646] text-xs font-bold">
+            <span className="font-mono text-[#00DF81] text-xs font-bold flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00DF81] animate-pulse" />
               Rating Engine: Live & Synced
             </span>
           </div>
@@ -393,7 +394,7 @@ export default function RatingRulesPage() {
         </div>
       </main>
 
-      {/* --- Add / Modify Rule Modal with Verification & Infinity Helpers --- */}
+      {/* --- Add / Modify Rule Modal --- */}
       <AnimatePresence>
         {modalMode && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -402,50 +403,50 @@ export default function RatingRulesPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setModalMode(null)}
-              className="fixed inset-0 bg-black/75 backdrop-blur-md"
+              className="fixed inset-0 bg-[#021B1A]/80 backdrop-blur-md"
             />
 
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-[480px] bg-[#161822]/95 backdrop-blur-3xl border border-white/10 rounded-[28px] p-7 shadow-2xl z-10 flex flex-col gap-5"
+              className="relative w-full max-w-[480px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-[28px] p-7 shadow-2xl z-10 flex flex-col gap-5"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div className="flex items-center justify-between border-b border-[#0B453A] pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-[#D2F646]/10 border border-[#D2F646]/20 text-[#D2F646]">
+                  <div className="p-2.5 rounded-xl bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81]">
                     <SlidersHorizontal size={18} />
                   </div>
                   <div>
-                    <h3 className="font-sans font-bold text-lg text-white">
+                    <h3 className="font-sans font-bold text-lg text-[#F1F7F6]">
                       {modalMode === "add" ? "Add Differential Rule" : "Modify Rule"}
                     </h3>
-                    <p className="text-xs text-[#A0A5B1]">{activeIndicator} Transformation</p>
+                    <p className="text-xs text-[#AACBC4]">{activeIndicator} Transformation</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setModalMode(null)}
-                  className="p-2 rounded-xl text-[#A0A5B1] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl text-[#AACBC4] hover:text-[#F1F7F6] hover:bg-[#06302B] transition-colors cursor-pointer"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              {/* Form with Input Verification & Infinity Controls */}
+              {/* Form */}
               <form onSubmit={handleSaveModal} className="flex flex-col gap-4">
                 
-                {/* Min & Max Inputs with 1-Click Infinity Buttons */}
+                {/* Min & Max Inputs */}
                 <div className="grid grid-cols-2 gap-4">
                   
                   {/* Min Value Input */}
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-[#A0A5B1]">Min Boundary</label>
+                      <label className="text-xs font-semibold text-[#AACBC4]">Min Boundary</label>
                       <button
                         type="button"
                         onClick={() => setFormMin("-∞")}
-                        className="text-[10px] font-mono text-[#D2F646] hover:underline bg-[#D2F646]/10 px-1.5 py-0.5 rounded cursor-pointer"
+                        className="text-[10px] font-mono text-[#00DF81] hover:underline bg-[#00DF81]/10 px-1.5 py-0.5 rounded cursor-pointer"
                         title="Set to Negative Infinity"
                       >
                         -∞ (Neg Inf)
@@ -453,8 +454,8 @@ export default function RatingRulesPage() {
                     </div>
 
                     <div className={clsx(
-                      "flex items-center bg-[#12141A] border rounded-xl px-3 py-2 transition-all",
-                      !parsedMin.isValid && formMin.trim() ? "border-[#FF4444]" : "border-white/10 focus-within:border-[#D2F646]"
+                      "flex items-center bg-[#021B1A] border rounded-xl px-3 py-2 transition-all",
+                      !parsedMin.isValid && formMin.trim() ? "border-[#FF5555]" : "border-[#0B453A] focus-within:border-[#00DF81]"
                     )}>
                       <input
                         type="text"
@@ -462,12 +463,12 @@ export default function RatingRulesPage() {
                         value={formMin}
                         onChange={(e) => handleMinChange(e.target.value)}
                         placeholder="-2.0 or -∞"
-                        className="w-full bg-transparent border-none outline-none font-mono text-sm text-white placeholder:text-[#A0A5B1]/40"
+                        className="w-full bg-transparent border-none outline-none font-mono text-sm text-[#F1F7F6] placeholder:text-[#AACBC4]/40"
                       />
                       <button
                         type="button"
                         onClick={() => setFormMin("-∞")}
-                        className="p-1 rounded text-[#A0A5B1] hover:text-[#D2F646] font-mono text-xs cursor-pointer ml-1"
+                        className="p-1 rounded text-[#AACBC4] hover:text-[#00DF81] font-mono text-xs cursor-pointer ml-1"
                         title="Insert -∞"
                       >
                         -∞
@@ -478,11 +479,11 @@ export default function RatingRulesPage() {
                   {/* Max Value Input */}
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-[#A0A5B1]">Max Boundary</label>
+                      <label className="text-xs font-semibold text-[#AACBC4]">Max Boundary</label>
                       <button
                         type="button"
                         onClick={() => setFormMax("+∞")}
-                        className="text-[10px] font-mono text-[#00E5FF] hover:underline bg-[#00E5FF]/10 px-1.5 py-0.5 rounded cursor-pointer"
+                        className="text-[10px] font-mono text-[#2CC295] hover:underline bg-[#2CC295]/10 px-1.5 py-0.5 rounded cursor-pointer"
                         title="Set to Positive Infinity"
                       >
                         +∞ (Pos Inf)
@@ -490,8 +491,8 @@ export default function RatingRulesPage() {
                     </div>
 
                     <div className={clsx(
-                      "flex items-center bg-[#12141A] border rounded-xl px-3 py-2 transition-all",
-                      !parsedMax.isValid && formMax.trim() ? "border-[#FF4444]" : "border-white/10 focus-within:border-[#D2F646]"
+                      "flex items-center bg-[#021B1A] border rounded-xl px-3 py-2 transition-all",
+                      !parsedMax.isValid && formMax.trim() ? "border-[#FF5555]" : "border-[#0B453A] focus-within:border-[#00DF81]"
                     )}>
                       <input
                         type="text"
@@ -499,12 +500,12 @@ export default function RatingRulesPage() {
                         value={formMax}
                         onChange={(e) => handleMaxChange(e.target.value)}
                         placeholder="2.0 or +∞"
-                        className="w-full bg-transparent border-none outline-none font-mono text-sm text-white placeholder:text-[#A0A5B1]/40"
+                        className="w-full bg-transparent border-none outline-none font-mono text-sm text-[#F1F7F6] placeholder:text-[#AACBC4]/40"
                       />
                       <button
                         type="button"
                         onClick={() => setFormMax("+∞")}
-                        className="p-1 rounded text-[#A0A5B1] hover:text-[#00E5FF] font-mono text-xs cursor-pointer ml-1"
+                        className="p-1 rounded text-[#AACBC4] hover:text-[#2CC295] font-mono text-xs cursor-pointer ml-1"
                         title="Insert +∞"
                       >
                         +∞
@@ -516,7 +517,7 @@ export default function RatingRulesPage() {
 
                 {/* Quick Presets Clickable Chips */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-mono text-[#A0A5B1]">Quick Interval Values (Click to insert):</span>
+                  <span className="text-[10px] font-mono text-[#AACBC4]">Quick Interval Values (Click to insert):</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {["-∞", "-2.0", "-1.0", "0.0", "1.0", "2.0", "+∞"].map((val) => (
                       <button
@@ -529,7 +530,7 @@ export default function RatingRulesPage() {
                             setFormMax(val);
                           }
                         }}
-                        className="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/5 text-[11px] font-mono text-white transition-colors cursor-pointer"
+                        className="px-2 py-0.5 rounded-md bg-[#06302B] hover:bg-[#095544] border border-[#0B453A] text-[11px] font-mono text-[#F1F7F6] transition-colors cursor-pointer"
                       >
                         {val}
                       </button>
@@ -544,7 +545,7 @@ export default function RatingRulesPage() {
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
-                      className="p-2.5 rounded-xl bg-[#FF4444]/10 border border-[#FF4444]/30 flex items-center gap-2 text-[#FF6B6B] text-xs"
+                      className="p-2.5 rounded-xl bg-[#FF5555]/10 border border-[#FF5555]/30 flex items-center gap-2 text-[#FF5555] text-xs"
                     >
                       <AlertCircle size={15} className="flex-shrink-0" />
                       <span>{validationError}</span>
@@ -554,7 +555,7 @@ export default function RatingRulesPage() {
                     <motion.div
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-2 rounded-xl bg-[#6FF542]/10 border border-[#6FF542]/20 flex items-center justify-between text-[#6FF542] text-[11px] font-mono"
+                      className="p-2 rounded-xl bg-[#00DF81]/10 border border-[#00DF81]/25 flex items-center justify-between text-[#00DF81] text-[11px] font-mono"
                     >
                       <span>Valid interval: [{parsedMin.display} to {parsedMax.display}]</span>
                       <Check size={14} />
@@ -565,12 +566,12 @@ export default function RatingRulesPage() {
                 {/* Rating Impact Slider */}
                 <div className="flex flex-col gap-1.5 pt-1">
                   <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-[#A0A5B1]">Rating Impact (-10 to +10)</label>
+                    <label className="text-xs font-semibold text-[#AACBC4]">Rating Impact (-10 to +10)</label>
                     <span className={clsx(
                       "font-mono font-bold text-sm px-2 py-0.5 rounded-lg",
-                      formRating > 0 ? "bg-[#D2F646]/10 text-[#D2F646] border border-[#D2F646]/30" : 
-                      formRating < 0 ? "bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/30" : 
-                      "bg-white/5 text-white"
+                      formRating > 0 ? "bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30" : 
+                      formRating < 0 ? "bg-[#FF5555]/10 text-[#FF5555] border border-[#FF5555]/30" : 
+                      "bg-[#06302B] text-[#F1F7F6] border border-[#0B453A]"
                     )}>
                       {formRating > 0 ? `+${formRating}` : formRating}
                     </span>
@@ -582,9 +583,9 @@ export default function RatingRulesPage() {
                     step="1"
                     value={formRating}
                     onChange={(e) => setFormRating(Number(e.target.value))}
-                    className="w-full accent-[#D2F646] cursor-pointer"
+                    className="w-full accent-[#00DF81] cursor-pointer"
                   />
-                  <div className="flex justify-between text-[10px] font-mono text-[#A0A5B1]">
+                  <div className="flex justify-between text-[10px] font-mono text-[#AACBC4]">
                     <span>-10 (Bearish)</span>
                     <span>0 (Neutral)</span>
                     <span>+10 (Bullish)</span>
@@ -592,18 +593,18 @@ export default function RatingRulesPage() {
                 </div>
 
                 {/* Modal Action Buttons */}
-                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/5">
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#0B453A]">
                   <button
                     type="button"
                     onClick={() => setModalMode(null)}
-                    className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-sans text-xs font-bold transition-all cursor-pointer"
+                    className="flex-1 py-2.5 rounded-xl bg-[#06302B] hover:bg-[#095544] text-[#F1F7F6] border border-[#0B453A] font-sans text-xs font-bold transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={!isFormValid}
-                    className="flex-1 py-2.5 rounded-xl bg-[#D2F646] text-[#121418] font-sans text-xs font-bold hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_16px_rgba(210,246,70,0.3)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="flex-1 py-2.5 rounded-xl bg-[#00DF81] text-[#021B1A] font-sans text-xs font-bold hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_16px_rgba(0,223,129,0.3)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <Check size={16} />
                     <span>{modalMode === "add" ? "Create Rule" : "Save Changes"}</span>

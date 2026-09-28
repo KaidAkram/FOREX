@@ -85,74 +85,74 @@ export default function TraderPortalPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#03624C]/10 blur-[150px] pointer-events-none" />
 
       {/* --- Top Navbar --- */}
-      <header className="w-full flex items-center justify-between px-8 py-5 border-b border-[#0B453A] bg-[#032221]/80 backdrop-blur-2xl sticky top-0 z-50">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 flex items-center justify-center p-1 rounded-xl bg-[#06302B] border border-[#0B453A] group-hover:border-[#00DF81]/40 transition-colors shadow-sm">
+      <header className="w-full flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-4 border-b border-[#0B453A] bg-[#032221]/90 backdrop-blur-2xl sticky top-0 z-50">
+        <div className="flex items-center gap-4 sm:gap-8">
+          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center p-1 rounded-xl bg-[#06302B] border border-[#0B453A] group-hover:border-[#00DF81]/40 transition-colors shadow-sm">
               <img src="/logo.svg" alt="ShiftFX" className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(0,223,129,0.3)]" />
             </div>
             <div className="flex flex-col">
-              <span className="font-sans font-black text-xl tracking-tight leading-none">
+              <span className="font-sans font-black text-lg sm:text-xl tracking-tight leading-none">
                 <span className="text-[#F1F7F6]">Shift</span>
                 <span className="text-[#00DF81]">FX</span>
               </span>
-              <span className="text-[9px] font-mono tracking-[0.25em] text-[#AACBC4] uppercase mt-0.5">Trader Terminal</span>
+              <span className="text-[8px] sm:text-[9px] font-mono tracking-[0.25em] text-[#AACBC4] uppercase mt-0.5">Trader Terminal</span>
             </div>
           </Link>
 
-          <div className="hidden md:flex items-center gap-2 bg-[#06302B] border border-[#0B453A] rounded-full px-3 py-1">
+          <div className="hidden sm:flex items-center gap-2 bg-[#06302B] border border-[#0B453A] rounded-full px-3 py-1">
             <div className="w-2 h-2 rounded-full bg-[#00DF81] animate-pulse" />
             <span className="text-xs font-mono font-medium text-[#AACBC4]">Live Engine Feed</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <GlobalSearch placeholder="Search pairs, macro indicators..." />
           <AuthHeaderWidget />
         </div>
       </header>
 
       {/* --- Main Content --- */}
-      <main className="flex-1 max-w-[1500px] w-full mx-auto px-6 md:px-12 py-10 flex flex-col gap-8">
+      <main className="flex-1 max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-10 flex flex-col gap-6 sm:gap-8">
         
         {/* Banner Hero */}
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-8 rounded-[28px] bg-gradient-to-r from-[#032221] via-[#06302B] to-[#032221] border border-[#0B453A] shadow-2xl relative overflow-hidden"
+          className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 sm:gap-6 p-5 sm:p-8 rounded-[24px] sm:rounded-[28px] bg-gradient-to-r from-[#032221] via-[#06302B] to-[#032221] border border-[#0B453A] shadow-2xl relative overflow-hidden"
         >
           <div className="flex flex-col gap-2 z-10">
             <span className="text-xs font-mono font-bold uppercase tracking-widest text-[#00DF81]">Quantitative Macro Bias</span>
-            <h1 className="font-sans font-black text-3xl md:text-4xl text-[#F1F7F6] tracking-tight">
+            <h1 className="font-sans font-black text-2xl sm:text-3xl md:text-4xl text-[#F1F7F6] tracking-tight">
               Institutional G10 FX Bias Radar
             </h1>
-            <p className="font-sans text-sm text-[#AACBC4] max-w-xl">
+            <p className="font-sans text-xs sm:text-sm text-[#AACBC4] max-w-xl leading-relaxed">
               Signals derived from algorithmic yield differentials, inflation persistence, quarterly economic output, and central bank reaction functions.
             </p>
           </div>
 
-          <div className="flex items-center gap-4 z-10">
-            <div className="flex flex-col p-4 rounded-2xl bg-[#021B1A]/60 border border-[#0B453A] min-w-[140px]">
-              <span className="text-xs font-sans text-[#AACBC4]">Total Pairs Tracked</span>
-              <span className="text-2xl font-black font-sans text-[#F1F7F6] mt-1">28</span>
+          <div className="flex items-center gap-3 sm:gap-4 z-10 w-full sm:w-auto">
+            <div className="flex flex-col p-3 sm:p-4 rounded-2xl bg-[#021B1A]/60 border border-[#0B453A] flex-1 sm:min-w-[130px]">
+              <span className="text-xs font-sans text-[#AACBC4]">Total Pairs</span>
+              <span className="text-xl sm:text-2xl font-black font-sans text-[#F1F7F6] mt-1">28</span>
             </div>
-            <div className="flex flex-col p-4 rounded-2xl bg-[#021B1A]/60 border border-[#0B453A] min-w-[140px]">
+            <div className="flex flex-col p-3 sm:p-4 rounded-2xl bg-[#021B1A]/60 border border-[#0B453A] flex-1 sm:min-w-[130px]">
               <span className="text-xs font-sans text-[#AACBC4]">Model Accuracy</span>
-              <span className="text-2xl font-black font-sans text-[#00DF81] mt-1">79.4%</span>
+              <span className="text-xl sm:text-2xl font-black font-sans text-[#00DF81] mt-1">79.4%</span>
             </div>
           </div>
         </motion.div>
 
         {/* Filters & Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center bg-[#06302B] p-1.5 rounded-2xl border border-[#0B453A]">
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center bg-[#06302B] p-1 rounded-2xl border border-[#0B453A] overflow-x-auto no-scrollbar max-w-full">
             {["ALL", "BULLISH", "BEARISH", "NEUTRAL"].map((bias) => (
               <button
                 key={bias}
                 onClick={() => setFilterBias(bias)}
                 className={clsx(
-                  "px-5 py-2 rounded-xl text-xs font-bold font-sans transition-all duration-200 cursor-pointer",
+                  "px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-xl text-xs font-bold font-sans transition-all duration-200 cursor-pointer whitespace-nowrap",
                   filterBias === bias
                     ? bias === "BULLISH"
                       ? "bg-[#00DF81] text-[#021B1A] shadow-[0_0_12px_rgba(0,223,129,0.35)]"
@@ -180,14 +180,14 @@ export default function TraderPortalPage() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
         >
           {filteredPairs.map((item) => (
             <motion.div
               key={item.pair}
               variants={itemVariants}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="flex flex-col justify-between p-6 rounded-[24px] bg-[#032221]/90 backdrop-blur-xl border border-[#0B453A] hover:border-[#03624C] transition-all shadow-[0_8px_32px_rgba(2,27,26,0.5),inset_0_1px_0_0_rgba(241,247,246,0.06)] group"
+              className="flex flex-col justify-between p-5 sm:p-6 rounded-[24px] bg-[#032221]/90 backdrop-blur-xl border border-[#0B453A] hover:border-[#03624C] transition-all shadow-[0_8px_32px_rgba(2,27,26,0.5),inset_0_1px_0_0_rgba(241,247,246,0.06)] group"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">

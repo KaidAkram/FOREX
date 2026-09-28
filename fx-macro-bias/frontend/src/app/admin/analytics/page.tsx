@@ -212,33 +212,33 @@ export default function AnalyticsPage() {
       transition={springConfig}
       className="flex flex-col w-full h-full bg-transparent overflow-y-auto no-scrollbar"
     >
-      <header className="w-full flex items-center justify-between p-[40px_48px] pb-[32px]">
-        <div className="flex flex-col gap-[8px]">
-          <span className="font-sans font-medium text-[16px] text-[#AACBC4]">Platform Telemetry</span>
-          <h1 className="font-sans font-bold text-[40px] text-[#F1F7F6] tracking-tight">
+      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:px-6 lg:p-[32px_44px] pb-4 sm:pb-6 gap-4">
+        <div className="flex flex-col gap-1">
+          <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Platform Telemetry</span>
+          <h1 className="font-sans font-bold text-2xl sm:text-3xl lg:text-[38px] text-[#F1F7F6] tracking-tight leading-none">
             Analytics Dashboard
           </h1>
         </div>
-        <div className="flex items-center gap-[16px]">
+        <div className="flex items-center gap-2 sm:gap-3.5 w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
           <GlobalSearch />
           <AuthHeaderWidget />
         </div>
       </header>
 
-      <main className="flex flex-col px-[48px] gap-[24px] pb-[64px] max-w-[1600px] w-full mx-auto">
+      <main className="flex flex-col px-4 sm:px-6 lg:px-10 gap-5 sm:gap-6 pb-12 sm:pb-16 max-w-[1600px] w-full mx-auto">
         
         {/* KPI Sparkline Row (Tremor) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-[24px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <motion.div 
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[170px]"
+            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-5 sm:p-6 shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[155px] sm:h-[170px]"
           >
             <div className="flex justify-between items-start">
-              <span className="font-sans font-medium text-[15px] text-[#AACBC4]">Bullish Bias Confidence</span>
-              <span className="bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px] shadow-[0_0_10px_rgba(0,223,129,0.2)]">+14.2%</span>
+              <span className="font-sans font-medium text-sm sm:text-15px text-[#AACBC4]">Bullish Bias Confidence</span>
+              <span className="bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 px-2.5 py-0.5 rounded-full font-mono font-bold text-xs shadow-[0_0_10px_rgba(0,223,129,0.2)]">+14.2%</span>
             </div>
-            <div className="flex items-end gap-[16px] h-[60px] w-full">
-              <span className="font-sans font-bold text-[36px] text-[#F1F7F6] leading-none font-mono">82.4%</span>
+            <div className="flex items-end gap-3 sm:gap-4 h-[55px] sm:h-[60px] w-full">
+              <span className="font-sans font-bold text-2xl sm:text-3xl lg:text-[36px] text-[#F1F7F6] leading-none font-mono">82.4%</span>
               <div className="h-full flex-1 w-full ml-auto">
                 <SparkAreaChart
                   data={tremorData1}
@@ -253,14 +253,14 @@ export default function AnalyticsPage() {
 
           <motion.div 
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[170px]"
+            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-5 sm:p-6 shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[155px] sm:h-[170px]"
           >
             <div className="flex justify-between items-start">
-              <span className="font-sans font-medium text-[15px] text-[#AACBC4]">Bearish Divergence Rate</span>
-              <span className="bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px]">-5.1%</span>
+              <span className="font-sans font-medium text-sm sm:text-15px text-[#AACBC4]">Bearish Divergence Rate</span>
+              <span className="bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30 px-2.5 py-0.5 rounded-full font-mono font-bold text-xs">-5.1%</span>
             </div>
-            <div className="flex items-end gap-[16px] h-[60px] w-full">
-              <span className="font-sans font-bold text-[36px] text-[#F1F7F6] leading-none font-mono">14.1%</span>
+            <div className="flex items-end gap-3 sm:gap-4 h-[55px] sm:h-[60px] w-full">
+              <span className="font-sans font-bold text-2xl sm:text-3xl lg:text-[36px] text-[#F1F7F6] leading-none font-mono">14.1%</span>
               <div className="h-full flex-1 w-full ml-auto">
                 <SparkAreaChart
                   data={tremorData2}
@@ -275,14 +275,14 @@ export default function AnalyticsPage() {
 
           <motion.div 
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] p-[26px] shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[170px]"
+            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-5 sm:p-6 shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[155px] sm:h-[170px] sm:col-span-2 lg:col-span-1"
           >
             <div className="flex justify-between items-start">
-              <span className="font-sans font-medium text-[15px] text-[#AACBC4]">Macro Data Ingestion</span>
-              <span className="bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 px-[10px] py-[3px] rounded-full font-mono font-bold text-[12px]">Stable</span>
+              <span className="font-sans font-medium text-sm sm:text-15px text-[#AACBC4]">Macro Data Ingestion</span>
+              <span className="bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 px-2.5 py-0.5 rounded-full font-mono font-bold text-xs">Stable</span>
             </div>
-            <div className="flex items-end gap-[16px] h-[60px] w-full">
-              <span className="font-sans font-bold text-[36px] text-[#F1F7F6] leading-none font-mono">99.9%</span>
+            <div className="flex items-end gap-3 sm:gap-4 h-[55px] sm:h-[60px] w-full">
+              <span className="font-sans font-bold text-2xl sm:text-3xl lg:text-[36px] text-[#F1F7F6] leading-none font-mono">99.9%</span>
               <div className="h-full flex-1 w-full ml-auto opacity-70">
                 <SparkAreaChart
                   data={tremorData3}
@@ -297,22 +297,22 @@ export default function AnalyticsPage() {
         </div>
 
         {/* TradingView Chart Row 1 - MACRO METRIC */}
-        <div className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] p-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col h-[420px] relative overflow-hidden z-20">
-          <div className="flex justify-between items-start z-10 mb-[16px]">
-            <div className="flex flex-col">
-              <h3 className="font-sans font-bold text-[20px] text-[#F1F7F6] mb-[8px]">Historical Macro Metric</h3>
-              <div className="flex gap-[12px]">
+        <div className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-4 sm:p-6 lg:p-7 shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col h-[320px] sm:h-[370px] lg:h-[420px] relative overflow-hidden z-20">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5 z-10 mb-3 sm:mb-4">
+            <div className="flex flex-col gap-1 sm:gap-2">
+              <h3 className="font-sans font-bold text-base sm:text-lg lg:text-xl text-[#F1F7F6]">Historical Macro Metric</h3>
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 <CustomDropdown options={FX_PAIR_NAMES} value={activePairMacro} onChange={setActivePairMacro} label="Pair" isPair />
                 <CustomDropdown options={INDICATORS} value={activeIndicator} onChange={setActiveIndicator} label="Metric" />
               </div>
             </div>
-            <div className="flex items-center bg-[#06302B] p-1.5 rounded-2xl border border-[#0B453A]">
+            <div className="flex items-center bg-[#06302B] p-1 sm:p-1.5 rounded-2xl border border-[#0B453A] shrink-0">
               {["1W", "1M", "1Y"].map((range) => (
                 <button 
                   key={range}
                   onClick={() => setTimeRange(range)}
                   className={clsx(
-                    "relative px-[16px] py-[6px] rounded-xl text-[12px] font-bold font-mono transition-colors z-10 cursor-pointer",
+                    "relative px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl text-xs font-bold font-mono transition-colors z-10 cursor-pointer",
                     timeRange === range ? "text-[#021B1A]" : "text-[#AACBC4] hover:text-[#F1F7F6]"
                   )}
                 >
@@ -328,22 +328,22 @@ export default function AnalyticsPage() {
               ))}
             </div>
           </div>
-          <div className="flex-1 w-full relative mt-[8px]">
+          <div className="flex-1 w-full relative mt-2">
              {macroData.length > 0 && <LightweightChart data={macroData} color="#00DF81" type="line" />}
           </div>
         </div>
 
         {/* TradingView Chart Row 2 - FINAL SCORE */}
-        <div className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] p-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col h-[420px] relative overflow-hidden z-10">
-          <div className="flex justify-between items-start z-10 mb-[16px]">
-            <div className="flex flex-col">
-              <h3 className="font-sans font-bold text-[20px] text-[#F1F7F6] mb-[8px]">Final Score Trajectory</h3>
-              <div className="flex gap-[12px]">
+        <div className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-4 sm:p-6 lg:p-7 shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col h-[320px] sm:h-[370px] lg:h-[420px] relative overflow-hidden z-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5 z-10 mb-3 sm:mb-4">
+            <div className="flex flex-col gap-1 sm:gap-2">
+              <h3 className="font-sans font-bold text-base sm:text-lg lg:text-xl text-[#F1F7F6]">Final Score Trajectory</h3>
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                  <CustomDropdown options={FX_PAIR_NAMES} value={activePairScore} onChange={setActivePairScore} label="Pair" isPair />
               </div>
             </div>
           </div>
-          <div className="flex-1 w-full relative mt-[8px]">
+          <div className="flex-1 w-full relative mt-2">
              {scoreData.length > 0 && <LightweightChart data={scoreData} color="#2CC295" type="area" />}
           </div>
         </div>

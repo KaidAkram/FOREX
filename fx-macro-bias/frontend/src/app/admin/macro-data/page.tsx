@@ -274,29 +274,29 @@ export default function MacroDataPage() {
     <div className="flex flex-col w-full h-full min-h-screen bg-transparent relative justify-between">
       
       {/* 1. Header */}
-      <header className="w-full flex items-center justify-between px-12 pt-9 pb-5 opacity-0 animate-fadeIn flex-shrink-0">
+      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-40 flex-shrink-0 gap-4" style={{ animationDelay: "0.1s" }}>
         <div className="flex flex-col gap-1">
           <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Data Pipeline</span>
-          <h1 className="font-sans font-bold text-3xl text-[#F1F7F6] tracking-tight">
+          <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">
             Macro Data Center
           </h1>
         </div>
         
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-2 sm:gap-3.5 w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
           <GlobalSearch placeholder="Search indicators, pairs, countries..." />
           <AuthHeaderWidget />
         </div>
       </header>
 
       {/* 2. Main Content Container */}
-      <main className="flex-1 flex flex-col px-12 gap-5 pb-8 max-w-[1600px] w-full mx-auto justify-between">
+      <main className="flex-1 flex flex-col px-4 sm:px-6 lg:px-10 gap-5 pb-8 max-w-[1600px] w-full mx-auto justify-between">
         
         {/* Controls Toolbar */}
-        <div className="relative z-50 flex items-center justify-between gap-3 opacity-0 animate-slideUp">
+        <div className="relative z-40 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 opacity-0 animate-slideUp">
           
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0">
             {/* View Mode Switcher */}
-            <div className="flex items-center bg-[#06302B]/90 p-1 rounded-2xl border border-[#0B453A] shadow-lg">
+            <div className="flex items-center bg-[#06302B]/90 p-1 rounded-2xl border border-[#0B453A] shadow-lg shrink-0">
               {TABS.map((tab) => (
                 <button
                   key={tab}
@@ -306,7 +306,7 @@ export default function MacroDataPage() {
                     setIsOpenIndDropdown(false);
                   }}
                   className={clsx(
-                    "relative px-4 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 z-10 cursor-pointer",
+                    "relative px-3.5 sm:px-4 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 z-10 cursor-pointer whitespace-nowrap",
                     activeTab === tab ? "text-[#021B1A]" : "text-[#AACBC4] hover:text-[#F1F7F6]"
                   )}
                 >
@@ -324,13 +324,13 @@ export default function MacroDataPage() {
 
             {/* Indicator Pills for Matrix View */}
             {activeTab === "Macro Data Matrix" ? (
-              <div className="flex items-center bg-[#06302B]/90 backdrop-blur-xl border border-[#0B453A] p-1 rounded-2xl shadow-lg">
+              <div className="flex items-center bg-[#06302B]/90 backdrop-blur-xl border border-[#0B453A] p-1 rounded-2xl shadow-lg overflow-x-auto no-scrollbar shrink-0">
                 {INDICATORS.map(ind => (
                   <button 
                     key={ind} 
                     onClick={() => setActiveInd(ind)} 
                     className={clsx(
-                      "px-3 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 cursor-pointer", 
+                      "px-2.5 sm:px-3 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap", 
                       activeInd === ind 
                         ? "bg-[#00DF81]/20 text-[#00DF81] border border-[#00DF81]/40 shadow-sm" 
                         : "text-[#AACBC4] hover:text-[#F1F7F6] hover:bg-[#095544]/50"
@@ -553,11 +553,11 @@ export default function MacroDataPage() {
                 </div>
 
                 {/* Matrix Table with All Sovereign Economies */}
-                <div className="overflow-x-auto overflow-y-auto max-h-[660px] w-full p-4">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-[#032221] z-20 shadow-md">
+                <div className="overflow-x-auto overflow-y-auto max-h-[660px] w-full p-2 sm:p-4">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead className="sticky top-0 bg-[#032221] z-30 shadow-md">
                       <tr className="border-b border-[#0B453A] bg-[#032221]">
-                        <th className="px-4 py-3 font-sans font-semibold text-sm text-[#AACBC4] w-[200px] border-r border-[#0B453A] bg-[#032221]">
+                        <th className="sticky top-0 left-0 bg-[#032221] z-40 px-3 sm:px-4 py-3 font-sans font-semibold text-xs sm:text-sm text-[#AACBC4] w-[150px] sm:w-[200px] border-r border-[#0B453A] shadow-[4px_0_12px_rgba(2,27,26,0.8)]">
                           Country / Sovereign
                         </th>
                         {displayMonths.map((m, j) => {
@@ -566,19 +566,19 @@ export default function MacroDataPage() {
                             <th 
                               key={m} 
                               className={clsx(
-                                "px-3 py-2.5 text-center min-w-[95px] transition-colors",
+                                "px-2 sm:px-3 py-2.5 text-center min-w-[85px] sm:min-w-[95px] transition-colors whitespace-nowrap",
                                 isUpcoming ? 
                                   "bg-[#06302B]/80 border-b-2 border-[#2CC295]/60" : 
-                                  "font-sans font-semibold text-sm text-[#AACBC4] bg-[#032221]",
+                                  "font-sans font-semibold text-xs sm:text-sm text-[#AACBC4] bg-[#032221]",
                                 isUpcoming && j === 9 && "border-l-2 border-dashed border-[#2CC295]/50"
                               )}
                             >
                               {isUpcoming ? (
                                 <div className="flex flex-col items-center justify-center gap-0.5">
-                                  <span className="inline-flex items-center gap-1 text-[9px] font-mono font-black text-[#2CC295] bg-[#2CC295]/20 border border-[#2CC295]/40 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                                    <Sparkles size={9} className="text-[#00DF81]" /> Assumption
+                                  <span className="inline-flex items-center gap-1 text-[8px] sm:text-[9px] font-mono font-black text-[#2CC295] bg-[#2CC295]/20 border border-[#2CC295]/40 px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                                    <Sparkles size={8} className="text-[#00DF81]" /> Assumption
                                   </span>
-                                  <span className="font-mono font-bold text-sm text-[#2CC295] tracking-tight">{m}</span>
+                                  <span className="font-mono font-bold text-xs sm:text-sm text-[#2CC295] tracking-tight">{m}</span>
                                 </div>
                               ) : (
                                 <span>{m}</span>
@@ -592,10 +592,10 @@ export default function MacroDataPage() {
                       {matrixLoading ? (
                         Array.from({ length: 10 }).map((_, i) => (
                           <tr key={i}>
-                            <td className="px-4 py-3 border-r border-[#0B453A]"><div className="w-[130px] h-[24px] bg-[#06302B] rounded-md animate-pulse" /></td>
+                            <td className="sticky left-0 bg-[#032221] z-20 px-3 sm:px-4 py-3 border-r border-[#0B453A] shadow-[4px_0_12px_rgba(2,27,26,0.8)]"><div className="w-[110px] h-[22px] bg-[#06302B] rounded-md animate-pulse" /></td>
                             {displayMonths.map((m, j) => (
                               <td key={j} className={clsx("p-2", isCurrentLiveYear && j >= 9 && "bg-[#06302B]/30", isCurrentLiveYear && j === 9 && "border-l-2 border-dashed border-[#2CC295]/30")}>
-                                <div className="w-[80px] h-[36px] bg-[#06302B] rounded-xl animate-pulse mx-auto" />
+                                <div className="w-[70px] sm:w-[80px] h-[36px] bg-[#06302B] rounded-xl animate-pulse mx-auto" />
                               </td>
                             ))}
                           </tr>
@@ -603,10 +603,10 @@ export default function MacroDataPage() {
                       ) : (
                         matrixData?.map((row: any, i: number) => (
                           <tr key={i} className="hover:bg-[#06302B]/30 transition-colors">
-                            <td className="px-4 py-3 border-r border-[#0B453A]">
-                              <div className="flex items-center gap-3 p-0.5 whitespace-nowrap">
-                                <img src={`/flags/${row.base}.svg`} className="w-6 h-6 rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={row.base} />
-                                <span className="font-sans font-bold text-sm text-[#F1F7F6]">{row.country}</span>
+                            <td className="sticky left-0 bg-[#032221] z-20 px-3 sm:px-4 py-2 sm:py-2.5 border-r border-[#0B453A] shadow-[4px_0_12px_rgba(2,27,26,0.8)]">
+                              <div className="flex items-center gap-2 sm:gap-3 p-0.5 whitespace-nowrap">
+                                <img src={`/flags/${row.base}.svg`} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={row.base} />
+                                <span className="font-sans font-bold text-xs sm:text-sm text-[#F1F7F6]">{row.country}</span>
                               </div>
                             </td>
                             {row.data.map((cell: any, j: number) => {
@@ -899,7 +899,7 @@ export default function MacroDataPage() {
             initial={{ opacity: 0, y: 30, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.96 }}
-            className="fixed bottom-6 right-8 w-[380px] bg-[#032221]/95 backdrop-blur-3xl border border-[#2CC295]/40 rounded-3xl shadow-[0_25px_60px_rgba(2,27,26,0.95),0_0_30px_rgba(44,194,149,0.18)] p-6 z-50 animate-slideUp"
+            className="fixed bottom-4 sm:bottom-6 right-4 sm:right-8 w-[calc(100%-2rem)] sm:w-[380px] max-w-[420px] bg-[#032221]/95 backdrop-blur-3xl border border-[#2CC295]/40 rounded-3xl shadow-[0_25px_60px_rgba(2,27,26,0.95),0_0_30px_rgba(44,194,149,0.18)] p-5 sm:p-6 z-50 animate-slideUp"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">

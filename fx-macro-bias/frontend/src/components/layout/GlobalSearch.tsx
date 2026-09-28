@@ -387,24 +387,24 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
         type="button"
         onClick={() => setIsOpen(true)}
         className={clsx(
-          "flex items-center gap-[12px] bg-[#032221]/90 hover:bg-[#06302B] backdrop-blur-xl border border-[#0B453A] hover:border-[#03624C] rounded-[16px] px-[20px] py-[13px] w-[280px] xl:w-[320px] transition-all duration-200 text-left group shadow-[0_8px_32px_rgba(2,27,26,0.4)] focus:outline-none focus:ring-2 focus:ring-[#00DF81]/40",
+          "flex items-center gap-2 sm:gap-3 bg-[#032221]/90 hover:bg-[#06302B] backdrop-blur-xl border border-[#0B453A] hover:border-[#03624C] rounded-2xl p-2.5 sm:px-4 sm:py-2.5 md:py-3 w-auto sm:w-[220px] md:w-[260px] xl:w-[320px] transition-all duration-200 text-left group shadow-[0_8px_32px_rgba(2,27,26,0.4)] focus:outline-none focus:ring-2 focus:ring-[#00DF81]/40 shrink-0",
           className
         )}
         aria-label="Open search dialog"
       >
-        <Search size={18} className="text-[#AACBC4] group-hover:text-[#00DF81] transition-colors flex-shrink-0" />
-        <span className="font-sans font-medium text-[14px] text-[#AACBC4] group-hover:text-[#F1F7F6] transition-colors flex-1 truncate">
+        <Search size={17} className="text-[#AACBC4] group-hover:text-[#00DF81] transition-colors flex-shrink-0" />
+        <span className="hidden sm:inline font-sans font-medium text-xs md:text-sm text-[#AACBC4] group-hover:text-[#F1F7F6] transition-colors flex-1 truncate">
           {placeholder || "Search indicators, pairs, pages..."}
         </span>
-        <div className="flex items-center gap-[3px] bg-[#06302B] group-hover:bg-[#095544] px-[7px] py-[3px] rounded-[6px] border border-[#0B453A] transition-colors">
-          <Command size={11} className="text-[#AACBC4]" />
-          <span className="font-mono font-bold text-[10px] text-[#AACBC4]">K</span>
+        <div className="hidden md:flex items-center gap-[3px] bg-[#06302B] group-hover:bg-[#095544] px-1.5 py-0.5 rounded-md border border-[#0B453A] transition-colors">
+          <Command size={10} className="text-[#AACBC4]" />
+          <span className="font-mono font-bold text-[9px] text-[#AACBC4]">K</span>
         </div>
       </button>
 
       {/* Glassmorphism Search Overlay Modal */}
       {isOpen && mounted && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh] px-4 overflow-hidden">
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[6vh] sm:pt-[10vh] px-3 sm:px-4 overflow-hidden">
           {/* Glass Backdrop */}
           <div
             className="fixed inset-0 bg-[#021B1A]/85 backdrop-blur-2xl transition-all duration-300 animate-fadeIn"
@@ -418,13 +418,13 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
 
           {/* Modal Container */}
           <div 
-            className="relative w-full max-w-[680px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-[28px] shadow-[0_32px_90px_rgba(2,27,26,0.9),0_0_40px_rgba(0,223,129,0.08)] overflow-hidden flex flex-col z-10 animate-slideUp"
+            className="relative w-full max-w-[94vw] sm:max-w-[640px] md:max-w-[680px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] shadow-[0_32px_90px_rgba(2,27,26,0.9),0_0_40px_rgba(0,223,129,0.08)] overflow-hidden flex flex-col z-10 animate-slideUp max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Input Row */}
-            <div className="flex items-center px-[24px] py-[20px] border-b border-[#0B453A] gap-[16px] bg-[#06302B]/40">
-              <div className="p-[8px] rounded-[12px] bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81] flex items-center justify-center">
-                <Search size={20} />
+            <div className="flex items-center px-4 sm:px-6 py-4 sm:py-5 border-b border-[#0B453A] gap-3 sm:gap-4 bg-[#06302B]/40">
+              <div className="p-2 rounded-xl bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81] flex items-center justify-center flex-shrink-0">
+                <Search size={18} />
               </div>
               <input
                 ref={inputRef}

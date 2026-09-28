@@ -137,7 +137,7 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 25, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative w-full max-w-[460px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-[32px] p-8 md:p-10 shadow-[0_32px_80px_rgba(2,27,26,0.9),inset_0_1px_0_0_rgba(241,247,246,0.08)] z-10"
+        className="relative w-full max-w-[460px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-[28px] sm:rounded-[32px] p-6 sm:p-8 md:p-10 shadow-[0_32px_80px_rgba(2,27,26,0.9),inset_0_1px_0_0_rgba(241,247,246,0.08)] z-10"
       >
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-8">

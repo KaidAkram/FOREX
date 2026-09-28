@@ -197,16 +197,16 @@ export default function RatingRulesPage() {
   return (
     <div className="flex flex-col w-full min-h-full bg-transparent relative justify-start">
       {/* Header */}
-      <header className="w-full flex items-center justify-between px-12 pt-9 pb-5 opacity-0 animate-fadeIn flex-shrink-0">
+      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-40 flex-shrink-0 gap-4">
         <div className="flex flex-col gap-0.5">
           <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Logic Configuration</span>
-          <h1 className="font-sans font-bold text-3xl text-[#F1F7F6] tracking-tight">
+          <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">
             Rating Rules
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
           <GlobalSearch placeholder="Search rating rules, thresholds..." />
-          <div className="flex items-center gap-2 bg-[#06302B]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3.5 py-1.5 shadow-lg">
+          <div className="hidden sm:flex items-center gap-2 bg-[#06302B]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3.5 py-2 shadow-lg shrink-0">
              <ShieldCheck size={16} className="text-[#00DF81]" />
              <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine: <span className="text-[#F1F7F6] font-bold">Live</span></span>
           </div>
@@ -215,17 +215,17 @@ export default function RatingRulesPage() {
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 flex flex-col px-12 gap-5 pb-8 max-w-[1600px] w-full mx-auto justify-center">
+      <main className="flex-1 flex flex-col px-4 sm:px-6 lg:px-10 gap-5 pb-8 max-w-[1600px] w-full mx-auto justify-center">
         
         {/* Controls Toolbar */}
-        <div className="flex items-center justify-between opacity-0 animate-slideUp">
-          <div className="flex items-center bg-[#06302B]/90 p-1 rounded-2xl border border-[#0B453A] shadow-lg">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 opacity-0 animate-slideUp">
+          <div className="flex items-center bg-[#06302B]/90 p-1 rounded-2xl border border-[#0B453A] shadow-lg overflow-x-auto no-scrollbar max-w-full shrink-0">
             {INDICATORS.map((ind) => (
               <button
                 key={ind}
                 onClick={() => setActiveIndicator(ind)}
                 className={clsx(
-                  "relative px-4 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 z-10 cursor-pointer",
+                  "relative px-3.5 sm:px-4 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 z-10 cursor-pointer whitespace-nowrap",
                   activeIndicator === ind
                     ? "text-[#021B1A]"
                     : "text-[#AACBC4] hover:text-[#F1F7F6]"
@@ -247,7 +247,7 @@ export default function RatingRulesPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={openAddModal}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00DF81] text-[#021B1A] font-sans font-bold text-xs transition-all hover:brightness-110 shadow-[0_0_16px_rgba(0,223,129,0.35)] cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00DF81] text-[#021B1A] font-sans font-bold text-xs transition-all hover:brightness-110 shadow-[0_0_16px_rgba(0,223,129,0.35)] cursor-pointer shrink-0"
           >
             <Plus size={16} strokeWidth={2.5} />
             <span>Add New Rule</span>
@@ -256,22 +256,22 @@ export default function RatingRulesPage() {
 
         {/* Rules Table Card */}
         <div className="flex-1 flex flex-col justify-center my-auto w-full py-2">
-          <div className={clsx("p-6 flex flex-col gap-3.5 w-full opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
-            <div className="flex items-center justify-between border-b border-[#0B453A] pb-3">
+          <div className={clsx("p-4 sm:p-6 flex flex-col gap-3.5 w-full opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#0B453A] pb-3 gap-2.5">
               <div>
-                <h2 className="font-sans font-bold text-lg text-[#F1F7F6] tracking-tight">
+                <h2 className="font-sans font-bold text-base sm:text-lg text-[#F1F7F6] tracking-tight">
                   {activeIndicator} Differential Transformation Table
                 </h2>
                 <p className="text-xs text-[#AACBC4] mt-0.5">Threshold boundaries applied to pairwise economic differentials (Base − Quote)</p>
               </div>
-              <span className="font-sans font-bold text-sm font-mono text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-3.5 py-1.5 rounded-full">
+              <span className="font-sans font-bold text-xs sm:text-sm font-mono text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full shrink-0">
                 Score Scale: −10 (Bearish) to +10 (Bullish)
               </span>
             </div>
 
             {/* Centralized Table Layout */}
             <div className="overflow-x-auto w-full">
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse min-w-[620px]">
                 <thead>
                   <tr className="border-b border-[#0B453A] text-xs font-mono font-bold uppercase tracking-wider text-[#AACBC4]">
                     <th className="py-3 px-4 text-left w-[120px]">Tier Level</th>
@@ -410,7 +410,7 @@ export default function RatingRulesPage() {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-[480px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-[28px] p-7 shadow-2xl z-10 flex flex-col gap-5"
+              className="relative w-full max-w-[94vw] sm:max-w-[480px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-5 sm:p-7 shadow-2xl z-10 flex flex-col gap-4 sm:gap-5 max-h-[90vh] overflow-y-auto"
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-[#0B453A] pb-3">

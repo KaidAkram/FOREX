@@ -496,15 +496,15 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="flex flex-col w-full h-full bg-transparent overflow-y-auto no-scrollbar">
-      {/* --- Top Header (Clean Institutional Spacing & No Awkward Wrap) --- */}
-      <header className="w-full flex items-center justify-between px-12 pt-9 pb-5 opacity-0 animate-fadeIn flex-shrink-0">
+      {/* --- Top Header (Clean Institutional Spacing & No Awkward Wra      {/* --- Top Header (Clean Institutional Spacing & No Awkward Wrap) --- */}
+      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-40 flex-shrink-0 gap-4">
         <div className="flex flex-col gap-1 min-w-max">
           <div className="flex items-center gap-3">
             <span className="font-sans font-medium text-xs text-[#AACBC4] tracking-wide">
               Engine Configuration & Verification
             </span>
             <span className={clsx(
-              "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border font-mono text-[11px] font-semibold transition-colors",
+              "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border font-mono text-[10px] sm:text-[11px] font-semibold transition-colors",
               cronActive 
                 ? "bg-[#00DF81]/10 border-[#00DF81]/25 text-[#00DF81]"
                 : "bg-white/5 border-white/10 text-[#AACBC4]"
@@ -513,12 +513,12 @@ export default function AdminSettingsPage() {
               Cron Engine: {cronActive ? "Active" : "Paused"}
             </span>
           </div>
-          <h1 className="font-sans font-bold text-3xl text-white tracking-tight whitespace-nowrap">
+          <h1 className="font-sans font-bold text-2xl sm:text-3xl text-white tracking-tight whitespace-nowrap">
             Settings & Architecture
           </h1>
         </div>
 
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-2 sm:gap-3.5 w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
           <GlobalSearch placeholder="Search cron, indicators, formulas..." />
 
           {/* Quick Trigger Button */}
@@ -528,7 +528,7 @@ export default function AdminSettingsPage() {
             onClick={handleTriggerScraperNow}
             disabled={isScrapingNow}
             className={clsx(
-              "flex items-center gap-2 px-4 py-2.5 rounded-xl font-sans font-bold text-xs shadow-lg transition-all cursor-pointer whitespace-nowrap",
+              "flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-sans font-bold text-xs shadow-lg transition-all cursor-pointer whitespace-nowrap shrink-0",
               isScrapingNow
                 ? "bg-white/10 text-white border border-white/10 cursor-not-allowed"
                 : "bg-[#00DF81] text-[#021B1A] shadow-[0_0_20px_rgba(210,246,70,0.35)]"
@@ -558,7 +558,7 @@ export default function AdminSettingsPage() {
             initial={{ opacity: 0, y: -12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            className="mx-12 mb-4 p-3.5 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/30 flex items-center justify-between gap-4 shadow-[0_0_25px_rgba(210,246,70,0.15)]"
+            className="mx-4 sm:mx-6 lg:mx-10 mb-4 p-3.5 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/30 flex items-center justify-between gap-4 shadow-[0_0_25px_rgba(210,246,70,0.15)]"
           >
             <div className="flex items-center gap-3">
               <CheckCircle2 size={18} className="text-[#00DF81] flex-shrink-0" />
@@ -584,7 +584,7 @@ export default function AdminSettingsPage() {
             initial={{ opacity: 0, y: -15, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            className="mx-12 mb-4 p-4 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/30 flex items-start justify-between gap-4 shadow-[0_0_30px_rgba(111,245,66,0.15)]"
+            className="mx-4 sm:mx-6 lg:mx-10 mb-4 p-4 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/30 flex items-start justify-between gap-4 shadow-[0_0_30px_rgba(111,245,66,0.15)]"
           >
             <div className="flex items-start gap-3">
               <CheckCircle2 size={20} className="text-[#00DF81] flex-shrink-0 mt-0.5" />
@@ -595,7 +595,7 @@ export default function AdminSettingsPage() {
             </div>
             <button
               onClick={() => setCronFinishedNotice(null)}
-              className="text-xs font-mono text-[#AACBC4] hover:text-white px-2 py-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+              className="text-xs font-mono text-[#AACBC4] hover:text-white px-2.5 py-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
             >
               Dismiss
             </button>
@@ -604,7 +604,7 @@ export default function AdminSettingsPage() {
       </AnimatePresence>
 
       {/* --- Main Content Container --- */}
-      <main className="flex flex-col px-12 gap-6 pb-12 max-w-[1600px] w-full mx-auto">
+      <main className="flex flex-col px-4 sm:px-6 lg:px-10 gap-6 pb-12 max-w-[1600px] w-full mx-auto">
 
         {/* Section Tabs Switcher (Modular 5-Tab Architecture to completely eliminate crowdedness) */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">

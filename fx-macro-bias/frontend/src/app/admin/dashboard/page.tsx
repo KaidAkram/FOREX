@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 
-const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] transition-all";
+const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] transition-all";
 
 const fetchDashboardData = async () => {
   await new Promise(r => setTimeout(r, 600));
@@ -64,7 +64,7 @@ export default function DashboardPage() {
     const q = searchQuery.toLowerCase();
     return dashboard.dataStatus.filter((row: any) => 
       row.ind.toLowerCase().includes(q) || 
-      row.status.toLowerCase().includes(q) ||
+      row.status.toLowerCase().includes(q) || 
       row.last.toLowerCase().includes(q)
     );
   }, [dashboard, searchQuery]);
@@ -94,29 +94,29 @@ export default function DashboardPage() {
       {/* Header */}
       <motion.header 
         variants={itemVariants}
-        className="w-full flex items-center justify-between p-[40px_48px] pb-[28px]"
+        className="w-full flex flex-col md:flex-row items-start md:items-center justify-between p-4 sm:p-6 lg:p-[32px_44px] pb-4 sm:pb-6 gap-4"
       >
-        <div className="flex flex-col gap-[6px]">
+        <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <span className="font-sans font-medium text-[15px] text-[#AACBC4]">Overview</span>
-            <span className="text-[11px] font-mono font-bold text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-[0_0_10px_rgba(0,223,129,0.15)]">
+            <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Overview</span>
+            <span className="text-[10px] sm:text-[11px] font-mono font-bold text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-[0_0_10px_rgba(0,223,129,0.15)]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#00DF81] animate-pulse" />
               LIVE ENGINE
             </span>
           </div>
-          <h1 className="font-sans font-bold text-[38px] text-[#F1F7F6] tracking-tight">
+          <h1 className="font-sans font-bold text-2xl sm:text-3xl lg:text-[38px] text-[#F1F7F6] tracking-tight leading-none">
             Terminal Dashboard
           </h1>
         </div>
         
-        <div className="flex items-center gap-[16px]">
+        <div className="flex items-center gap-2.5 sm:gap-3.5 w-full md:w-auto justify-between md:justify-end flex-wrap sm:flex-nowrap">
           <GlobalSearch onSearch={(q) => setSearchQuery(q)} />
           
-          <div className="flex items-center gap-[12px] bg-[#032221]/90 backdrop-blur-xl border border-[#0B453A] rounded-[16px] px-[22px] py-[13px] shadow-[0_8px_32px_rgba(2,27,26,0.4)]">
-            <Clock size={18} className="text-[#00DF81]" />
+          <div className="hidden sm:flex items-center gap-2.5 bg-[#032221]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3.5 py-2.5 shadow-[0_8px_32px_rgba(2,27,26,0.4)] shrink-0">
+            <Clock size={16} className="text-[#00DF81]" />
             <div className="flex flex-col">
-              <span className="font-sans font-medium text-[12px] text-[#AACBC4] leading-none mb-1">Last Update</span>
-              <span className="font-mono font-bold text-[14px] text-[#F1F7F6] leading-none">Oct 24, 14:02 UTC</span>
+              <span className="font-sans font-medium text-[10px] text-[#AACBC4] leading-none mb-0.5">Last Update</span>
+              <span className="font-mono font-bold text-xs text-[#F1F7F6] leading-none">Oct 24, 14:02 UTC</span>
             </div>
           </div>
 
@@ -125,26 +125,26 @@ export default function DashboardPage() {
       </motion.header>
 
       {/* Main Container */}
-      <main className="flex flex-col px-[48px] gap-[32px] pb-[64px]">
+      <main className="flex flex-col px-4 sm:px-6 lg:px-10 gap-5 sm:gap-8 pb-12 sm:pb-16 max-w-[1600px] w-full mx-auto">
         
         {/* KPI Row */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-[24px]">
+        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
           
           {/* Total Pairs */}
           <motion.div 
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className={clsx("p-[28px] flex flex-col justify-between", matteCard)}
+            className={clsx("p-5 sm:p-7 flex flex-col justify-between", matteCard)}
           >
-            <div className="flex items-center gap-[12px] mb-[16px]">
-              <div className="p-[10px] rounded-[14px] bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81]">
-                <Database size={22} />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 rounded-xl bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81]">
+                <Database size={20} />
               </div>
-              <span className="font-sans font-medium text-[15px] text-[#AACBC4]">Total Pairs Tracked</span>
+              <span className="font-sans font-medium text-sm sm:text-15px text-[#AACBC4]">Total Pairs Tracked</span>
             </div>
             <div>
               <div className="flex items-baseline">
-                <span className="font-sans font-black text-[46px] text-[#F1F7F6] tracking-tight leading-none">28</span>
-                <span className="font-sans font-bold text-[14px] text-[#00DF81] ml-[12px]">+4 this week</span>
+                <span className="font-sans font-black text-3xl sm:text-4xl lg:text-[46px] text-[#F1F7F6] tracking-tight leading-none">28</span>
+                <span className="font-sans font-bold text-xs sm:text-sm text-[#00DF81] ml-3">+4 this week</span>
               </div>
             </div>
           </motion.div>
@@ -152,28 +152,28 @@ export default function DashboardPage() {
           {/* Macro Bias Distribution */}
           <motion.div 
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className={clsx("flex flex-col justify-center p-[28px] gap-[18px]", matteCard)}
+            className={clsx("flex flex-col justify-center p-5 sm:p-7 gap-4", matteCard)}
           >
             <div className="flex justify-between items-end">
-              <span className="font-sans font-medium text-[14px] leading-none text-[#AACBC4]">Macro Bias Distribution</span>
-              <div className="flex gap-[12px]">
-                <div className="flex items-center gap-[6px]">
+              <span className="font-sans font-medium text-xs sm:text-sm leading-none text-[#AACBC4]">Macro Bias Distribution</span>
+              <div className="flex gap-2.5">
+                <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-[#00DF81] shadow-[0_0_6px_rgba(0,223,129,0.8)]" />
-                  <span className="text-[12px] font-bold text-[#F1F7F6] font-mono">{isLoading ? "-" : dashboard?.kpis.biasDistribution.bullish}</span>
+                  <span className="text-xs font-bold text-[#F1F7F6] font-mono">{isLoading ? "-" : dashboard?.kpis.biasDistribution.bullish}</span>
                 </div>
-                <div className="flex items-center gap-[6px]">
+                <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-[#AACBC4]" />
-                  <span className="text-[12px] font-bold text-[#F1F7F6] font-mono">{isLoading ? "-" : dashboard?.kpis.biasDistribution.neutral}</span>
+                  <span className="text-xs font-bold text-[#F1F7F6] font-mono">{isLoading ? "-" : dashboard?.kpis.biasDistribution.neutral}</span>
                 </div>
-                <div className="flex items-center gap-[6px]">
+                <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-[#FF5555] shadow-[0_0_6px_rgba(255,85,85,0.8)]" />
-                  <span className="text-[12px] font-bold text-[#F1F7F6] font-mono">{isLoading ? "-" : dashboard?.kpis.biasDistribution.bearish}</span>
+                  <span className="text-xs font-bold text-[#F1F7F6] font-mono">{isLoading ? "-" : dashboard?.kpis.biasDistribution.bearish}</span>
                 </div>
               </div>
             </div>
 
             {/* Gradient Visual Distribution Bar */}
-            <div className="w-full h-[10px] rounded-full flex overflow-hidden bg-[#06302B] p-0.5 border border-[#0B453A]">
+            <div className="w-full h-2.5 rounded-full flex overflow-hidden bg-[#06302B] p-0.5 border border-[#0B453A]">
               {isLoading ? (
                 <div className="h-full w-full bg-[#0B453A]/50 animate-pulse rounded-full" />
               ) : (
@@ -210,87 +210,88 @@ export default function DashboardPage() {
           {/* Active Indicators */}
           <motion.div 
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className={clsx("flex flex-col justify-center p-[28px] gap-[14px]", matteCard)}
+            className={clsx("flex flex-col justify-center p-5 sm:p-7 gap-3.5", matteCard)}
           >
-            <span className="font-sans font-medium text-[14px] leading-none text-[#AACBC4]">Active Indicators</span>
-            <div className="flex items-baseline gap-[8px]">
+            <span className="font-sans font-medium text-xs sm:text-sm leading-none text-[#AACBC4]">Active Indicators</span>
+            <div className="flex items-baseline gap-2">
               {isLoading ? (
-                 <div className="w-[100px] h-[46px] bg-[#06302B] rounded-md animate-pulse" />
+                 <div className="w-[100px] h-[38px] bg-[#06302B] rounded-md animate-pulse" />
               ) : (
                 <>
-                  <span className="font-sans font-bold text-[46px] leading-none tracking-tight text-[#F1F7F6] font-mono">{dashboard?.kpis.activeIndicators.current}</span>
-                  <span className="font-sans font-medium text-[20px] text-[#AACBC4] font-mono">/ {dashboard?.kpis.activeIndicators.total}</span>
+                  <span className="font-sans font-black text-3xl sm:text-4xl lg:text-[46px] text-[#F1F7F6] tracking-tight leading-none">
+                    {dashboard?.kpis.activeIndicators.current}
+                  </span>
+                  <span className="font-sans font-bold text-lg sm:text-xl text-[#AACBC4]/60">
+                    / {dashboard?.kpis.activeIndicators.total}
+                  </span>
                 </>
               )}
             </div>
-            <span className="text-[12px] font-sans text-[#00DF81] flex items-center gap-1.5 font-medium">
-              <CheckCircle2 size={14} />
-              All economic pipelines healthy
-            </span>
+            <div className="flex items-center gap-2 text-xs font-sans text-[#00DF81] mt-1 font-semibold">
+              <CheckCircle2 size={15} />
+              <span>All economic pipelines healthy</span>
+            </div>
           </motion.div>
 
-          {/* Data Timestamps */}
+          {/* Timestamps Panel */}
           <motion.div 
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className={clsx("flex flex-col justify-center p-[28px] gap-[16px]", matteCard)}
+            className={clsx("flex flex-col justify-between p-5 sm:p-7 gap-3", matteCard)}
           >
-            <div className="flex flex-col gap-[4px]">
-              <span className="font-sans font-medium text-[13px] text-[#AACBC4]">Last Data Update</span>
-              {isLoading ? <div className="w-full h-[16px] bg-[#06302B] rounded-md animate-pulse" /> : <span className="font-sans font-bold text-[15px] text-[#F1F7F6] font-mono">{dashboard?.kpis.timestamps.lastDataUpdate}</span>}
+            <div className="flex flex-col gap-1">
+              <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Last Data Update</span>
+              <span className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] font-mono">
+                {isLoading ? <span className="inline-block w-28 h-4 bg-[#06302B] rounded animate-pulse" /> : dashboard?.kpis.timestamps.lastDataUpdate}
+              </span>
             </div>
             <div className="w-full h-[1px] bg-[#0B453A]" />
-            <div className="flex flex-col gap-[4px]">
-              <span className="font-sans font-medium text-[13px] text-[#AACBC4]">Last Model Calculation</span>
-              <div className="flex items-center gap-[8px]">
+            <div className="flex flex-col gap-1">
+              <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Last Model Calculation</span>
+              <div className="flex items-center gap-2">
                 {!isLoading && <div className="w-2 h-2 rounded-full bg-[#00DF81] animate-pulse" />}
-                {isLoading ? <div className="w-full h-[16px] bg-[#06302B] rounded-md animate-pulse" /> : <span className="font-sans font-bold text-[15px] text-[#F1F7F6] font-mono">{dashboard?.kpis.timestamps.lastCalculation}</span>}
+                {isLoading ? <div className="w-full h-4 bg-[#06302B] rounded animate-pulse" /> : <span className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] font-mono">{dashboard?.kpis.timestamps.lastCalculation}</span>}
               </div>
             </div>
           </motion.div>
         </motion.div>
 
         {/* Data Tables Row */}
-        <motion.div variants={itemVariants} className="w-full flex flex-col lg:flex-row gap-[24px]">
+        <motion.div variants={itemVariants} className="w-full flex flex-col lg:flex-row gap-5 sm:gap-6">
           
           {/* Latest Published Data */}
-          <div className={clsx("flex-[2] flex flex-col p-[32px] gap-[24px]", matteCard)}>
+          <div className={clsx("flex-[2] flex flex-col p-4 sm:p-6 lg:p-7 gap-5", matteCard)}>
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-sans font-bold text-[20px] text-[#F1F7F6] tracking-tight">Latest Published Data</h2>
-                <p className="font-sans text-[13px] text-[#AACBC4] mt-0.5">Real-time macro statistics ingested into the bias pipeline</p>
+                <h2 className="font-sans font-bold text-base sm:text-lg lg:text-xl text-[#F1F7F6] tracking-tight">Latest Published Data</h2>
+                <p className="font-sans text-xs sm:text-sm text-[#AACBC4] mt-0.5">Real-time macro statistics ingested into the bias pipeline</p>
               </div>
               <button 
                 onClick={() => refetch()}
                 className="p-2 rounded-xl bg-[#06302B] hover:bg-[#095544] text-[#AACBC4] hover:text-[#F1F7F6] border border-[#0B453A] transition-colors cursor-pointer"
                 title="Refresh Feed"
               >
-                <RefreshCw size={16} />
+                <RefreshCw size={15} />
               </button>
             </div>
 
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto w-full -mx-4 sm:mx-0 px-4 sm:px-0">
+              <table className="w-full text-left border-collapse min-w-[550px]">
                 <thead>
-                  <tr>
-                    <th className="font-sans font-semibold text-[13px] text-[#AACBC4] border-b border-[#0B453A] pb-[16px] px-[20px]">Indicator</th>
-                    <th className="font-sans font-semibold text-[13px] text-[#AACBC4] border-b border-[#0B453A] pb-[16px] px-[20px]">Country</th>
-                    <th className="font-sans font-semibold text-[13px] text-[#AACBC4] border-b border-[#0B453A] pb-[16px] px-[20px]">Month</th>
-                    <th className="font-sans font-semibold text-[13px] text-[#AACBC4] border-b border-[#0B453A] pb-[16px] px-[20px]">Value</th>
-                    <th className="font-sans font-semibold text-[13px] text-[#AACBC4] border-b border-[#0B453A] pb-[16px] px-[20px]">Published</th>
-                    <th className="font-sans font-semibold text-[13px] text-[#AACBC4] border-b border-[#0B453A] pb-[16px] px-[20px] text-right">Source</th>
+                  <tr className="border-b border-[#0B453A] text-xs font-sans font-semibold text-[#AACBC4]">
+                    <th className="pb-3 px-3">Indicator</th>
+                    <th className="pb-3 px-3">Country</th>
+                    <th className="pb-3 px-3">Month</th>
+                    <th className="pb-3 px-3">Value</th>
+                    <th className="pb-3 px-3">Published</th>
+                    <th className="pb-3 px-3 text-right">Source</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-[#0B453A]/40 text-sm">
                   {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
-                      <tr key={i} className="border-b border-[#0B453A]">
-                        <td colSpan={6} className="p-0">
-                          <div className="flex items-center w-full px-[20px] py-[20px] gap-[16px]">
-                            <div className="flex-1 h-[20px] bg-[#06302B] rounded-md animate-pulse" />
-                            <div className="flex-1 h-[20px] bg-[#06302B] rounded-md animate-pulse" />
-                            <div className="flex-1 h-[20px] bg-[#06302B] rounded-md animate-pulse" />
-                            <div className="flex-1 h-[20px] bg-[#06302B] rounded-md animate-pulse" />
-                          </div>
+                      <tr key={i}>
+                        <td colSpan={6} className="py-3 px-3">
+                          <div className="h-5 bg-[#06302B] rounded animate-pulse w-full" />
                         </td>
                       </tr>
                     ))
@@ -298,20 +299,28 @@ export default function DashboardPage() {
                     filteredLatestPublished.map((row: any, i: number) => (
                       <tr 
                         key={i} 
-                        className="group border-b border-[#0B453A]/50 last:border-0 cursor-pointer hover:bg-[#06302B]/50 transition-colors"
+                        className="group hover:bg-[#06302B]/40 transition-colors"
                       >
-                        <td colSpan={6} className="p-0">
-                          <div className="flex items-center w-full px-[20px] py-[18px] transition-colors duration-200">
-                            <span className="flex-1 font-sans font-bold text-[15px] text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">{row.ind}</span>
-                            <span className="flex-1 font-sans font-medium text-[14px] text-[#AACBC4] group-hover:text-[#F1F7F6] transition-colors flex items-center gap-[8px] whitespace-nowrap">
-                              <img src={`/flags/${row.base}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={row.base} />
-                              <span>{row.country}</span>
-                            </span>
-                            <span className="flex-1 font-sans font-medium text-[14px] text-[#AACBC4] font-mono">{row.month}</span>
-                            <span className="flex-1 font-sans font-bold text-[15px] text-[#F1F7F6] font-mono">{row.val}</span>
-                            <span className="flex-1 font-sans font-medium text-[14px] text-[#AACBC4]">{row.pub}</span>
-                            <span className="flex-1 text-right font-sans font-semibold text-[13px] text-[#AACBC4] group-hover:text-[#00DF81] transition-colors">{row.src}</span>
+                        <td className="py-3 px-3 font-sans font-bold text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
+                          {row.ind}
+                        </td>
+                        <td className="py-3 px-3 font-sans font-medium text-[#AACBC4] group-hover:text-[#F1F7F6] transition-colors">
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            <img src={`/flags/${row.base}.svg`} className="w-4 h-4 rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={row.base} />
+                            <span>{row.country}</span>
                           </div>
+                        </td>
+                        <td className="py-3 px-3 font-mono text-xs text-[#AACBC4] whitespace-nowrap">
+                          {row.month}
+                        </td>
+                        <td className="py-3 px-3 font-mono font-bold text-[#F1F7F6] whitespace-nowrap">
+                          {row.val}
+                        </td>
+                        <td className="py-3 px-3 font-sans text-xs text-[#AACBC4] whitespace-nowrap">
+                          {row.pub}
+                        </td>
+                        <td className="py-3 px-3 text-right font-sans font-semibold text-xs text-[#AACBC4] group-hover:text-[#00DF81] transition-colors whitespace-nowrap">
+                          {row.src}
                         </td>
                       </tr>
                     ))
@@ -322,30 +331,30 @@ export default function DashboardPage() {
           </div>
 
           {/* Data Status */}
-          <div className={clsx("flex-[1.2] flex flex-col p-[32px] gap-[24px]", matteCard)}>
+          <div className={clsx("flex-[1.2] flex flex-col p-4 sm:p-6 lg:p-7 gap-5", matteCard)}>
             <div className="flex items-center justify-between">
-              <h2 className="font-sans font-bold text-[20px] text-[#F1F7F6] tracking-tight">Data Status</h2>
-              <span className="text-[12px] font-mono text-[#AACBC4]">Auto-refreshing</span>
+              <h2 className="font-sans font-bold text-base sm:text-lg lg:text-xl text-[#F1F7F6] tracking-tight">Data Status</h2>
+              <span className="text-[11px] font-mono text-[#AACBC4]">Auto-refreshing</span>
             </div>
 
-            <div className="flex flex-col gap-[14px] w-full">
+            <div className="flex flex-col gap-3 w-full">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex flex-col gap-[12px] p-[18px] rounded-[20px] bg-[#06302B]/50 border border-[#0B453A]">
-                    <div className="w-full h-[22px] bg-[#06302B] rounded-md animate-pulse" />
-                    <div className="w-[60%] h-[14px] bg-[#06302B] rounded-md animate-pulse" />
+                  <div key={i} className="flex flex-col gap-2 p-3.5 rounded-2xl bg-[#06302B]/50 border border-[#0B453A]">
+                    <div className="w-full h-5 bg-[#06302B] rounded animate-pulse" />
+                    <div className="w-[60%] h-3.5 bg-[#06302B] rounded animate-pulse" />
                   </div>
                 ))
               ) : (
                 filteredDataStatus.map((row: any, i: number) => (
                   <div 
                     key={i} 
-                    className="flex flex-col gap-[10px] p-[16px] rounded-[20px] bg-[#06302B]/60 border border-[#0B453A] hover:border-[#03624C] hover:bg-[#06302B] transition-all duration-200 cursor-pointer shadow-sm"
+                    className="flex flex-col gap-2 p-3.5 rounded-2xl bg-[#06302B]/60 border border-[#0B453A] hover:border-[#03624C] hover:bg-[#06302B] transition-all duration-200 cursor-pointer shadow-sm"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-sans font-bold text-[15px] text-[#F1F7F6]">{row.ind}</span>
+                      <span className="font-sans font-bold text-sm text-[#F1F7F6]">{row.ind}</span>
                       <span className={clsx(
-                        "px-[10px] py-[4px] rounded-[8px] text-[11px] font-mono font-bold tracking-wider",
+                        "px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold tracking-wider",
                         row.status === "Updated" ? "bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 shadow-[0_0_10px_rgba(0,223,129,0.15)]" :
                         row.status === "Pending" ? "bg-[#2CC295]/15 text-[#2CC295] border border-[#2CC295]/30" :
                         row.status === "Neutral" ? "bg-[#AACBC4]/10 text-[#AACBC4] border border-[#0B453A]" :
@@ -354,7 +363,7 @@ export default function DashboardPage() {
                         {row.status}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[13px] font-sans font-medium text-[#AACBC4]">
+                    <div className="flex items-center justify-between text-xs font-sans font-medium text-[#AACBC4]">
                       <span>Last: <span className="text-[#F1F7F6]/90 font-mono">{row.last}</span></span>
                       <span>Next: <span className="text-[#F1F7F6]/90 font-mono">{row.next}</span></span>
                     </div>

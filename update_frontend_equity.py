@@ -43,9 +43,15 @@ def main():
     # Format PAIR_EQUITY_DATA constant
     pair_eq_ts = "\nexport const PAIR_EQUITY_DATA: Record<string, Record<string, { synth_ath: number; synth_cur: number; change_synth: number; base_ath: number; base_cur: number; change_index: number; final_change: number; rating: number; }>> = " + json.dumps(pairs, indent=2) + ";\n"
 
-    # Insert PAIR_EQUITY_DATA right before getCombinedDifferentialData
+    # Insert or Replace PAIR_EQUITY_DATA right before getCombinedDifferentialData
+    start_str = "export const PAIR_EQUITY_DATA"
     target_str = "export function getCombinedDifferentialData(pairName: string, indicator: string, year: number) {"
-    if "export const PAIR_EQUITY_DATA" not in ts_content:
+    if start_str in ts_content:
+        prefix = ts_content.split(start_str)[0]
+        suffix = ts_content.split(target_str)[1]
+        ts_content = prefix + "export const PAIR_EQUITY_DATA: Record<string, Record<string, { synth_ath: number; synth_cur: number; change_synth: number; base_ath: number; base_cur: number; change_index: number; final_change: number; rating: number; }>> = " + json.dumps(pairs, indent=2) + ";\n\n" + target_str + suffix
+        print("   -> Replaced existing PAIR_EQUITY_DATA constant")
+    else:
         ts_content = ts_content.replace(target_str, pair_eq_ts + "\n" + target_str)
         print("   -> Inserted PAIR_EQUITY_DATA constant")
 
@@ -56,8 +62,8 @@ def main():
       const pt = pairData[m];
       if (pt) {
         diffNum = parseFloat((pt.final_change * 100).toFixed(2));
-        baseVal = (pt.change_synth * 100).toFixed(2) + "%";
-        quoteVal = (pt.change_index * 100).toFixed(2) + "%";
+        baseVal = (pt.change_index * 100).toFixed(2) + "%";
+        quoteVal = (pt.change_synth * 100).toFixed(2) + "%";
         diff = (diffNum > 0 ? "+" : "") + diffNum.toFixed(2) + "%";
         rating = pt.rating;
         rule = `Equity Return Spread: ${diff}`;

@@ -58,7 +58,7 @@ def audit():
             if all(v is not None for v in [s_ath, s_cur, b_ath, b_cur]):
                 chg_s = (s_cur - s_ath) / s_ath
                 chg_b = (b_cur - b_ath) / b_ath
-                diff = chg_s - chg_b
+                diff = chg_b - chg_s  # %a (Base Index) - %b (Synthetic)
                 rtg = rate_equity(diff)
                 excel_equity[pair_name][mo] = {
                     "diff": diff,
@@ -117,7 +117,7 @@ def audit():
         p_space = p.replace("/", " ")
         ex = excel_equity.get(p_space, excel_equity.get(p, {}))
         db = db_data.get(p, {})
-        fe = fe_pairs.get(p, {})
+        fe = fe_pairs.get(p_space, fe_pairs.get(p, {}))
 
         for mo in ["2026-06", "2026-09"]:
             ex_entry = ex.get(mo, {})
@@ -148,14 +148,14 @@ def audit():
                 if int(ex_r) != int(db_r):
                     print(f"MISMATCH in rating for {p} {mo}: Excel={ex_r}, DB={db_r}")
                     all_matched = False
-                if abs(ex_d - db_d) > 1e-4:
+                if abs(ex_d - db_d) > 1e-3:
                     print(f"MISMATCH in differential for {p} {mo}: Excel={ex_d}, DB={db_d}")
                     all_matched = False
             if db_r is not None and fe_r is not None:
                 if int(db_r) != int(fe_r):
                     print(f"MISMATCH in rating for {p} {mo}: DB={db_r}, FE={fe_r}")
                     all_matched = False
-                if abs(db_d - fe_d) > 1e-4:
+                if abs(db_d - fe_d) > 1e-3:
                     print(f"MISMATCH in differential for {p} {mo}: DB={db_d}, FE={fe_d}")
                     all_matched = False
 

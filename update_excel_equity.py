@@ -101,8 +101,8 @@ def update_excel_workbook():
             ws_eq.cell(r+4, col).value = pt['base_cur']
             # Row r+5: original index % change formula: =+(C10-C9)/C9
             ws_eq.cell(r+5, col).value = f"=+({col_ltr}{r+4}-{col_ltr}{r+3})/{col_ltr}{r+3}"
-            # Row r+6: real % change formula: =+C8-C11
-            ws_eq.cell(r+6, col).value = f"=+{col_ltr}{r+2}-{col_ltr}{r+5}"
+            # Row r+6: real % change formula: =+C11-C8 (%a - %b: original index % change - synth % change)
+            ws_eq.cell(r+6, col).value = f"=+{col_ltr}{r+5}-{col_ltr}{r+2}"
             # Row r+7: Rating formula
             ws_eq.cell(r+7, col).value = f'=_xlfn.XLOOKUP(MIN(ABS($BJ$7:$BJ$29 - MEDIAN(MIN($BJ$7:$BJ$29), MAX($BJ$7:$BJ$29), {col_ltr}{r+6}))), ABS($BJ$7:$BJ$29 - MEDIAN(MIN($BJ$7:$BJ$29), MAX($BJ$7:$BJ$29), {col_ltr}{r+6})), $BK$7:$BK$29, "Error", 0)'
 

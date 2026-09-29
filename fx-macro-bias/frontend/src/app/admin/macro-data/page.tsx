@@ -725,7 +725,11 @@ export default function MacroDataPage() {
                   <div className="flex items-center gap-2 font-mono text-sm text-[#AACBC4]">
                     <span>Formula: </span>
                     <span className="text-[#00DF81] font-bold">
-                      {activeInd === "FX Reserves" ? `Diff = ${activePairObj.baseName} (USD M) − ${activePairObj.quoteName} (USD M)` : `Diff = ${activePairObj.baseName} (%) − ${activePairObj.quoteName} (%)`}
+                      {activeInd === "FX Reserves" 
+                        ? `Diff = ${activePairObj.baseName} (USD M) − ${activePairObj.quoteName} (USD M)` 
+                        : activeInd === "Equity"
+                        ? `Diff = %a (${activePairObj.baseName} Index) − %b (Synthetic ${activePair})`
+                        : `Diff = ${activePairObj.baseName} (%) − ${activePairObj.quoteName} (%)`}
                     </span>
                   </div>
                 </div>
@@ -736,8 +740,12 @@ export default function MacroDataPage() {
                     <thead className="sticky top-0 bg-[#032221] z-20 shadow-md">
                       <tr className="border-b border-[#0B453A] text-xs font-mono font-bold uppercase tracking-wider text-[#AACBC4] bg-[#032221]">
                         <th className="py-3.5 px-4 w-[160px] bg-[#032221]">Release Month</th>
-                        <th className="py-3.5 px-4 text-center w-[170px] bg-[#032221]">Base ({activePairObj.baseName})</th>
-                        <th className="py-3.5 px-4 text-center w-[170px] bg-[#032221]">Quote ({activePairObj.quoteName})</th>
+                        <th className="py-3.5 px-4 text-center w-[170px] bg-[#032221]">
+                          {activeInd === "Equity" ? `Col a: Index (${activePairObj.baseName})` : `Base (${activePairObj.baseName})`}
+                        </th>
+                        <th className="py-3.5 px-4 text-center w-[170px] bg-[#032221]">
+                          {activeInd === "Equity" ? `Col b: Synthetic (${activePair})` : `Quote (${activePairObj.quoteName})`}
+                        </th>
                         <th className="py-3.5 px-4 text-center w-[190px] bg-[#032221]">Calculated Differential</th>
                         <th className="py-3.5 px-4 text-center w-[190px] bg-[#032221]">Rule Threshold</th>
                         <th className="py-3.5 px-4 text-center w-[230px] bg-[#032221]">Engine Sentiment Regime</th>

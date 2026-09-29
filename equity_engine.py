@@ -107,8 +107,8 @@ def build_equity_dataset():
                 synth_cur = float(c_s.loc[ym])
                 change_synth = (synth_cur - synth_ath) / synth_ath
 
-                # Final Equity Change & Rating
-                final_change = change_synth - change_index
+                # Final Equity Change & Rating: %a (Index) - %b (Synthetic)
+                final_change = change_index - change_synth
                 rating = rate_equity(final_change)
 
                 pt = {
@@ -167,6 +167,11 @@ def build_equity_dataset():
 
 if __name__ == "__main__":
     res, c_res = build_equity_dataset()
+    import json
+    with open('equity_frontend.json', 'w') as f:
+        json.dump({'pairs': res, 'countries': c_res}, f, indent=2)
+    print("   -> Successfully saved equity_frontend.json")
+
     print("\n--- SAMPLE CALCULATED RESULTS FOR 2026-06 ---")
     for p in ['EUR USD', 'USD JPY', 'GBP USD', 'USD CAD', 'AUD USD']:
         pt = res[p]['2026-06']

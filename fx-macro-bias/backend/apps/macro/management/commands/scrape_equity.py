@@ -95,6 +95,7 @@ class Command(BaseCommand):
         # 3. Populate Country MacroDataPoints (Étape 1: Index Return vs accepted ATH)
         self.stdout.write("  -> Populating Country MacroDataPoints for Equity...")
         c_count = 0
+        fe_countries = {}
         countries = Country.objects.filter(is_active=True)
         for country in countries:
             code = country.iso_code
@@ -102,6 +103,7 @@ class Command(BaseCommand):
                 continue
             i_df = index_dfs[code]
             last_val = None
+            c_series = {}
             for ym in all_months:
                 month_date = f"{ym}-01"
                 if ym in i_df.index:
@@ -111,8 +113,10 @@ class Command(BaseCommand):
                     cur = float(i_df.loc[ym, 'Close'])
                     chg = (cur - ath) / ath
                     val = round(chg * 100, 4)
+                    c_series[ym] = val
                     last_val = val
                 elif last_val is not None:
+                    c_series[ym] = last_val
                     val = last_val
                 else:
                     continue
@@ -129,12 +133,14 @@ class Command(BaseCommand):
                     }
                 )
                 c_count += 1
+            fe_countries[country.name] = c_series
         self.stdout.write(f"     [OK] Saved {c_count} country Equity data points.")
 
         # 4. Populate Pair Differentials and Ratings directly
         self.stdout.write("  -> Computing Synthetic Pairs, Differentials & Ratings...")
         diff_count = 0
         active_pairs = FXPair.objects.filter(is_active=True).select_related("base_currency", "quote_currency")
+        fe_pairs = {}
 
         for pair in active_pairs:
             pair_sym = pair.symbol
@@ -154,6 +160,7 @@ class Command(BaseCommand):
             is_green_s = c_s >= o_s
 
             last_pt = None
+            p_data = {}
             for ym in all_months:
                 month_date = f"{ym}-01"
                 if ym in common_idx:
@@ -171,12 +178,25 @@ class Command(BaseCommand):
                     synth_cur = float(c_s.loc[ym])
                     change_synth = (synth_cur - synth_ath) / synth_ath
 
-                    final_change = change_synth - change_index
+                    # %a (Base Index) - %b (Synthetic series)
+                    final_change = change_index - change_synth
                     rating_val = rate_equity(final_change)
 
-                    last_pt = (change_synth, change_index, final_change, rating_val)
+                    pt = {
+                        'synth_ath': synth_ath,
+                        'synth_cur': synth_cur,
+                        'change_synth': change_synth,
+                        'base_ath': base_ath,
+                        'base_cur': base_cur,
+                        'change_index': change_index,
+                        'final_change': final_change,
+                        'rating': rating_val,
+                    }
+                    p_data[ym] = pt
+                    last_pt = (change_index, change_synth, final_change, rating_val, pt)
                 elif last_pt is not None:
-                    change_synth, change_index, final_change, rating_val = last_pt
+                    change_index, change_synth, final_change, rating_val, pt = last_pt
+                    p_data[ym] = dict(pt)
                 else:
                     continue
 
@@ -185,8 +205,8 @@ class Command(BaseCommand):
                     indicator=equity_indicator,
                     month=month_date,
                     defaults={
-                        "base_value": change_synth,
-                        "quote_value": change_index,
+                        "base_value": change_index,
+                        "quote_value": change_synth,
                         "difference": final_change,
                         "is_complete": True,
                     }
@@ -199,6 +219,9 @@ class Command(BaseCommand):
                     }
                 )
                 diff_count += 1
+
+            fe_pairs[pair.symbol.replace('/', ' ')] = p_data
+            fe_pairs[pair.symbol] = p_data
 
         self.stdout.write(f"     [OK] Computed {diff_count} pair-month Equity differentials and ratings.")
 
@@ -213,3 +236,41 @@ class Command(BaseCommand):
                     recalc_count += 1
 
         self.stdout.write(f"[SUCCESS] Recalculated {recalc_count} pair-month composite scores and biases!")
+
+        # 6. Auto-sync Frontend macroDataset.json & macroDataset.ts
+        import json
+        import re
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
+        equity_frontend_path = os.path.join(root_dir, 'equity_frontend.json')
+        with open(equity_frontend_path, 'w', encoding='utf-8') as f:
+            json.dump({'pairs': fe_pairs, 'countries': fe_countries}, f, indent=2)
+
+        json_path = os.path.join(root_dir, 'fx-macro-bias', 'frontend', 'src', 'data', 'macroDataset.json')
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                fe_json = json.load(f)
+            fe_json['Equity'] = fe_countries
+            fe_json['PairEquity'] = fe_pairs
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(fe_json, f, indent=2)
+
+        ts_path = os.path.join(root_dir, 'fx-macro-bias', 'frontend', 'src', 'data', 'macroDataset.ts')
+        if os.path.exists(ts_path):
+            with open(ts_path, 'r', encoding='utf-8') as f:
+                ts_content = f.read()
+
+            country_eq_ts = "  \"Equity\": " + json.dumps(fe_countries, indent=4).replace("\n", "\n  ")
+            pattern = r'  "Equity":\s*\{[\s\S]*?\n  \}'
+            if re.search(pattern, ts_content):
+                ts_content = re.sub(pattern, country_eq_ts, ts_content, count=1)
+
+            start_str = "export const PAIR_EQUITY_DATA"
+            target_str = "export function getCombinedDifferentialData(pairName: string, indicator: string, year: number) {"
+            if start_str in ts_content:
+                prefix = ts_content.split(start_str)[0]
+                suffix = ts_content.split(target_str)[1]
+                ts_content = prefix + "export const PAIR_EQUITY_DATA: Record<string, Record<string, { synth_ath: number; synth_cur: number; change_synth: number; base_ath: number; base_cur: number; change_index: number; final_change: number; rating: number; }>> = " + json.dumps(fe_pairs, indent=2) + ";\n\n" + target_str + suffix
+
+            with open(ts_path, 'w', encoding='utf-8') as f:
+                f.write(ts_content)
+            self.stdout.write("     [OK] Frontend macroDataset.json & macroDataset.ts updated synchronously!")

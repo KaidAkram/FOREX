@@ -1,3 +1,4 @@
+import os
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -55,20 +56,31 @@ def rate_equity(diff):
     idx = min(range(len(BJ_GRID)), key=lambda i: abs(BJ_GRID[i] - clamped))
     return int(BK_GRID[idx])
 
-def build_equity_dataset():
-    print("Fetching historical monthly data...")
+def build_equity_dataset(use_cache=False):
+    import json
+    cache_path = os.path.join(os.path.dirname(__file__), 'equity_dataset_cache.json')
+    if use_cache and os.path.exists(cache_path):
+        print(f"Loading cached Equity Dataset from {cache_path}...")
+        with open(cache_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data['pairs'], data['countries']
+
+    print("Fetching historical daily candles for all Equity indices and FX pairs (per 1.docx)...")
+    all_symbols = list(set(list(INDEX_TICKERS.values()) + [t[1] for t in FX_TICKERS.values()]))
+    df_all = yf.download(all_symbols, start='2000-01-01', interval='1d', group_by='ticker', threads=True)
+
     index_dfs = {}
     for code, ticker in INDEX_TICKERS.items():
-        df = yf.Ticker(ticker).history(start='2000-01-01', interval='1mo')
-        df.index = df.index.strftime('%Y-%m')
-        df['is_green'] = df['Close'] >= df['Open']
-        index_dfs[code] = df
+        sub = df_all[ticker].dropna(how='all').copy()
+        sub.index = pd.to_datetime(sub.index).tz_localize(None).strftime('%Y-%m-%d')
+        sub['is_green'] = sub['Close'] > sub['Open']
+        index_dfs[code] = sub
 
     fx_dfs = {}
     for pair, (base, fx_ticker) in FX_TICKERS.items():
-        df = yf.Ticker(fx_ticker).history(start='2000-01-01', interval='1mo')
-        df.index = df.index.strftime('%Y-%m')
-        fx_dfs[pair] = df
+        sub = df_all[fx_ticker].dropna(how='all').copy()
+        sub.index = pd.to_datetime(sub.index).tz_localize(None).strftime('%Y-%m-%d')
+        fx_dfs[pair] = sub
 
     # Months to evaluate
     all_months = []
@@ -82,32 +94,51 @@ def build_equity_dataset():
         i_df = index_dfs[base_code]
         f_df = fx_dfs[pair]
 
-        common_idx = i_df.index.intersection(f_df.index).sort_values()
-        o_s = f_df.loc[common_idx, 'Open'] * i_df.loc[common_idx, 'Open']
-        c_s = f_df.loc[common_idx, 'Close'] * i_df.loc[common_idx, 'Close']
-        h_s = f_df.loc[common_idx, 'High'] * i_df.loc[common_idx, 'High']
-        is_green_s = c_s >= o_s
+        common_dates = sorted(list(set(i_df.index).intersection(set(f_df.index))))
+        if not common_dates:
+            continue
+
+        i_sub = i_df.loc[common_dates]
+        f_sub = f_df.loc[common_dates]
+
+        # Synthetic Daily OHLC per 1.docx:
+        # SyntheticOpen = EquityOpen * FXOpen
+        # SyntheticClose = EquityClose * FXClose
+        # SyntheticHigh ≈ EquityHigh * FXHigh
+        # Green Synthetic Candle: SyntheticClose > SyntheticOpen
+        s_open = i_sub['Open'] * f_sub['Open']
+        s_close = i_sub['Close'] * f_sub['Close']
+        s_high = i_sub['High'] * f_sub['High']
+        s_green = s_close > s_open
+
+        s_df = pd.DataFrame({
+            'Open': s_open,
+            'Close': s_close,
+            'High': s_high,
+            'is_green': s_green
+        }, index=common_dates)
 
         pair_data = {}
         last_valid_data = None
 
         for ym in all_months:
-            if ym in common_idx:
-                past_idx = common_idx[common_idx <= ym]
+            past_days = [d for d in common_dates if d <= f"{ym}-31"]
+            cur_m_days = [d for d in common_dates if d.startswith(ym)]
 
-                # Base index running ATH on green candle
-                past_i_green = i_df.loc[past_idx][i_df.loc[past_idx, 'is_green']]
-                base_ath = float(past_i_green['High'].max())
-                base_cur = float(i_df.loc[ym, 'Close'])
+            if cur_m_days and past_days:
+                # Base index: last day Close and ATH over past green candles
+                base_cur = float(i_sub.loc[cur_m_days[-1], 'Close'])
+                past_i_green = i_sub.loc[past_days][i_sub.loc[past_days, 'is_green']]
+                base_ath = float(past_i_green['High'].max()) if not past_i_green.empty else base_cur
                 change_index = (base_cur - base_ath) / base_ath
 
-                # Synthetic running ATH on green candle
-                past_s_green = past_idx[is_green_s.loc[past_idx]]
-                synth_ath = float(h_s.loc[past_s_green].max())
-                synth_cur = float(c_s.loc[ym])
+                # Synthetic: last day Close and ATH over past green synthetic candles
+                synth_cur = float(s_df.loc[cur_m_days[-1], 'Close'])
+                past_s_green = s_df.loc[past_days][s_df.loc[past_days, 'is_green']]
+                synth_ath = float(past_s_green['High'].max()) if not past_s_green.empty else synth_cur
                 change_synth = (synth_cur - synth_ath) / synth_ath
 
-                # Final Equity Change & Rating: %a (Index) - %b (Synthetic)
+                # Final Equity Change & Rating: %a (Table 2: Base Index) - %b (Table 1: Synthetic)
                 final_change = change_index - change_synth
                 rating = rate_equity(final_change)
 
@@ -143,25 +174,34 @@ def build_equity_dataset():
         'Norway': 'NOK',
         'Sweden': 'SEK',
     }
-
     country_results = {}
     for c_name, code in country_index_map.items():
+        if code not in index_dfs:
+            continue
         i_df = index_dfs[code]
+        c_dates = list(i_df.index)
         c_series = {}
         last_val = None
         for ym in all_months:
-            if ym in i_df.index:
-                past_idx = i_df.index[i_df.index <= ym]
-                past_green = i_df.loc[past_idx][i_df.loc[past_idx, 'is_green']]
-                ath = float(past_green['High'].max())
-                cur = float(i_df.loc[ym, 'Close'])
-                chg = (cur - ath) / ath
-                val = round(chg * 100, 4) # percentage
+            past_days = [d for d in c_dates if d <= f"{ym}-31"]
+            cur_m_days = [d for d in c_dates if d.startswith(ym)]
+            if cur_m_days and past_days:
+                cur = float(i_df.loc[cur_m_days[-1], 'Close'])
+                past_green = i_df.loc[past_days][i_df.loc[past_days, 'is_green']]
+                ath = float(past_green['High'].max()) if not past_green.empty else cur
+                val = round((cur - ath) / ath * 100, 4)
                 c_series[ym] = val
                 last_val = val
             elif last_val is not None:
                 c_series[ym] = last_val
         country_results[c_name] = c_series
+
+    # Save cache
+    try:
+        with open(cache_path, 'w', encoding='utf-8') as f:
+            json.dump({'pairs': results, 'countries': country_results}, f, indent=2)
+    except Exception as e:
+        print(f"Warning: could not write cache: {e}")
 
     return results, country_results
 

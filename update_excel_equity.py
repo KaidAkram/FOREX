@@ -7,7 +7,7 @@ import equity_engine
 
 def update_excel_workbook():
     print("--- 1. Generating Equity Dataset via equity_engine ---")
-    pair_results, country_results = equity_engine.build_equity_dataset()
+    pair_results, country_results = equity_engine.build_equity_dataset(use_cache=True)
 
     print("--- 2. Updating EXCEL8EXAMPLE.xlsx ---")
     wb = openpyxl.load_workbook('EXCEL8EXAMPLE.xlsx', data_only=False)

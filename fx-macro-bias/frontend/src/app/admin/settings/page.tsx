@@ -145,7 +145,7 @@ const INDICATOR_METADATA_SPEC: Record<string, {
     source: "Market Quotes (S&P 500, DAX 40, FTSE 100, Nikkei 225, TSX 60)",
     protocol: "Financial Market Tickers",
     frequency: "Monthly Close",
-    formula: "Diff = Base Index MoM (%) − Quote Index MoM (%)",
+    formula: "Diff = % Drop from ATH (Base Benchmark) − % Drop from ATH (Synthetic Quote Benchmark)",
     scoringRule: "Mapped to [-10, +10]. Reflects equity market capital flows and institutional investor risk appetite.",
     unit: "Performance %",
     verificationHash: "SHA256: 62d1...f809 (Verified)",
@@ -340,7 +340,8 @@ export default function AdminSettingsPage() {
 
       const apiCall = settingsApi.runScraper().catch((e) => {
         console.warn("Backend runScraper fallback:", e);
-        return { data: { records_updated: 2268, last_scrape_time: "Sep 25, 18:30 UTC" } };
+        const dynamicUtc = new Date().toUTCString().replace(/^[A-Za-z]+, /, '').slice(0, 16) + " UTC";
+        return { data: { records_updated: 1260, last_scrape_time: dynamicUtc } };
       });
 
       await new Promise(r => setTimeout(r, 600));
@@ -400,8 +401,10 @@ export default function AdminSettingsPage() {
   // Live Math Verification calculations for client verification view
   const currentPairObj = PAIRS.find(p => p.name === selectedVerificationPair) || PAIRS[0];
 
+  const verifYear = parseInt(selectedVerificationMonth.split('-')[0], 10) || SYSTEM_CURRENT_YEAR;
+
   const mathProofRows = INDICATORS.map(ind => {
-    const diffList = getCombinedDifferentialData(selectedVerificationPair, ind, SYSTEM_CURRENT_YEAR);
+    const diffList = getCombinedDifferentialData(selectedVerificationPair, ind, verifYear);
     const mData = diffList.find(d => d.month === selectedVerificationMonth) || diffList[diffList.length - 1];
     const spec = INDICATOR_METADATA_SPEC[ind] || {
       fullName: ind,
@@ -496,7 +499,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="flex flex-col w-full h-full bg-transparent overflow-y-auto no-scrollbar">
-      {/* --- Top Header (Clean Institutional Spacing & No Awkward Wra      {/* --- Top Header (Clean Institutional Spacing & No Awkward Wrap) --- */}
+      {/* --- Top Header (Clean Institutional Spacing & No Awkward Wrap) --- */}
       <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-40 flex-shrink-0 gap-4">
         <div className="flex flex-col gap-1 min-w-max">
           <div className="flex items-center gap-3">

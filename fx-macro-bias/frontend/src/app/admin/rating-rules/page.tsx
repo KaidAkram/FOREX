@@ -48,16 +48,40 @@ const parseBound = (val: string): { isValid: boolean; num: number; display: stri
   return { isValid: true, num: n, display: clean };
 };
 
-// API Fetcher
+import OFFICIAL_RATING_RULES_DATA from "@/data/officialRatingRules.json";
+
+const INDICATOR_SLUG_MAP: Record<string, string> = {
+  "GDP": "gdp",
+  "Current Account": "ca_gdp",
+  "CPI": "cpi",
+  "Interest Rate": "interest_rate",
+  "FX Reserves": "fx_reserves",
+  "Equity": "equity",
+};
+
+const OFFICIAL_RATING_RULES: Record<string, any[]> = OFFICIAL_RATING_RULES_DATA;
+
+// API Fetcher with fallback to official rating rule.docx data
 const fetchRules = async (indicator: string) => {
-  await new Promise(r => setTimeout(r, 400));
-  return [
-    { id: 1, min: "-∞", max: "-2.0", rating: -10, regime: "Strong Bearish Bias" },
-    { id: 2, min: "-2.0", max: "-1.0", rating: -5, regime: "Moderate Bearish Bias" },
-    { id: 3, min: "-1.0", max: "1.0", rating: 0, regime: "Neutral / Balanced Regime" },
-    { id: 4, min: "1.0", max: "2.0", rating: 5, regime: "Moderate Bullish Bias" },
-    { id: 5, min: "2.0", max: "+∞", rating: 10, regime: "Strong Bullish Advantage" },
-  ];
+  const slug = INDICATOR_SLUG_MAP[indicator] || "gdp";
+  try {
+    const res = await fetch(`http://localhost:8000/api/rating-rules/${slug}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.rules && data.rules.length > 0) {
+        return data.rules.map((r: any) => ({
+          id: r.id,
+          min: r.min_diff === null ? "-∞" : String(r.min_diff),
+          max: r.max_diff === null ? "+∞" : String(r.max_diff),
+          rating: r.rating,
+          regime: r.rating >= 7 ? "Strong Bullish Bias" : r.rating > 0 ? "Moderate Bullish Bias" : r.rating === 0 ? "Neutral / Balanced" : r.rating <= -7 ? "Strong Bearish Bias" : "Moderate Bearish Bias"
+        }));
+      }
+    }
+  } catch (err) {
+    // fallback
+  }
+  return OFFICIAL_RATING_RULES[indicator] || OFFICIAL_RATING_RULES["GDP"] || [];
 };
 
 export default function RatingRulesPage() {

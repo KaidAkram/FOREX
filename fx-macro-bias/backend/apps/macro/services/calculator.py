@@ -129,31 +129,59 @@ def calculate_differential(pair_id: int, indicator_id: int, month) -> "Different
     return diff
 
 
+# Official Rating Grids from rating rule.docx & EXCEL8EXAMPLE.xlsx
+GDP_GRID_X = [5.0, 4.0, 3.0, 2.0, 1.0, 0.0, -1.0, -2.0, -3.0, -4.0, -5.0]
+GDP_GRID_Y = [10, 8, 6, 4, 2, 0, -2, -4, -6, -8, -10]
+
+CA_GRID_X = [14.0, 12.0, 11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 4.0, 2.0, 0.0,
+             -2.0, -4.0, -6.0, -7.0, -8.0, -9.0, -10.0, -11.0, -12.0, -14.0]
+CA_GRID_Y = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+             -1, -2, -3, -4, -5, -6, -7, -8, -9, -10]
+
+FX_GRID_X = [-2000.0 + 200.0 * i for i in range(21)]
+FX_GRID_Y = [10 - i for i in range(21)]
+
+IR_GRID_X = [7.0, 6.5, 6.0, 5.5, 5.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0, 0.5, 0.0,
+             -0.5, -1.0, -1.5, -2.0, -2.5, -3.0, -3.5, -4.0, -4.5, -5.0, -5.5, -6.0, -6.5, -7.0]
+IR_GRID_Y = [3, 4, 5, 6, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+             -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -6, -5, -4, -3]
+
+# CPI follows the exact same 29-step rating scale as Interest Rate (rating rule.docx)
+CPI_GRID_X = list(IR_GRID_X)
+CPI_GRID_Y = list(IR_GRID_Y)
+
+EQ_GRID_X = [0.25, 0.20, 0.18, 0.16, 0.14, 0.12, 0.10, 0.08, 0.06, 0.04, 0.02, 0.00,
+             -0.02, -0.04, -0.06, -0.08, -0.10, -0.12, -0.14, -0.16, -0.18, -0.20, -0.25]
+EQ_GRID_Y = [2, 3, 5, 7, 9, 10, 9, 7, 5, 3, 2, 0,
+             -2, -3, -5, -7, -9, -10, -9, -7, -5, -3, -2]
+
+def nearest_grid_rating(val: float, grid_x: list[float], grid_y: list[int]) -> int:
+    min_x, max_x = min(grid_x), max(grid_x)
+    clamped = max(min_x, min(max_x, float(val)))
+    idx = min(range(len(grid_x)), key=lambda i: abs(grid_x[i] - clamped))
+    return int(grid_y[idx])
+
+
 def apply_rating_rule(diff_value: float, indicator_id: int) -> tuple[Optional[int], Optional["RatingRule"]]:
     """
-    Look up the active RatingRule for this indicator and differential value.
-    Returns (rating_value, rule_instance) or (None, None) if no rule matches.
+    Look up the active rating for this indicator and differential value according to rating rule.docx.
+    Returns (rating_value, rule_instance).
     """
     from apps.macro.models import MacroIndicator, RatingRule
 
     indicator = MacroIndicator.objects.get(pk=indicator_id)
-    if indicator.slug == "equity":
-        # Exact Equity Rating Table from EXCEL8EXAMPLE.xlsx ($BJ$7:$BK$29) & Equity Indicator.docx
-        BJ_GRID = [0.25, 0.20, 0.18, 0.16, 0.14, 0.12, 0.10, 0.08, 0.06, 0.04, 0.02, 0.00,
-                   -0.02, -0.04, -0.06, -0.08, -0.10, -0.12, -0.14, -0.16, -0.18, -0.20, -0.25]
-        BK_GRID = [2, 3, 5, 7, 9, 10, 9, 7, 5, 3, 2, 0,
-                   -2, -3, -5, -7, -9, -10, -9, -7, -5, -3, -2]
-        clamped = max(-0.25, min(0.25, float(diff_value)))
-        idx = min(range(len(BJ_GRID)), key=lambda i: abs(BJ_GRID[i] - clamped))
-        return int(BK_GRID[idx]), None
-
+    if indicator.slug == "gdp":
+        return nearest_grid_rating(diff_value, GDP_GRID_X, GDP_GRID_Y), None
+    if indicator.slug == "ca_gdp":
+        return nearest_grid_rating(diff_value, CA_GRID_X, CA_GRID_Y), None
     if indicator.slug == "fx_reserves":
-        # Exact FX Reserves Rating Table from EXCEL8EXAMPLE.xlsx ($BK$3:$BL$23)
-        BK_SPREAD = [-2000 + 200*i for i in range(21)]
-        BL_RATING = [10 - i for i in range(21)]
-        clamped = max(-2000.0, min(2000.0, float(diff_value)))
-        idx = min(range(len(BK_SPREAD)), key=lambda i: abs(BK_SPREAD[i] - clamped))
-        return int(BL_RATING[idx]), None
+        return nearest_grid_rating(diff_value, FX_GRID_X, FX_GRID_Y), None
+    if indicator.slug == "interest_rate":
+        return nearest_grid_rating(diff_value, IR_GRID_X, IR_GRID_Y), None
+    if indicator.slug == "cpi":
+        return nearest_grid_rating(diff_value, CPI_GRID_X, CPI_GRID_Y), None
+    if indicator.slug == "equity":
+        return nearest_grid_rating(diff_value, EQ_GRID_X, EQ_GRID_Y), None
 
     rules = RatingRule.objects.filter(indicator_id=indicator_id, is_active=True).order_by("min_diff")
     for rule in rules:

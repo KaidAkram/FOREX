@@ -1,0 +1,952 @@
+{
+  "GDP": [
+    {
+      "id": 1,
+      "min": "-\u221e",
+      "max": "-4.5",
+      "rating": -10,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 2,
+      "min": "-4.5",
+      "max": "-3.5",
+      "rating": -8,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 3,
+      "min": "-3.5",
+      "max": "-2.5",
+      "rating": -6,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 4,
+      "min": "-2.5",
+      "max": "-1.5",
+      "rating": -4,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 5,
+      "min": "-1.5",
+      "max": "-0.5",
+      "rating": -2,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 6,
+      "min": "-0.5",
+      "max": "0.5",
+      "rating": 0,
+      "regime": "Neutral / Balanced"
+    },
+    {
+      "id": 7,
+      "min": "0.5",
+      "max": "1.5",
+      "rating": 2,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 8,
+      "min": "1.5",
+      "max": "2.5",
+      "rating": 4,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 9,
+      "min": "2.5",
+      "max": "3.5",
+      "rating": 6,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 10,
+      "min": "3.5",
+      "max": "4.5",
+      "rating": 8,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 11,
+      "min": "4.5",
+      "max": "+\u221e",
+      "rating": 10,
+      "regime": "Strong Bullish Bias"
+    }
+  ],
+  "Current Account": [
+    {
+      "id": 1,
+      "min": "-\u221e",
+      "max": "-13.0",
+      "rating": -10,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 2,
+      "min": "-13.0",
+      "max": "-11.5",
+      "rating": -9,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 3,
+      "min": "-11.5",
+      "max": "-10.5",
+      "rating": -8,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 4,
+      "min": "-10.5",
+      "max": "-9.5",
+      "rating": -7,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 5,
+      "min": "-9.5",
+      "max": "-8.5",
+      "rating": -6,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 6,
+      "min": "-8.5",
+      "max": "-7.5",
+      "rating": -5,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 7,
+      "min": "-7.5",
+      "max": "-6.5",
+      "rating": -4,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 8,
+      "min": "-6.5",
+      "max": "-5.0",
+      "rating": -3,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 9,
+      "min": "-5.0",
+      "max": "-3.0",
+      "rating": -2,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 10,
+      "min": "-3.0",
+      "max": "-1.0",
+      "rating": -1,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 11,
+      "min": "-1.0",
+      "max": "1.0",
+      "rating": 0,
+      "regime": "Neutral / Balanced"
+    },
+    {
+      "id": 12,
+      "min": "1.0",
+      "max": "3.0",
+      "rating": 1,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 13,
+      "min": "3.0",
+      "max": "5.0",
+      "rating": 2,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 14,
+      "min": "5.0",
+      "max": "6.5",
+      "rating": 3,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 15,
+      "min": "6.5",
+      "max": "7.5",
+      "rating": 4,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 16,
+      "min": "7.5",
+      "max": "8.5",
+      "rating": 5,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 17,
+      "min": "8.5",
+      "max": "9.5",
+      "rating": 6,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 18,
+      "min": "9.5",
+      "max": "10.5",
+      "rating": 7,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 19,
+      "min": "10.5",
+      "max": "11.5",
+      "rating": 8,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 20,
+      "min": "11.5",
+      "max": "13.0",
+      "rating": 9,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 21,
+      "min": "13.0",
+      "max": "+\u221e",
+      "rating": 10,
+      "regime": "Strong Bullish Bias"
+    }
+  ],
+  "FX Reserves": [
+    {
+      "id": 1,
+      "min": "-\u221e",
+      "max": "-1900.0",
+      "rating": 10,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 2,
+      "min": "-1900.0",
+      "max": "-1700.0",
+      "rating": 9,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 3,
+      "min": "-1700.0",
+      "max": "-1500.0",
+      "rating": 8,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 4,
+      "min": "-1500.0",
+      "max": "-1300.0",
+      "rating": 7,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 5,
+      "min": "-1300.0",
+      "max": "-1100.0",
+      "rating": 6,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 6,
+      "min": "-1100.0",
+      "max": "-900.0",
+      "rating": 5,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 7,
+      "min": "-900.0",
+      "max": "-700.0",
+      "rating": 4,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 8,
+      "min": "-700.0",
+      "max": "-500.0",
+      "rating": 3,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 9,
+      "min": "-500.0",
+      "max": "-300.0",
+      "rating": 2,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 10,
+      "min": "-300.0",
+      "max": "-100.0",
+      "rating": 1,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 11,
+      "min": "-100.0",
+      "max": "100.0",
+      "rating": 0,
+      "regime": "Neutral / Balanced"
+    },
+    {
+      "id": 12,
+      "min": "100.0",
+      "max": "300.0",
+      "rating": -1,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 13,
+      "min": "300.0",
+      "max": "500.0",
+      "rating": -2,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 14,
+      "min": "500.0",
+      "max": "700.0",
+      "rating": -3,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 15,
+      "min": "700.0",
+      "max": "900.0",
+      "rating": -4,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 16,
+      "min": "900.0",
+      "max": "1100.0",
+      "rating": -5,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 17,
+      "min": "1100.0",
+      "max": "1300.0",
+      "rating": -6,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 18,
+      "min": "1300.0",
+      "max": "1500.0",
+      "rating": -7,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 19,
+      "min": "1500.0",
+      "max": "1700.0",
+      "rating": -8,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 20,
+      "min": "1700.0",
+      "max": "1900.0",
+      "rating": -9,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 21,
+      "min": "1900.0",
+      "max": "+\u221e",
+      "rating": -10,
+      "regime": "Strong Bearish Bias"
+    }
+  ],
+  "Interest Rate": [
+    {
+      "id": 1,
+      "min": "-\u221e",
+      "max": "-6.75",
+      "rating": -3,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 2,
+      "min": "-6.75",
+      "max": "-6.25",
+      "rating": -4,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 3,
+      "min": "-6.25",
+      "max": "-5.75",
+      "rating": -5,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 4,
+      "min": "-5.75",
+      "max": "-5.25",
+      "rating": -6,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 5,
+      "min": "-5.25",
+      "max": "-4.75",
+      "rating": -10,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 6,
+      "min": "-4.75",
+      "max": "-4.25",
+      "rating": -9,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 7,
+      "min": "-4.25",
+      "max": "-3.75",
+      "rating": -8,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 8,
+      "min": "-3.75",
+      "max": "-3.25",
+      "rating": -7,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 9,
+      "min": "-3.25",
+      "max": "-2.75",
+      "rating": -6,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 10,
+      "min": "-2.75",
+      "max": "-2.25",
+      "rating": -5,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 11,
+      "min": "-2.25",
+      "max": "-1.75",
+      "rating": -4,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 12,
+      "min": "-1.75",
+      "max": "-1.25",
+      "rating": -3,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 13,
+      "min": "-1.25",
+      "max": "-0.75",
+      "rating": -2,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 14,
+      "min": "-0.75",
+      "max": "-0.25",
+      "rating": -1,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 15,
+      "min": "-0.25",
+      "max": "0.25",
+      "rating": 0,
+      "regime": "Neutral / Balanced"
+    },
+    {
+      "id": 16,
+      "min": "0.25",
+      "max": "0.75",
+      "rating": 1,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 17,
+      "min": "0.75",
+      "max": "1.25",
+      "rating": 2,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 18,
+      "min": "1.25",
+      "max": "1.75",
+      "rating": 3,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 19,
+      "min": "1.75",
+      "max": "2.25",
+      "rating": 4,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 20,
+      "min": "2.25",
+      "max": "2.75",
+      "rating": 5,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 21,
+      "min": "2.75",
+      "max": "3.25",
+      "rating": 6,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 22,
+      "min": "3.25",
+      "max": "3.75",
+      "rating": 7,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 23,
+      "min": "3.75",
+      "max": "4.25",
+      "rating": 8,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 24,
+      "min": "4.25",
+      "max": "4.75",
+      "rating": 9,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 25,
+      "min": "4.75",
+      "max": "5.25",
+      "rating": 10,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 26,
+      "min": "5.25",
+      "max": "5.75",
+      "rating": 6,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 27,
+      "min": "5.75",
+      "max": "6.25",
+      "rating": 5,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 28,
+      "min": "6.25",
+      "max": "6.75",
+      "rating": 4,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 29,
+      "min": "6.75",
+      "max": "+\u221e",
+      "rating": 3,
+      "regime": "Moderate Bullish Bias"
+    }
+  ],
+  "CPI": [
+    {
+      "id": 1,
+      "min": "-\u221e",
+      "max": "-6.75",
+      "rating": -3,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 2,
+      "min": "-6.75",
+      "max": "-6.25",
+      "rating": -4,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 3,
+      "min": "-6.25",
+      "max": "-5.75",
+      "rating": -5,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 4,
+      "min": "-5.75",
+      "max": "-5.25",
+      "rating": -6,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 5,
+      "min": "-5.25",
+      "max": "-4.75",
+      "rating": -10,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 6,
+      "min": "-4.75",
+      "max": "-4.25",
+      "rating": -9,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 7,
+      "min": "-4.25",
+      "max": "-3.75",
+      "rating": -8,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 8,
+      "min": "-3.75",
+      "max": "-3.25",
+      "rating": -7,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 9,
+      "min": "-3.25",
+      "max": "-2.75",
+      "rating": -6,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 10,
+      "min": "-2.75",
+      "max": "-2.25",
+      "rating": -5,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 11,
+      "min": "-2.25",
+      "max": "-1.75",
+      "rating": -4,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 12,
+      "min": "-1.75",
+      "max": "-1.25",
+      "rating": -3,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 13,
+      "min": "-1.25",
+      "max": "-0.75",
+      "rating": -2,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 14,
+      "min": "-0.75",
+      "max": "-0.25",
+      "rating": -1,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 15,
+      "min": "-0.25",
+      "max": "0.25",
+      "rating": 0,
+      "regime": "Neutral / Balanced"
+    },
+    {
+      "id": 16,
+      "min": "0.25",
+      "max": "0.75",
+      "rating": 1,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 17,
+      "min": "0.75",
+      "max": "1.25",
+      "rating": 2,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 18,
+      "min": "1.25",
+      "max": "1.75",
+      "rating": 3,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 19,
+      "min": "1.75",
+      "max": "2.25",
+      "rating": 4,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 20,
+      "min": "2.25",
+      "max": "2.75",
+      "rating": 5,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 21,
+      "min": "2.75",
+      "max": "3.25",
+      "rating": 6,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 22,
+      "min": "3.25",
+      "max": "3.75",
+      "rating": 7,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 23,
+      "min": "3.75",
+      "max": "4.25",
+      "rating": 8,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 24,
+      "min": "4.25",
+      "max": "4.75",
+      "rating": 9,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 25,
+      "min": "4.75",
+      "max": "5.25",
+      "rating": 10,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 26,
+      "min": "5.25",
+      "max": "5.75",
+      "rating": 6,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 27,
+      "min": "5.75",
+      "max": "6.25",
+      "rating": 5,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 28,
+      "min": "6.25",
+      "max": "6.75",
+      "rating": 4,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 29,
+      "min": "6.75",
+      "max": "+\u221e",
+      "rating": 3,
+      "regime": "Moderate Bullish Bias"
+    }
+  ],
+  "Equity": [
+    {
+      "id": 1,
+      "min": "-\u221e",
+      "max": "-0.225",
+      "rating": -2,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 2,
+      "min": "-0.225",
+      "max": "-0.19",
+      "rating": -3,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 3,
+      "min": "-0.19",
+      "max": "-0.17",
+      "rating": -5,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 4,
+      "min": "-0.17",
+      "max": "-0.15",
+      "rating": -7,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 5,
+      "min": "-0.15",
+      "max": "-0.13",
+      "rating": -9,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 6,
+      "min": "-0.13",
+      "max": "-0.11",
+      "rating": -10,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 7,
+      "min": "-0.11",
+      "max": "-0.09",
+      "rating": -9,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 8,
+      "min": "-0.09",
+      "max": "-0.07",
+      "rating": -7,
+      "regime": "Strong Bearish Bias"
+    },
+    {
+      "id": 9,
+      "min": "-0.07",
+      "max": "-0.05",
+      "rating": -5,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 10,
+      "min": "-0.05",
+      "max": "-0.03",
+      "rating": -3,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 11,
+      "min": "-0.03",
+      "max": "-0.01",
+      "rating": -2,
+      "regime": "Moderate Bearish Bias"
+    },
+    {
+      "id": 12,
+      "min": "-0.01",
+      "max": "0.01",
+      "rating": 0,
+      "regime": "Neutral / Balanced"
+    },
+    {
+      "id": 13,
+      "min": "0.01",
+      "max": "0.03",
+      "rating": 2,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 14,
+      "min": "0.03",
+      "max": "0.05",
+      "rating": 3,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 15,
+      "min": "0.05",
+      "max": "0.07",
+      "rating": 5,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 16,
+      "min": "0.07",
+      "max": "0.09",
+      "rating": 7,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 17,
+      "min": "0.09",
+      "max": "0.11",
+      "rating": 9,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 18,
+      "min": "0.11",
+      "max": "0.13",
+      "rating": 10,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 19,
+      "min": "0.13",
+      "max": "0.15",
+      "rating": 9,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 20,
+      "min": "0.15",
+      "max": "0.17",
+      "rating": 7,
+      "regime": "Strong Bullish Bias"
+    },
+    {
+      "id": 21,
+      "min": "0.17",
+      "max": "0.19",
+      "rating": 5,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 22,
+      "min": "0.19",
+      "max": "0.225",
+      "rating": 3,
+      "regime": "Moderate Bullish Bias"
+    },
+    {
+      "id": 23,
+      "min": "0.225",
+      "max": "+\u221e",
+      "rating": 2,
+      "regime": "Moderate Bullish Bias"
+    }
+  ]
+}

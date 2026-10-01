@@ -265,10 +265,12 @@ def rate_interest_rate(diff):
 def rate_cpi(diff):
     import numpy as np
     if pd.isna(diff): return np.nan
-    # Exact lookup table from EXCEL8EXAMPLE.xlsx CPI data sheet (Cols AY & AZ)
-    ay = [-2.0, -1.75, -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
-    az = [2,    3,     4,    6,     10,   8,     6,    4,     0,   -4,   -6,  -8,   -10, 6,    8,   9,    10]
-    clamped = max(-2.0, min(2.0, float(diff)))
+    # Exact lookup table from rating rule.docx (same rating structure as Interest Rate indicator)
+    ay = [7.0, 6.5, 6.0, 5.5, 5.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0, 0.5, 0.0,
+          -0.5, -1.0, -1.5, -2.0, -2.5, -3.0, -3.5, -4.0, -4.5, -5.0, -5.5, -6.0, -6.5, -7.0]
+    az = [3, 4, 5, 6, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+          -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -6, -5, -4, -3]
+    clamped = max(-7.0, min(7.0, float(diff)))
     idx = min(range(len(ay)), key=lambda i: abs(ay[i] - clamped))
     return int(az[idx])
 

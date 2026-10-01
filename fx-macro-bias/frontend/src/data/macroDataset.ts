@@ -28180,57 +28180,51 @@ export function getCombinedDifferentialData(pairName: string, indicator: string,
     } else if (indicator === "CPI") {
       baseVal = rawBase.toFixed(1);
       quoteVal = rawQuote.toFixed(1);
-      diffNum = parseFloat((rawBase - rawQuote).toFixed(1));
-      diff = (diffNum > 0 ? "+" : "") + diffNum.toFixed(1);
+      diffNum = parseFloat((rawBase - rawQuote).toFixed(2));
+      diff = (diffNum >= 0 ? "+" : "") + diffNum.toFixed(2);
 
-      if (diffNum <= -2.0) {
-        rating = 10;
-        rule = "-∞ to -2.0%";
-        regime = "Strong Bullish Bias";
-      } else if (diffNum <= -1.0) {
-        rating = 5;
-        rule = "-2.0% to -1.0%";
-        regime = "Moderate Bullish Bias";
-      } else if (diffNum >= 2.0) {
-        rating = -10;
-        rule = "+2.0% to +∞";
-        regime = "Strong Bearish Bias";
-      } else if (diffNum >= 1.0) {
-        rating = -5;
-        rule = "+1.0% to +2.0%";
-        regime = "Moderate Bearish Bias";
-      } else {
-        rating = 0;
-        rule = "-1.0% to +1.0%";
-        regime = "Neutral / Balanced";
+      // Official 29-step CPI rating scale from rating rule.docx (same structure as Interest Rate)
+      const CPI_GRID_X = [7.0, 6.5, 6.0, 5.5, 5.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0, 0.5, 0.0,
+                          -0.5, -1.0, -1.5, -2.0, -2.5, -3.0, -3.5, -4.0, -4.5, -5.0, -5.5, -6.0, -6.5, -7.0];
+      const CPI_GRID_Y = [3, 4, 5, 6, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+                          -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -6, -5, -4, -3];
+      const clamped = Math.max(-7.0, Math.min(7.0, diffNum));
+      let minIdx = 0;
+      let minDiff = Math.abs(CPI_GRID_X[0] - clamped);
+      for (let i = 1; i < CPI_GRID_X.length; i++) {
+        const d = Math.abs(CPI_GRID_X[i] - clamped);
+        if (d < minDiff) {
+          minDiff = d;
+          minIdx = i;
+        }
       }
+      rating = CPI_GRID_Y[minIdx];
+      rule = `${CPI_GRID_X[minIdx] >= 0 ? "+" : ""}${CPI_GRID_X[minIdx].toFixed(1)}% Grid`;
+      regime = rating >= 7 ? "Strong Bullish Bias" : rating > 0 ? "Moderate Bullish Bias" : rating === 0 ? "Neutral / Balanced" : rating <= -7 ? "Strong Bearish Bias" : "Moderate Bearish Bias";
     } else if (indicator === "Interest Rate") {
       baseVal = rawBase.toFixed(2);
       quoteVal = rawQuote.toFixed(2);
       diffNum = parseFloat((rawBase - rawQuote).toFixed(2));
-      diff = (diffNum > 0 ? "+" : "") + diffNum.toFixed(2);
+      diff = (diffNum >= 0 ? "+" : "") + diffNum.toFixed(2);
 
-      if (diffNum >= 2.0) {
-        rating = 10;
-        rule = "2.0% to +∞";
-        regime = "Strong Bullish Bias";
-      } else if (diffNum >= 1.0) {
-        rating = 5;
-        rule = "1.0% to 2.0%";
-        regime = "Moderate Bullish Bias";
-      } else if (diffNum <= -2.0) {
-        rating = -10;
-        rule = "-∞ to -2.0%";
-        regime = "Strong Bearish Bias";
-      } else if (diffNum <= -1.0) {
-        rating = -5;
-        rule = "-2.0% to -1.0%";
-        regime = "Moderate Bearish Bias";
-      } else {
-        rating = 0;
-        rule = "-1.0% to 1.0%";
-        regime = "Neutral / Balanced";
+      // Official 29-step Interest Rate rating scale from rating rule.docx
+      const IR_GRID_X = [7.0, 6.5, 6.0, 5.5, 5.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0, 0.5, 0.0,
+                         -0.5, -1.0, -1.5, -2.0, -2.5, -3.0, -3.5, -4.0, -4.5, -5.0, -5.5, -6.0, -6.5, -7.0];
+      const IR_GRID_Y = [3, 4, 5, 6, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+                         -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -6, -5, -4, -3];
+      const clamped = Math.max(-7.0, Math.min(7.0, diffNum));
+      let minIdx = 0;
+      let minDiff = Math.abs(IR_GRID_X[0] - clamped);
+      for (let i = 1; i < IR_GRID_X.length; i++) {
+        const d = Math.abs(IR_GRID_X[i] - clamped);
+        if (d < minDiff) {
+          minDiff = d;
+          minIdx = i;
+        }
       }
+      rating = IR_GRID_Y[minIdx];
+      rule = `${IR_GRID_X[minIdx] >= 0 ? "+" : ""}${IR_GRID_X[minIdx].toFixed(1)}% Grid`;
+      regime = rating >= 7 ? "Strong Bullish Bias" : rating > 0 ? "Moderate Bullish Bias" : rating === 0 ? "Neutral / Balanced" : rating <= -7 ? "Strong Bearish Bias" : "Moderate Bearish Bias";
     } else if (indicator === "Equity") {
       const pairData = (PAIR_EQUITY_DATA as any)[pair.name] || (PAIR_EQUITY_DATA as any)[pairName] || {};
       const pt = pairData[m];
@@ -28251,34 +28245,60 @@ export function getCombinedDifferentialData(pairName: string, indicator: string,
         rule = "Neutral";
         regime = "Neutral / Balanced";
       }
+    } else if (indicator === "GDP") {
+      baseVal = rawBase.toFixed(2);
+      quoteVal = rawQuote.toFixed(2);
+      diffNum = parseFloat((rawBase - rawQuote).toFixed(2));
+      diff = (diffNum >= 0 ? "+" : "") + diffNum.toFixed(2);
+
+      // Official 11-step GDP rating scale from rating rule.docx
+      const GDP_GRID_X = [5.0, 4.0, 3.0, 2.0, 1.0, 0.0, -1.0, -2.0, -3.0, -4.0, -5.0];
+      const GDP_GRID_Y = [10, 8, 6, 4, 2, 0, -2, -4, -6, -8, -10];
+      const clamped = Math.max(-5.0, Math.min(5.0, diffNum));
+      let minIdx = 0;
+      let minDiff = Math.abs(GDP_GRID_X[0] - clamped);
+      for (let i = 1; i < GDP_GRID_X.length; i++) {
+        const d = Math.abs(GDP_GRID_X[i] - clamped);
+        if (d < minDiff) {
+          minDiff = d;
+          minIdx = i;
+        }
+      }
+      rating = GDP_GRID_Y[minIdx];
+      rule = `${GDP_GRID_X[minIdx] >= 0 ? "+" : ""}${GDP_GRID_X[minIdx].toFixed(0)}% Grid`;
+      regime = rating >= 7 ? "Strong Bullish Bias" : rating > 0 ? "Moderate Bullish Bias" : rating === 0 ? "Neutral / Balanced" : rating <= -7 ? "Strong Bearish Bias" : "Moderate Bearish Bias";
+    } else if (indicator === "Current Account") {
+      baseVal = rawBase.toFixed(2);
+      quoteVal = rawQuote.toFixed(2);
+      diffNum = parseFloat((rawBase - rawQuote).toFixed(2));
+      diff = (diffNum >= 0 ? "+" : "") + diffNum.toFixed(2);
+
+      // Official 21-step Current Account rating scale from rating rule.docx
+      const CA_GRID_X = [14.0, 12.0, 11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 4.0, 2.0, 0.0,
+                         -2.0, -4.0, -6.0, -7.0, -8.0, -9.0, -10.0, -11.0, -12.0, -14.0];
+      const CA_GRID_Y = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+                         -1, -2, -3, -4, -5, -6, -7, -8, -9, -10];
+      const clamped = Math.max(-14.0, Math.min(14.0, diffNum));
+      let minIdx = 0;
+      let minDiff = Math.abs(CA_GRID_X[0] - clamped);
+      for (let i = 1; i < CA_GRID_X.length; i++) {
+        const d = Math.abs(CA_GRID_X[i] - clamped);
+        if (d < minDiff) {
+          minDiff = d;
+          minIdx = i;
+        }
+      }
+      rating = CA_GRID_Y[minIdx];
+      rule = `${CA_GRID_X[minIdx] >= 0 ? "+" : ""}${CA_GRID_X[minIdx].toFixed(0)}% Grid`;
+      regime = rating >= 7 ? "Strong Bullish Bias" : rating > 0 ? "Moderate Bullish Bias" : rating === 0 ? "Neutral / Balanced" : rating <= -7 ? "Strong Bearish Bias" : "Moderate Bearish Bias";
     } else {
-      // GDP, Current Account, Equity (Full unrounded float precision)
       baseVal = String(rawBase);
       quoteVal = String(rawQuote);
       diffNum = rawBase - rawQuote;
       diff = (diffNum > 0 ? "+" : "") + diffNum;
-
-      if (diffNum >= 2.0) {
-        rating = 10;
-        rule = "2.0 to +∞";
-        regime = "Strong Bullish Bias";
-      } else if (diffNum >= 1.0) {
-        rating = 5;
-        rule = "1.0 to 2.0";
-        regime = "Moderate Bullish Bias";
-      } else if (diffNum <= -2.0) {
-        rating = -10;
-        rule = "-∞ to -2.0";
-        regime = "Strong Bearish Bias";
-      } else if (diffNum <= -1.0) {
-        rating = -5;
-        rule = "-2.0 to -1.0";
-        regime = "Moderate Bearish Bias";
-      } else {
-        rating = 0;
-        rule = "-1.0 to 1.0";
-        regime = "Neutral / Balanced";
-      }
+      rating = 0;
+      rule = "Neutral";
+      regime = "Neutral / Balanced";
     }
 
     return {

@@ -256,9 +256,10 @@ export default function FinalScorePage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 300 }}
                 transition={{ type: "spring", stiffness: 350, damping: 32 }}
-                className="fixed top-0 right-0 h-full w-full sm:w-[480px] max-w-full bg-[#032221]/95 backdrop-blur-3xl border-l border-[#0B453A] shadow-[-30px_0_70px_rgba(2,27,26,0.95),inset_0_1px_0_0_rgba(241,247,246,0.08)] p-5 sm:p-8 lg:p-10 z-50 overflow-y-auto flex flex-col gap-6 sm:gap-8" 
+                className="fixed top-0 right-0 h-full w-full sm:w-[500px] max-w-full bg-[#032221]/95 backdrop-blur-3xl border-l border-[#0B453A] shadow-[-30px_0_70px_rgba(2,27,26,0.95),inset_0_1px_0_0_rgba(241,247,246,0.08)] p-5 sm:p-7 z-50 overflow-y-auto flex flex-col gap-4.5 scrollbar-thin scrollbar-thumb-[#0B453A]" 
               >
-                <div className="flex items-center justify-between">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-[#0B453A]/60 shrink-0">
                   <div className="flex flex-col gap-1.5">
                     <h3 className="font-sans font-bold text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight">Score Details</h3>
                     <div className="flex items-center gap-2.5">
@@ -268,80 +269,101 @@ export default function FinalScorePage() {
                   </div>
                   <button 
                     onClick={() => setSelectedCell(null)} 
-                    className="w-10 h-10 rounded-xl bg-[#06302B] border border-[#0B453A] flex items-center justify-center hover:bg-[#095544] hover:text-[#F1F7F6] transition-colors cursor-pointer z-50 group"
+                    className="w-10 h-10 rounded-xl bg-[#06302B] border border-[#0B453A] flex items-center justify-center hover:bg-[#095544] hover:text-[#F1F7F6] transition-colors cursor-pointer z-50 group shrink-0"
                     aria-label="Close details"
                   >
                     <X size={20} className="text-[#AACBC4] group-hover:text-[#F1F7F6] transition-colors" />
                   </button>
                 </div>
 
-                <div className="flex flex-col rounded-2xl bg-[#021B1A]/80 shadow-inner border border-[#0B453A] overflow-hidden p-2">
-                  <div className="grid grid-cols-2 p-3 sm:p-4 border-b border-[#0B453A]">
-                    <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Indicator</span>
-                    <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4] text-right">Rating</span>
+                {/* 6 Indicators Table */}
+                <div className="flex flex-col rounded-2xl bg-[#021B1A]/90 shadow-inner border border-[#0B453A] shrink-0 overflow-hidden">
+                  <div className="grid grid-cols-2 px-4 py-2.5 bg-[#032221] border-b border-[#0B453A]">
+                    <span className="font-sans font-medium text-xs text-[#AACBC4] uppercase tracking-wider">Indicator (6 Total)</span>
+                    <span className="font-sans font-medium text-xs text-[#AACBC4] text-right uppercase tracking-wider">Rating</span>
                   </div>
-                  {selectedCell.data.indicators.map((item: any, i: number) => (
-                    <div key={i} className="grid grid-cols-2 p-3 sm:p-4 hover:bg-[#06302B]/60 rounded-xl transition-colors cursor-default">
-                      <span className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6]">{item.ind}</span>
-                      <span className={clsx(
-                        "font-sans font-bold text-sm sm:text-base text-right font-mono",
-                        item.val > 0 ? "text-[#00DF81]" : item.val < 0 ? "text-[#FF5555]" : "text-[#AACBC4]"
-                      )}>{item.val > 0 ? `+${item.val}` : item.val}</span>
-                    </div>
-                  ))}
-                  
-                  <div className="flex flex-col p-4 sm:p-5 mt-2 bg-[#06302B] rounded-xl gap-3 border border-[#0B453A]">
-                    <div className="flex justify-between items-center">
-                      <span className="font-sans font-medium text-sm text-[#AACBC4]">Total Rating (Sum)</span>
-                      <span className="font-sans font-bold text-lg sm:text-xl text-[#F1F7F6] font-mono">
-                        {selectedCell.data.totalScore > 0 ? `+${selectedCell.data.totalScore}` : selectedCell.data.totalScore} <span className="text-xs sm:text-sm text-[#AACBC4] font-normal">/ 60</span>
-                      </span>
-                    </div>
-                    
-                    <div className="w-full h-[1px] bg-[#0B453A]" />
-                    
-                    <div className="flex flex-col gap-1">
-                      <span className="font-sans font-medium text-xs text-[#AACBC4]">Normalization Formula:</span>
-                      <span className="font-mono text-xs text-[#AACBC4]/70 tracking-wider">
-                        ({selectedCell.data.totalScore} ÷ 60) × 100
-                      </span>
-                    </div>
+                  <div className="divide-y divide-[#0B453A]/30 p-1.5">
+                    {selectedCell.data.indicators.map((item: any, i: number) => (
+                      <div key={i} className="grid grid-cols-2 px-3 py-2.5 hover:bg-[#06302B]/60 rounded-xl transition-colors cursor-default items-center">
+                        <div className="flex items-center gap-2">
+                          <span className={clsx(
+                            "w-2 h-2 rounded-full shrink-0",
+                            item.val > 0 ? "bg-[#00DF81]" : item.val < 0 ? "bg-[#FF5555]" : "bg-[#AACBC4]/40"
+                          )} />
+                          <span className="font-sans font-bold text-sm text-[#F1F7F6]">{item.ind}</span>
+                        </div>
+                        <div className="flex justify-end">
+                          <span className={clsx(
+                            "font-sans font-bold text-xs sm:text-sm px-2.5 py-0.5 rounded-lg border font-mono min-w-[42px] text-center",
+                            item.val > 0 
+                              ? "bg-[#00DF81]/15 border-[#00DF81]/30 text-[#00DF81]" 
+                              : item.val < 0 
+                                ? "bg-[#FF5555]/15 border-[#FF5555]/30 text-[#FF5555]" 
+                                : "bg-[#06302B] border-[#0B453A] text-[#AACBC4]"
+                          )}>
+                            {item.val > 0 ? `+${item.val}` : item.val}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6]">Final Score %</span>
-                      <span className={clsx(
-                        "font-sans font-bold text-xl sm:text-2xl font-mono",
-                        parseFloat(selectedCell.data.finalScorePct) > 0 ? "text-[#00DF81]" : 
-                        parseFloat(selectedCell.data.finalScorePct) < 0 ? "text-[#FF5555]" : "text-[#F1F7F6]"
-                      )}>{parseFloat(selectedCell.data.finalScorePct) > 0 ? `+${selectedCell.data.finalScorePct}%` : `${selectedCell.data.finalScorePct}%`}</span>
-                    </div>
+                {/* Score Calculation & Normalization */}
+                <div className="flex flex-col p-4 sm:p-5 bg-[#06302B]/90 rounded-2xl gap-3 border border-[#0B453A] shadow-inner shrink-0">
+                  <div className="flex justify-between items-center">
+                    <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Total Rating (Sum of 6 Indicators)</span>
+                    <span className="font-sans font-bold text-lg sm:text-xl text-[#F1F7F6] font-mono">
+                      {selectedCell.data.totalScore > 0 ? `+${selectedCell.data.totalScore}` : selectedCell.data.totalScore} <span className="text-xs text-[#AACBC4] font-normal">/ 60</span>
+                    </span>
+                  </div>
+                  
+                  <div className="w-full h-[1px] bg-[#0B453A]" />
+                  
+                  <div className="flex flex-col gap-1">
+                    <span className="font-sans font-medium text-xs text-[#AACBC4]">Normalization Formula:</span>
+                    <span className="font-mono text-xs text-[#00DF81] tracking-wider bg-[#021B1A]/80 px-2.5 py-1 rounded-lg border border-[#0B453A]/50">
+                      ({selectedCell.data.totalScore} ÷ 60) × 100
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-0.5">
+                    <span className="font-sans font-bold text-sm text-[#F1F7F6]">Final Score %</span>
+                    <span className={clsx(
+                      "font-sans font-bold text-xl sm:text-2xl font-mono",
+                      parseFloat(selectedCell.data.finalScorePct) > 0 ? "text-[#00DF81]" : 
+                      parseFloat(selectedCell.data.finalScorePct) < 0 ? "text-[#FF5555]" : "text-[#F1F7F6]"
+                    )}>
+                      {parseFloat(selectedCell.data.finalScorePct) > 0 ? `+${selectedCell.data.finalScorePct}%` : `${selectedCell.data.finalScorePct}%`}
+                    </span>
                   </div>
 
                   <div className={clsx(
-                    "grid grid-cols-2 p-4 sm:p-5 mt-2 rounded-xl border",
-                    selectedCell.data.bias === "BULLISH" ? "bg-[#06302B] border-[#00DF81]/40" :
-                    selectedCell.data.bias === "BEARISH" ? "bg-[#2A1215] border-[#FF5555]/40" : "bg-[#06302B]/60 border-[#0B453A]"
+                    "flex justify-between items-center p-3.5 rounded-xl border mt-1",
+                    selectedCell.data.bias === "BULLISH" ? "bg-[#00DF81]/10 border-[#00DF81]/40" :
+                    selectedCell.data.bias === "BEARISH" ? "bg-[#FF5555]/10 border-[#FF5555]/40" : "bg-[#021B1A]/80 border-[#0B453A]"
                   )}>
                     <span className={clsx(
-                      "font-sans font-bold text-sm sm:text-base",
+                      "font-sans font-bold text-xs uppercase tracking-wider",
                       selectedCell.data.bias === "BULLISH" ? "text-[#00DF81]" :
-                      selectedCell.data.bias === "BEARISH" ? "text-[#FF5555]" : "text-[#F1F7F6]"
-                    )}>Bias Output</span>
+                      selectedCell.data.bias === "BEARISH" ? "text-[#FF5555]" : "text-[#AACBC4]"
+                    )}>Macro Bias Output</span>
                     <span className={clsx(
-                      "font-sans font-black text-lg sm:text-xl text-right tracking-widest drop-shadow-md",
-                      selectedCell.data.bias === "BULLISH" ? "text-[#00DF81]" :
-                      selectedCell.data.bias === "BEARISH" ? "text-[#FF5555]" : "text-[#F1F7F6]"
+                      "font-sans font-black text-base sm:text-lg tracking-widest px-3 py-1 rounded-lg font-mono",
+                      selectedCell.data.bias === "BULLISH" ? "bg-[#00DF81]/20 text-[#00DF81] shadow-[0_0_12px_rgba(0,223,129,0.3)]" :
+                      selectedCell.data.bias === "BEARISH" ? "bg-[#FF5555]/20 text-[#FF5555] shadow-[0_0_12px_rgba(255,85,85,0.3)]" : "bg-[#06302B] text-[#F1F7F6]"
                     )}>{selectedCell.data.bias}</span>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 p-4 sm:p-5 rounded-2xl bg-[#06302B]/50 border border-[#0B453A] shadow-inner mt-auto">
-                  <div className="flex items-center gap-2.5">
-                    <Info size={18} className="text-[#00DF81]" />
-                    <span className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6]">Calculation Status</span>
+                {/* Calculation Status */}
+                <div className="flex flex-col gap-2 p-3.5 sm:p-4 rounded-2xl bg-[#06302B]/40 border border-[#0B453A] shadow-inner shrink-0 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Info size={16} className="text-[#00DF81] shrink-0" />
+                    <span className="font-sans font-bold text-xs sm:text-sm text-[#F1F7F6]">Calculation Status</span>
                   </div>
-                  <p className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4] leading-relaxed">
-                    Score calculation verified. All 6 macro indicators active and synchronized with live quantitative engine.
+                  <p className="font-sans font-medium text-xs text-[#AACBC4] leading-relaxed">
+                    Score calculation verified. All 6 macro indicators (GDP, Current Account, CPI, Interest Rate, FX Reserves, Equity) active and synchronized with live quantitative engine.
                   </p>
                 </div>
               </motion.div>

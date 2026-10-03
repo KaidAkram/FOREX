@@ -69,7 +69,7 @@ def audit():
         "Current Account": ("CA GDP DATA", 7, 27, "AY", "AZ", False),
         "FX Reserve": ("FX RESERVE DATA", 3, 23, "BK", "BL", False),
         "Interest Rate": ("Interest Rates data", 3, 31, "AZ", "BA", False),
-        "CPI": ("CPI data", 6, 34, "AY", "AZ", False),
+        "CPI": ("CPI data", 6, 22, "AY", "AZ", False),
         "Equity": ("EQUITY", 7, 29, "BJ", "BK", True),
     }
 

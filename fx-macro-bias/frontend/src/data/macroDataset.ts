@@ -26916,11 +26916,9 @@ export function getCombinedDifferentialData(pairName: string, indicator: string,
       diffNum = parseFloat((b - q).toFixed(2));
       diff = (diffNum >= 0 ? "+" : "") + diffNum.toFixed(2);
 
-      const CPI_GRID_X = [7.0, 6.5, 6.0, 5.5, 5.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0, 0.5, 0.0,
-                          -0.5, -1.0, -1.5, -2.0, -2.5, -3.0, -3.5, -4.0, -4.5, -5.0, -5.5, -6.0, -6.5, -7.0];
-      const CPI_GRID_Y = [3, 4, 5, 6, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
-                          -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -6, -5, -4, -3];
-      const clamped = Math.max(-7.0, Math.min(7.0, diffNum));
+      const CPI_GRID_X = [-2.0, -1.75, -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+      const CPI_GRID_Y = [2, 3, 4, 6, 10, 8, 6, 4, 0, -4, -6, -8, -10, 6, 8, 9, 10];
+      const clamped = Math.max(-2.0, Math.min(2.0, diffNum));
       let minIdx = 0;
       let minDiff = Math.abs(CPI_GRID_X[0] - clamped);
       for (let i = 1; i < CPI_GRID_X.length; i++) {
@@ -26931,7 +26929,7 @@ export function getCombinedDifferentialData(pairName: string, indicator: string,
         }
       }
       rating = CPI_GRID_Y[minIdx];
-      rule = `${CPI_GRID_X[minIdx] >= 0 ? "+" : ""}${CPI_GRID_X[minIdx].toFixed(1)}% Grid`;
+      rule = `${CPI_GRID_X[minIdx] >= 0 ? "+" : ""}${CPI_GRID_X[minIdx].toFixed(2)}% Grid`;
       regime = rating >= 7 ? "Strong Bullish Bias" : rating > 0 ? "Moderate Bullish Bias" : rating === 0 ? "Neutral / Balanced" : rating <= -7 ? "Strong Bearish Bias" : "Moderate Bearish Bias";
     } else if (indicator === "Interest Rate") {
       const b = rawBase ?? 0;

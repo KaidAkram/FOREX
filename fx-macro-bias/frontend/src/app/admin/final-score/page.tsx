@@ -83,7 +83,7 @@ export default function FinalScorePage() {
   return (
     <div className="flex flex-col w-full h-full min-h-screen bg-transparent relative justify-between">
       {/* Page Header */}
-      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-40 flex-shrink-0 gap-4" style={{ animationDelay: "0.1s" }}>
+      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-50 flex-shrink-0 gap-4" style={{ animationDelay: "0.1s" }}>
         <div className="flex flex-col gap-1">
           <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Output</span>
           <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">

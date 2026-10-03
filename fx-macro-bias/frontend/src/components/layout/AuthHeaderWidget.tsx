@@ -67,7 +67,7 @@ export function AuthHeaderWidget() {
 
   // When Logged In
   return (
-    <div className="relative flex items-center gap-2" ref={dropdownRef}>
+    <div className="relative z-50 flex items-center gap-2" ref={dropdownRef}>
       {/* Profile Trigger Pill */}
       <button
         type="button"
@@ -117,7 +117,7 @@ export function AuthHeaderWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-[calc(100%+8px)] right-0 w-[240px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-2xl p-2 shadow-2xl z-50 flex flex-col gap-1"
+            className="absolute top-[calc(100%+8px)] right-0 w-[240px] bg-[#032221] border border-[#0B453A] rounded-2xl p-2 shadow-[0_25px_60px_rgba(2,27,26,0.98),0_0_30px_rgba(0,0,0,0.85)] z-[200] flex flex-col gap-1 ring-1 ring-[#00DF81]/20"
           >
             {/* Header info */}
             <div className="px-3 py-2 border-b border-[#0B453A] flex flex-col gap-0.5">

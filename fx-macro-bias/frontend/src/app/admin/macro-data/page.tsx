@@ -210,7 +210,7 @@ export default function MacroDataPage() {
     <div className="flex flex-col w-full h-full min-h-screen bg-transparent relative justify-between">
       
       {/* 1. Header */}
-      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-40 flex-shrink-0 gap-4" style={{ animationDelay: "0.1s" }}>
+      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-50 flex-shrink-0 gap-4" style={{ animationDelay: "0.1s" }}>
         <div className="flex flex-col gap-1">
           <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Data Pipeline</span>
           <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">
@@ -228,7 +228,7 @@ export default function MacroDataPage() {
       <main className="flex-1 flex flex-col px-4 sm:px-6 lg:px-10 gap-4 pb-8 max-w-[1600px] w-full mx-auto justify-between">
         
         {/* Controls Toolbar */}
-        <div className="relative z-40 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 opacity-0 animate-slideUp">
+        <div className="relative z-20 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 opacity-0 animate-slideUp">
           
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0">
             {/* View Mode Switcher */}
@@ -294,7 +294,7 @@ export default function MacroDataPage() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 6, scale: 0.97 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-2xl shadow-[0_20px_50px_rgba(2,27,26,0.9)] z-[100] p-1.5 flex flex-col gap-1"
+                    className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-2xl shadow-[0_20px_50px_rgba(2,27,26,0.9)] z-30 p-1.5 flex flex-col gap-1"
                   >
                     <div className="px-2 py-1 text-[10px] font-mono text-[#AACBC4] uppercase tracking-wider">
                       Year

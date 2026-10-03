@@ -221,7 +221,7 @@ export default function RatingRulesPage() {
   return (
     <div className="flex flex-col w-full min-h-full bg-transparent relative justify-start">
       {/* Header */}
-      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-40 flex-shrink-0 gap-4">
+      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-50 flex-shrink-0 gap-4">
         <div className="flex flex-col gap-0.5">
           <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Logic Configuration</span>
           <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">

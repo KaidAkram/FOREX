@@ -500,7 +500,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="flex flex-col w-full h-full bg-transparent overflow-y-auto no-scrollbar">
       {/* --- Top Header (Clean Institutional Spacing & No Awkward Wrap) --- */}
-      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-40 flex-shrink-0 gap-4">
+      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-50 flex-shrink-0 gap-4">
         <div className="flex flex-col gap-1 min-w-max">
           <div className="flex items-center gap-3">
             <span className="font-sans font-medium text-xs text-[#AACBC4] tracking-wide">

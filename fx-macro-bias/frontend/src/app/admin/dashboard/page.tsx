@@ -31,23 +31,23 @@ import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
 import { PAIRS, INDICATORS, SYSTEM_CURRENT_YEAR, SYSTEM_CURRENT_MONTH } from "@/data/macroDataset";
 import macroDataJson from "@/data/macroDataset.json";
 
-const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] transition-all";
+const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[20px] sm:rounded-[24px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] transition-all";
 
 const CURRENCY_META: Record<string, { code: string; flag: string; name: string; stance: string; rationale: string }> = {
-  USD: { code: "USD", flag: "us", name: "United States", stance: "Hawkish Hold", rationale: "Resilient labor market & firm services inflation" },
-  EUR: { code: "EUR", flag: "eu", name: "Euro Area", stance: "Easing Bias", rationale: "Subdued manufacturing PMI & target disinflation" },
-  GBP: { code: "GBP", flag: "gb", name: "United Kingdom", stance: "Persistent Rates", rationale: "Services CPI stickiness keeping Bank Rate elevated" },
-  JPY: { code: "JPY", flag: "jp", name: "Japan", stance: "Policy Normalization", rationale: "Ending negative rates with rising wage momentum" },
-  AUD: { code: "AUD", flag: "au", name: "Australia", stance: "Balanced / Neutral", rationale: "RBA waiting on trimmed mean CPI convergence" },
-  CAD: { code: "CAD", flag: "ca", name: "Canada", stance: "Gradual Easing", rationale: "Per-capita GDP slowdown & cooling headline prints" },
-  CHF: { code: "CHF", flag: "ch", name: "Switzerland", stance: "Dovish Intervention", rationale: "SNB rate cuts to curtail Franc overvaluation" },
-  NZD: { code: "NZD", flag: "nz", name: "New Zealand", stance: "Aggressive Easing", rationale: "RBNZ responding to negative economic output gap" },
+  USD: { code: "USD", flag: "us", name: "United States", stance: "Hawkish", rationale: "Resilient labor market & firm services inflation" },
+  EUR: { code: "EUR", flag: "eu", name: "Euro Area", stance: "Easing", rationale: "Subdued manufacturing PMI & target disinflation" },
+  GBP: { code: "GBP", flag: "gb", name: "United Kingdom", stance: "Hawkish", rationale: "Services CPI stickiness keeping Bank Rate elevated" },
+  JPY: { code: "JPY", flag: "jp", name: "Japan", stance: "Normalizing", rationale: "Ending negative rates with rising wage momentum" },
+  AUD: { code: "AUD", flag: "au", name: "Australia", stance: "Neutral", rationale: "RBA waiting on trimmed mean CPI convergence" },
+  CAD: { code: "CAD", flag: "ca", name: "Canada", stance: "Easing", rationale: "Per-capita GDP slowdown & cooling headline prints" },
+  CHF: { code: "CHF", flag: "ch", name: "Switzerland", stance: "Dovish", rationale: "SNB rate cuts to curtail Franc overvaluation" },
+  NZD: { code: "NZD", flag: "nz", name: "New Zealand", stance: "Dovish", rationale: "RBNZ responding to negative economic output gap" },
 };
 
 const FlagStack = ({ base, quote }: { base: string; quote: string }) => (
   <div className="flex items-center flex-shrink-0 mr-1.5">
-    <img src={`/flags/${base}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#0B453A] z-10 shadow-sm" alt={base} />
-    <img src={`/flags/${quote}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#0B453A] -ml-2 z-0 shadow-sm" alt={quote} />
+    <img src={`/flags/${base}.svg`} className="w-[18px] h-[18px] rounded-full border border-[#0B453A] z-10 shadow-sm" alt={base} />
+    <img src={`/flags/${quote}.svg`} className="w-[18px] h-[18px] rounded-full border border-[#0B453A] -ml-1.5 z-0 shadow-sm" alt={quote} />
   </div>
 );
 
@@ -72,12 +72,12 @@ const LATEST_PUBLISHED_FEED = [
 
 // Official indicator pipeline status telemetry
 const PIPELINE_STATUS_CARDS = [
-  { ind: "CPI", status: "Active Ingestion", last: "Aug 2026 (3.4% US / 1.9% JP)", next: "Oct 14, 2026", protocol: "REST API + Web Scraper", coverage: "10 G10 Nations", cycle: "Monthly" },
-  { ind: "Interest Rate", status: "Synchronized", last: "Sep 2026 (4.00% US / 4.25% UK)", next: "Nov 05, 2026", protocol: "Central Bank Direct Portals", coverage: "10 Central Banks", cycle: "Decision Dates" },
-  { ind: "FX Reserves", status: "12M Rolling Active", last: "Aug 2026 ($1.23T JP / $38.5B US)", next: "Oct 05, 2026", protocol: "IMF SDMX 3.0 Feed", coverage: "G10 Reserve Portfolios", cycle: "Monthly" },
-  { ind: "GDP", status: "Q2 Published / Q3 Fcst", last: "Q2 2026 (1.8% US / 0.9% EA)", next: "Oct 28, 2026", protocol: "OECD SDMX 3.0 + BEA", coverage: "10 Sovereign Real Growth", cycle: "Quarterly" },
-  { ind: "Current Account", status: "Published Only", last: "Q2 2026 (+4.2% JP / -3.0% US)", next: "Dec 18, 2026", protocol: "IMF Balance of Payments (BOP)", coverage: "8 Major Currency Zones", cycle: "Quarterly" },
-  { ind: "Equity", status: "Continuous Sync", last: "Sep 2026 (S&P 500 / Nikkei / DAX)", next: "Daily Market Close", protocol: "G10 Benchmark Equity Engine", coverage: "7 Sovereign Equity Baskets", cycle: "Daily / Monthly" },
+  { ind: "CPI", status: "Active", last: "Aug 2026 (3.4% US / 1.9% JP)", next: "Oct 14, 2026", protocol: "REST API + Web Scraper", coverage: "10 G10 Nations", cycle: "Monthly" },
+  { ind: "Interest Rate", status: "Synchronized", last: "Sep 2026 (4.00% US / 4.25% UK)", next: "Nov 05, 2026", protocol: "Central Bank Direct", coverage: "10 Central Banks", cycle: "Decision Dates" },
+  { ind: "FX Reserves", status: "12M Rolling Active", last: "Aug 2026 ($1.23T JP / $38.5B US)", next: "Oct 05, 2026", protocol: "IMF SDMX 3.0 Feed", coverage: "G10 Reserves", cycle: "Monthly" },
+  { ind: "GDP", status: "Q2 Pub / Q3 Fcst", last: "Q2 2026 (1.8% US / 0.9% EA)", next: "Oct 28, 2026", protocol: "OECD SDMX 3.0 + BEA", coverage: "10 Nations", cycle: "Quarterly" },
+  { ind: "Current Account", status: "Published Only", last: "Q2 2026 (+4.2% JP / -3.0% US)", next: "Dec 18, 2026", protocol: "IMF Balance of Payments", coverage: "8 Currency Zones", cycle: "Quarterly" },
+  { ind: "Equity", status: "Continuous Sync", last: "Sep 2026 (S&P 500 / Nikkei / DAX)", next: "Daily Close", protocol: "Benchmark Index Engine", coverage: "7 Sovereign Baskets", cycle: "Daily / Monthly" },
 ];
 
 export default function DashboardPage() {
@@ -212,52 +212,56 @@ export default function DashboardPage() {
       initial="hidden"
       animate="show"
       variants={containerVariants}
-      className="flex flex-col w-full h-full bg-transparent relative overflow-y-auto no-scrollbar pb-16"
+      className="flex flex-col w-full min-h-full bg-transparent relative pb-16"
     >
       {/* --- Top Header (relative z-50 to guarantee zero dropdown collision) --- */}
       <motion.header 
         variants={itemVariants}
-        className="w-full flex flex-col md:flex-row items-start md:items-center justify-between p-4 sm:p-6 lg:p-[32px_44px] pb-4 sm:pb-6 gap-4 relative z-50 flex-shrink-0"
+        className="w-full flex flex-col 2xl:flex-row items-start 2xl:items-center justify-between p-4 sm:p-6 lg:p-[20px_32px] pb-3 sm:pb-4 gap-3.5 sm:gap-4 relative z-50 flex-shrink-0"
       >
-        <div className="flex flex-col gap-1.5">
+        {/* Title Container: Never squished or wrapped awkwardly */}
+        <div className="flex flex-col gap-1 shrink-0 min-w-max">
           <div className="flex items-center gap-2">
-            <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">ShiftFX Architecture</span>
-            <span className="text-[10px] sm:text-[11px] font-mono font-bold text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-[0_0_10px_rgba(0,223,129,0.15)]">
+            <span className="font-sans font-medium text-xs text-[#AACBC4] whitespace-nowrap">ShiftFX Architecture</span>
+            <span className="text-[10px] font-mono font-bold text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-2 py-0.5 rounded-full flex items-center gap-1.5 shadow-[0_0_10px_rgba(0,223,129,0.15)] shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-[#00DF81] animate-pulse" />
               LIVE QUANT ENGINE
             </span>
           </div>
-          <h1 className="font-sans font-bold text-2xl sm:text-3xl lg:text-[38px] text-[#F1F7F6] tracking-tight leading-none">
+          <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none whitespace-nowrap">
             Terminal Dashboard
           </h1>
         </div>
         
-        <div className="flex items-center gap-2.5 sm:gap-3.5 w-full md:w-auto justify-between md:justify-end flex-wrap sm:flex-nowrap">
-          <GlobalSearch placeholder="Search pairs, indicators, countries..." onSearch={(q) => setSearchQuery(q)} />
+        {/* Controls Container: Cleanly aligned with proper compact boundaries */}
+        <div className="flex items-center gap-2 sm:gap-2.5 w-full 2xl:w-auto justify-between 2xl:justify-end flex-wrap sm:flex-nowrap">
+          <div className="w-[180px] sm:w-[200px] md:w-[220px] shrink-0">
+            <GlobalSearch placeholder="Search pairs, indicators..." onSearch={(q) => setSearchQuery(q)} />
+          </div>
           
           {/* Active Matrix Period Selector */}
-          <div className="flex items-center gap-2 bg-[#032221]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3 py-2 shadow-lg shrink-0">
-            <Calendar size={14} className="text-[#00DF81]" />
+          <div className="flex items-center gap-1.5 bg-[#032221]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-2.5 py-1.5 shadow-lg shrink-0">
+            <Calendar size={13} className="text-[#00DF81]" />
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
               aria-label="Select evaluation period"
-              className="bg-transparent font-mono font-bold text-xs text-[#F1F7F6] outline-none cursor-pointer pr-1"
+              className="bg-transparent font-mono font-bold text-[11px] text-[#F1F7F6] outline-none cursor-pointer pr-1"
             >
               <option value="2026-07" className="bg-[#032221] text-[#F1F7F6]">2026-07 (Published)</option>
               <option value="2026-08" className="bg-[#032221] text-[#F1F7F6]">2026-08 (Published)</option>
               <option value="2026-09" className="bg-[#032221] text-[#F1F7F6]">2026-09 (Current Live)</option>
               <option value="2026-06" className="bg-[#032221] text-[#F1F7F6]">2026-06 (Historical Q2)</option>
-              <option value="2025-12" className="bg-[#032221] text-[#F1F7F6]">2025-12 (Full Benchmark)</option>
+              <option value="2025-12" className="bg-[#032221] text-[#F1F7F6]">2025-12 (Benchmark)</option>
             </select>
           </div>
 
           {/* Institutional UTC Telemetry Clock */}
-          <div className="hidden xl:flex items-center gap-2.5 bg-[#032221]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3.5 py-2 shadow-lg shrink-0">
-            <Clock size={15} className="text-[#00DF81]" />
+          <div className="hidden lg:flex items-center gap-2 bg-[#032221]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3 py-1.5 shadow-lg shrink-0">
+            <Clock size={13} className="text-[#00DF81]" />
             <div className="flex flex-col">
-              <span className="font-sans font-medium text-[9px] text-[#AACBC4] leading-none mb-0.5">London / UTC</span>
-              <span className="font-mono font-bold text-xs text-[#F1F7F6] leading-none">Oct 03, 18:30 UTC</span>
+              <span className="font-sans font-medium text-[8px] text-[#AACBC4] uppercase tracking-wider leading-none mb-0.5">London / UTC</span>
+              <span className="font-mono font-bold text-[11px] text-[#F1F7F6] leading-none whitespace-nowrap">Oct 03, 18:45 UTC</span>
             </div>
           </div>
 
@@ -266,7 +270,7 @@ export default function DashboardPage() {
       </motion.header>
 
       {/* --- Main Content (relative z-10) --- */}
-      <main className="flex flex-col px-4 sm:px-6 lg:px-10 gap-6 sm:gap-8 max-w-[1600px] w-full mx-auto relative z-10">
+      <main className="flex flex-col px-4 sm:px-6 lg:px-9 gap-5 sm:gap-6 max-w-[1600px] w-full mx-auto relative z-10">
 
         {/* System Refresh Alert Banner */}
         <AnimatePresence>
@@ -275,10 +279,10 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-[#00DF81]/15 border border-[#00DF81]/40 text-[#F1F7F6] shadow-[0_0_25px_rgba(0,223,129,0.2)]"
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-[#00DF81]/15 border border-[#00DF81]/40 text-[#F1F7F6] shadow-[0_0_25px_rgba(0,223,129,0.2)]"
             >
               <div className="flex items-center gap-2.5">
-                <CheckCircle2 size={18} className="text-[#00DF81]" />
+                <CheckCircle2 size={16} className="text-[#00DF81]" />
                 <span className="font-sans font-semibold text-xs sm:text-sm">{refreshNotice}</span>
               </div>
               <span className="font-mono text-xs text-[#00DF81] font-bold">200 OK</span>
@@ -287,27 +291,27 @@ export default function DashboardPage() {
         </AnimatePresence>
 
         {/* 1. Core KPIs Row */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-4.5">
           
           {/* Total Pairs Tracked */}
           <motion.div 
-            whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className={clsx("p-5 sm:p-6 flex flex-col justify-between", matteCard)}
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+            className={clsx("p-4 sm:p-5 flex flex-col justify-between gap-3", matteCard)}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 rounded-xl bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81]">
-                  <Database size={18} />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81]">
+                  <Database size={16} />
                 </div>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Active FX Pairs</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4] whitespace-nowrap">Active FX Pairs</span>
               </div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#06302B] text-[#00DF81] border border-[#0B453A]">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#06302B] text-[#00DF81] border border-[#0B453A]">
                 G10 Matrix
               </span>
             </div>
             <div>
               <div className="flex items-baseline">
-                <span className="font-sans font-black text-3xl sm:text-4xl text-[#F1F7F6] tracking-tight leading-none">
+                <span className="font-sans font-black text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">
                   {biasDistribution.total}
                 </span>
                 <span className="font-sans font-bold text-xs text-[#00DF81] ml-2.5">
@@ -315,7 +319,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between text-[11px] font-sans text-[#AACBC4] mt-2 pt-2 border-t border-[#0B453A]/40">
-                <span>7 USD Majors • 14 G10 Crosses</span>
+                <span>7 Majors • 14 Crosses</span>
                 <Link href="/admin/final-score" className="text-[#00DF81] hover:underline flex items-center gap-0.5 font-semibold">
                   Matrix <ArrowRight size={11} />
                 </Link>
@@ -325,20 +329,22 @@ export default function DashboardPage() {
 
           {/* Macro Bias Distribution */}
           <motion.div 
-            whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className={clsx("flex flex-col justify-between p-5 sm:p-6 gap-3.5", matteCard)}
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+            className={clsx("flex flex-col justify-between p-4 sm:p-5 gap-3", matteCard)}
           >
-            <div className="flex justify-between items-center">
-              <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Macro Bias Breakdown</span>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono font-bold text-[#00DF81]">+{biasDistribution.bullish}</span>
-                <span className="text-[11px] font-mono text-[#AACBC4]">/ {biasDistribution.neutral} /</span>
-                <span className="text-[11px] font-mono font-bold text-[#FF5555]">-{biasDistribution.bearish}</span>
+            <div className="flex justify-between items-center gap-2 whitespace-nowrap">
+              <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Macro Bias</span>
+              <div className="flex items-center gap-1.5 font-mono text-[11px] whitespace-nowrap shrink-0 bg-[#021B1A]/80 px-2 py-0.5 rounded-lg border border-[#0B453A]/60">
+                <span className="font-bold text-[#00DF81]">+{biasDistribution.bullish}</span>
+                <span className="text-[#AACBC4]/40">/</span>
+                <span className="text-[#AACBC4]">{biasDistribution.neutral}</span>
+                <span className="text-[#AACBC4]/40">/</span>
+                <span className="font-bold text-[#FF5555]">-{biasDistribution.bearish}</span>
               </div>
             </div>
 
             {/* Segmented Gradient Visual Distribution Bar */}
-            <div className="w-full h-3 rounded-full flex overflow-hidden bg-[#06302B] p-0.5 border border-[#0B453A]">
+            <div className="w-full h-2.5 rounded-full flex overflow-hidden bg-[#06302B] p-0.5 border border-[#0B453A]">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${biasDistribution.bullishPct}%` }}
@@ -371,40 +377,40 @@ export default function DashboardPage() {
 
           {/* Active Macro Indicators */}
           <motion.div 
-            whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className={clsx("flex flex-col justify-between p-5 sm:p-6 gap-3", matteCard)}
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+            className={clsx("flex flex-col justify-between p-4 sm:p-5 gap-3", matteCard)}
           >
             <div className="flex justify-between items-center">
               <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Active Indicators</span>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30">
                 100% Ingested
               </span>
             </div>
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="font-sans font-black text-3xl sm:text-4xl text-[#F1F7F6] tracking-tight leading-none">
+                <span className="font-sans font-black text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">
                   6
                 </span>
-                <span className="font-sans font-bold text-lg text-[#AACBC4]/60">
+                <span className="font-sans font-bold text-base text-[#AACBC4]/60">
                   / 6
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs font-sans text-[#00DF81] mt-2 font-semibold">
-                <CheckCircle2 size={14} className="shrink-0" />
-                <span>GDP, CA, CPI, Rates, FX, Equity</span>
+              <div className="flex items-center gap-1.5 text-xs font-sans text-[#00DF81] mt-2 font-semibold truncate">
+                <CheckCircle2 size={13} className="shrink-0" />
+                <span className="truncate">GDP, CA, CPI, Rates, FX, Equity</span>
               </div>
             </div>
           </motion.div>
 
           {/* Model Calculation & Quick Sync */}
           <motion.div 
-            whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className={clsx("flex flex-col justify-between p-5 sm:p-6 gap-3", matteCard)}
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+            className={clsx("flex flex-col justify-between p-4 sm:p-5 gap-3", matteCard)}
           >
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Pipeline Status</span>
-                <span className="font-sans font-bold text-sm text-[#F1F7F6] font-mono mt-0.5">
+                <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Status</span>
+                <span className="font-sans font-bold text-sm text-[#F1F7F6] font-mono mt-0.5 whitespace-nowrap">
                   Synchronized & Live
                 </span>
               </div>
@@ -412,77 +418,77 @@ export default function DashboardPage() {
                 onClick={handleRefreshPipeline}
                 disabled={isRefreshing}
                 className={clsx(
-                  "p-2.5 rounded-xl border transition-all cursor-pointer shadow-md",
+                  "p-2 rounded-xl border transition-all cursor-pointer shadow-md shrink-0",
                   isRefreshing 
                     ? "bg-[#00DF81]/20 border-[#00DF81] text-[#00DF81] cursor-not-allowed" 
                     : "bg-[#06302B] hover:bg-[#095544] border-[#0B453A] text-[#AACBC4] hover:text-[#F1F7F6]"
                 )}
                 title="Trigger Live Quantitative Recalculation"
               >
-                <RefreshCw size={15} className={clsx(isRefreshing && "animate-spin text-[#00DF81]")} />
+                <RefreshCw size={14} className={clsx(isRefreshing && "animate-spin text-[#00DF81]")} />
               </button>
             </div>
             <div className="pt-2 border-t border-[#0B453A]/40 flex items-center justify-between text-xs font-sans">
-              <span className="text-[#AACBC4]">Evaluation Period:</span>
+              <span className="text-[#AACBC4]">Period:</span>
               <span className="font-mono font-bold text-[#00DF81]">{selectedMonth}</span>
             </div>
           </motion.div>
         </motion.div>
 
         {/* 2. G10 Sovereign Currency Strength Meter */}
-        <motion.div variants={itemVariants} className={clsx("p-5 sm:p-7 flex flex-col gap-5", matteCard)}>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#0B453A]/50 pb-4">
+        <motion.div variants={itemVariants} className={clsx("p-4 sm:p-6 flex flex-col gap-4", matteCard)}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#0B453A]/50 pb-3">
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-2">
-                <Activity size={18} className="text-[#00DF81]" />
-                <h2 className="font-sans font-bold text-lg sm:text-xl text-[#F1F7F6] tracking-tight">
+                <Activity size={17} className="text-[#00DF81]" />
+                <h2 className="font-sans font-bold text-base sm:text-lg text-[#F1F7F6] tracking-tight">
                   G10 Sovereign Currency Strength Meter
                 </h2>
               </div>
-              <p className="font-sans text-xs sm:text-sm text-[#AACBC4]">
+              <p className="font-sans text-xs text-[#AACBC4]">
                 Relative macroeconomic momentum index computed from live 6-indicator composite differential matrix ({selectedMonth})
               </p>
             </div>
             <div className="flex items-center gap-3 text-xs font-mono">
               <span className="flex items-center gap-1.5 text-[#00DF81]">
-                <span className="w-2 h-2 rounded-full bg-[#00DF81]" /> Leading Carry / Growth
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00DF81]" /> Leading Carry / Growth
               </span>
               <span className="flex items-center gap-1.5 text-[#FF5555]">
-                <span className="w-2 h-2 rounded-full bg-[#FF5555]" /> Funding / Easing
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FF5555]" /> Funding / Easing
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2.5 sm:gap-3">
             {currencyStrengthRanking.map((curr) => {
               const isPositive = curr.score > 0;
               const isNeutral = curr.score === 0;
               return (
                 <div 
                   key={curr.code}
-                  className="flex flex-col p-3.5 rounded-2xl bg-[#021B1A]/80 border border-[#0B453A] hover:border-[#00DF81]/40 hover:bg-[#06302B]/60 transition-all duration-200 group"
+                  className="flex flex-col p-3 rounded-xl bg-[#021B1A]/80 border border-[#0B453A] hover:border-[#00DF81]/40 hover:bg-[#06302B]/60 transition-all duration-200 group"
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-1.5">
                     <span className="font-mono text-[10px] font-bold text-[#AACBC4]/70">
                       #{curr.rank}
                     </span>
                     <span className={clsx(
-                      "font-mono font-bold text-xs px-1.5 py-0.5 rounded-md",
+                      "font-mono font-bold text-[11px] px-1.5 py-0.5 rounded-md",
                       isPositive ? "bg-[#00DF81]/15 text-[#00DF81]" : isNeutral ? "bg-[#AACBC4]/10 text-[#AACBC4]" : "bg-[#FF5555]/15 text-[#FF5555]"
                     )}>
                       {curr.score > 0 ? `+${curr.score}%` : `${curr.score}%`}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 mb-2">
-                    <img src={`/flags/${curr.flag}.svg`} className="w-5 h-5 rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={curr.code} />
-                    <span className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <img src={`/flags/${curr.flag}.svg`} className="w-4 h-4 rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={curr.code} />
+                    <span className="font-sans font-bold text-sm text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
                       {curr.code}
                     </span>
                   </div>
 
                   {/* Relative strength visual gauge */}
-                  <div className="w-full h-1.5 rounded-full bg-[#06302B] overflow-hidden mb-2">
+                  <div className="w-full h-1 rounded-full bg-[#06302B] overflow-hidden mb-1.5">
                     <div 
                       className={clsx(
                         "h-full rounded-full transition-all duration-500",
@@ -492,9 +498,17 @@ export default function DashboardPage() {
                     />
                   </div>
 
-                  <span className="text-[10px] font-sans font-medium text-[#AACBC4] truncate leading-tight">
-                    {curr.stance}
-                  </span>
+                  <div className="flex items-center justify-center">
+                    <span 
+                      className={clsx(
+                        "text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border text-center w-full truncate",
+                        isPositive ? "bg-[#00DF81]/10 text-[#00DF81] border-[#00DF81]/25" : isNeutral ? "bg-[#06302B] text-[#AACBC4] border-[#0B453A]" : "bg-[#FF5555]/10 text-[#FF5555] border-[#FF5555]/25"
+                      )}
+                      title={`${curr.name}: ${curr.stance} — ${curr.rationale}`}
+                    >
+                      {curr.stance}
+                    </span>
+                  </div>
                 </div>
               );
             })}
@@ -502,11 +516,11 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* 3. Top High-Conviction Macro Opportunities (Alpha Pairs) */}
-        <motion.div variants={itemVariants} className="flex flex-col gap-4">
+        <motion.div variants={itemVariants} className="flex flex-col gap-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap size={18} className="text-[#00DF81]" />
-              <h2 className="font-sans font-bold text-lg sm:text-xl text-[#F1F7F6] tracking-tight">
+              <Zap size={17} className="text-[#00DF81]" />
+              <h2 className="font-sans font-bold text-base sm:text-lg text-[#F1F7F6] tracking-tight">
                 High-Conviction Sovereign Opportunities ({selectedMonth})
               </h2>
             </div>
@@ -514,18 +528,18 @@ export default function DashboardPage() {
               href="/admin/final-score" 
               className="text-xs font-sans font-bold text-[#00DF81] hover:underline flex items-center gap-1"
             >
-              Explore Full 21-Pair Matrix <ChevronRight size={14} />
+              Explore Full 21-Pair Matrix <ChevronRight size={13} />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
             {/* Bullish Opportunities */}
             {topOpportunities.topBullish.map((pair) => (
               <Link 
                 key={pair.name}
                 href="/admin/final-score"
                 className={clsx(
-                  "p-5 rounded-2xl flex flex-col justify-between gap-3 group hover:scale-[1.01] transition-all cursor-pointer border border-[#0B453A] hover:border-[#00DF81]/50 bg-[#032221]/90 shadow-lg",
+                  "p-4 rounded-2xl flex flex-col justify-between gap-2.5 group hover:scale-[1.01] transition-all cursor-pointer border border-[#0B453A] hover:border-[#00DF81]/50 bg-[#032221]/90 shadow-lg",
                   "hover:shadow-[0_12px_30px_rgba(0,223,129,0.12)]"
                 )}
               >
@@ -536,13 +550,13 @@ export default function DashboardPage() {
                       {pair.name}
                     </span>
                   </div>
-                  <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30">
+                  <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30">
                     BULLISH
                   </span>
                 </div>
 
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="font-sans font-black text-2xl sm:text-3xl text-[#00DF81] font-mono">
+                <div className="flex items-baseline justify-between mt-0.5">
+                  <span className="font-sans font-black text-xl sm:text-2xl text-[#00DF81] font-mono">
                     +{pair.finalScorePct}%
                   </span>
                   <span className="text-xs font-mono text-[#AACBC4]">
@@ -552,7 +566,7 @@ export default function DashboardPage() {
 
                 <div className="pt-2 border-t border-[#0B453A]/50 flex items-center justify-between text-[11px] font-sans text-[#AACBC4]">
                   <span>Strong Carry & Yield Spread</span>
-                  <span className="text-[#00DF81] group-hover:translate-x-1 transition-transform">Inspect →</span>
+                  <span className="text-[#00DF81] group-hover:translate-x-1 transition-transform font-medium">Inspect →</span>
                 </div>
               </Link>
             ))}
@@ -563,7 +577,7 @@ export default function DashboardPage() {
                 key={pair.name}
                 href="/admin/final-score"
                 className={clsx(
-                  "p-5 rounded-2xl flex flex-col justify-between gap-3 group hover:scale-[1.01] transition-all cursor-pointer border border-[#0B453A] hover:border-[#FF5555]/50 bg-[#032221]/90 shadow-lg",
+                  "p-4 rounded-2xl flex flex-col justify-between gap-2.5 group hover:scale-[1.01] transition-all cursor-pointer border border-[#0B453A] hover:border-[#FF5555]/50 bg-[#032221]/90 shadow-lg",
                   "hover:shadow-[0_12px_30px_rgba(255,85,85,0.12)]"
                 )}
               >
@@ -574,13 +588,13 @@ export default function DashboardPage() {
                       {pair.name}
                     </span>
                   </div>
-                  <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30">
+                  <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30">
                     BEARISH
                   </span>
                 </div>
 
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="font-sans font-black text-2xl sm:text-3xl text-[#FF5555] font-mono">
+                <div className="flex items-baseline justify-between mt-0.5">
+                  <span className="font-sans font-black text-xl sm:text-2xl text-[#FF5555] font-mono">
                     {pair.finalScorePct}%
                   </span>
                   <span className="text-xs font-mono text-[#AACBC4]">
@@ -590,7 +604,7 @@ export default function DashboardPage() {
 
                 <div className="pt-2 border-t border-[#0B453A]/50 flex items-center justify-between text-[11px] font-sans text-[#AACBC4]">
                   <span>Monetary Disadvantage / Deficit</span>
-                  <span className="text-[#FF5555] group-hover:translate-x-1 transition-transform">Inspect →</span>
+                  <span className="text-[#FF5555] group-hover:translate-x-1 transition-transform font-medium">Inspect →</span>
                 </div>
               </Link>
             ))}
@@ -601,19 +615,19 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants} className="w-full flex flex-col lg:flex-row gap-5 sm:gap-6">
           
           {/* Left Column: Filterable Published Macro Prints Feed */}
-          <div className={clsx("flex-[2] flex flex-col p-4 sm:p-6 lg:p-7 gap-5", matteCard)}>
+          <div className={clsx("flex-[2] flex flex-col p-4 sm:p-5 lg:p-6 gap-4", matteCard)}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <h2 className="font-sans font-bold text-base sm:text-lg lg:text-xl text-[#F1F7F6] tracking-tight">
+                <h2 className="font-sans font-bold text-base sm:text-lg text-[#F1F7F6] tracking-tight">
                   Latest Published Macro Data
                 </h2>
-                <p className="font-sans text-xs sm:text-sm text-[#AACBC4] mt-0.5">
+                <p className="font-sans text-xs text-[#AACBC4] mt-0.5">
                   Verified fundamental statistics ingested directly into the quantitative engine
                 </p>
               </div>
 
               {/* Indicator Category Filters */}
-              <div className="flex items-center gap-1.5 bg-[#021B1A] p-1 rounded-xl border border-[#0B453A] overflow-x-auto no-scrollbar max-w-full">
+              <div className="flex items-center gap-1 bg-[#021B1A] p-1 rounded-xl border border-[#0B453A] overflow-x-auto no-scrollbar max-w-full">
                 {["All", "CPI", "Interest Rate", "GDP", "Current Account", "FX Reserves", "Equity"].map(tab => (
                   <button
                     key={tab}
@@ -630,41 +644,41 @@ export default function DashboardPage() {
             </div>
 
             <div className="overflow-x-auto w-full -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-thin scrollbar-thumb-[#0B453A]">
-              <table className="w-full text-left border-collapse min-w-[620px]">
+              <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                   <tr className="border-b border-[#0B453A] text-xs font-sans font-semibold text-[#AACBC4]">
-                    <th className="pb-3 px-3">Indicator</th>
-                    <th className="pb-3 px-3">Sovereign Entity</th>
-                    <th className="pb-3 px-3">Release Period</th>
-                    <th className="pb-3 px-3">Official Value</th>
-                    <th className="pb-3 px-3">Economic Stance</th>
-                    <th className="pb-3 px-3 text-right">Source Protocol</th>
+                    <th className="pb-2.5 px-3">Indicator</th>
+                    <th className="pb-2.5 px-3">Sovereign Entity</th>
+                    <th className="pb-2.5 px-3">Release Period</th>
+                    <th className="pb-2.5 px-3">Official Value</th>
+                    <th className="pb-2.5 px-3">Economic Stance</th>
+                    <th className="pb-2.5 px-3 text-right">Source Protocol</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#0B453A]/40 text-sm">
                   {filteredFeed.map((row) => (
                     <tr key={row.id} className="group hover:bg-[#06302B]/40 transition-colors">
-                      <td className="py-3 px-3 font-sans font-bold text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
+                      <td className="py-2.5 px-3 font-sans font-bold text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
                         {row.ind}
                       </td>
-                      <td className="py-3 px-3 font-sans font-medium text-[#AACBC4] group-hover:text-[#F1F7F6] transition-colors">
+                      <td className="py-2.5 px-3 font-sans font-medium text-[#AACBC4] group-hover:text-[#F1F7F6] transition-colors">
                         <div className="flex items-center gap-2 whitespace-nowrap">
                           <img src={`/flags/${row.base}.svg`} className="w-4 h-4 rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={row.base} />
                           <span>{row.country}</span>
                         </div>
                       </td>
-                      <td className="py-3 px-3 font-mono text-xs text-[#AACBC4] whitespace-nowrap">
+                      <td className="py-2.5 px-3 font-mono text-xs text-[#AACBC4] whitespace-nowrap">
                         {row.month}
                       </td>
-                      <td className="py-3 px-3 font-mono font-bold text-[#F1F7F6] whitespace-nowrap">
+                      <td className="py-2.5 px-3 font-mono font-bold text-[#F1F7F6] whitespace-nowrap">
                         <span className="bg-[#021B1A] px-2 py-0.5 rounded-lg border border-[#0B453A]">
                           {row.val}
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-sans text-xs whitespace-nowrap">
+                      <td className="py-2.5 px-3 font-sans text-xs whitespace-nowrap">
                         <span className="text-[#AACBC4]">{row.regime}</span>
                       </td>
-                      <td className="py-3 px-3 text-right font-sans font-semibold text-xs text-[#AACBC4] group-hover:text-[#00DF81] transition-colors whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-right font-sans font-semibold text-xs text-[#AACBC4] group-hover:text-[#00DF81] transition-colors whitespace-nowrap">
                         {row.src}
                       </td>
                     </tr>
@@ -682,27 +696,27 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column: Pipeline Health & Next Central Bank Dates */}
-          <div className={clsx("flex-[1.2] flex flex-col p-4 sm:p-6 lg:p-7 gap-5", matteCard)}>
+          <div className={clsx("flex-[1.2] flex flex-col p-4 sm:p-5 lg:p-6 gap-4", matteCard)}>
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-sans font-bold text-base sm:text-lg lg:text-xl text-[#F1F7F6] tracking-tight">
+                <h2 className="font-sans font-bold text-base sm:text-lg text-[#F1F7F6] tracking-tight">
                   Pipeline Health
                 </h2>
                 <p className="font-sans text-xs text-[#AACBC4] mt-0.5">Automated ingestion telemetry</p>
               </div>
-              <span className="text-[10px] font-mono font-bold text-[#00DF81] bg-[#00DF81]/15 px-2 py-0.5 rounded-full border border-[#00DF81]/30">
+              <span className="text-[9px] font-mono font-bold text-[#00DF81] bg-[#00DF81]/15 px-2 py-0.5 rounded-full border border-[#00DF81]/30">
                 100% Active
               </span>
             </div>
 
-            <div className="flex flex-col gap-2.5 w-full">
+            <div className="flex flex-col gap-2 w-full">
               {PIPELINE_STATUS_CARDS.map((pipe) => (
                 <div 
                   key={pipe.ind}
-                  className="flex flex-col gap-1.5 p-3 rounded-xl bg-[#021B1A]/80 border border-[#0B453A] hover:border-[#03624C] hover:bg-[#06302B]/60 transition-all duration-200"
+                  className="flex flex-col gap-1 p-2.5 rounded-xl bg-[#021B1A]/80 border border-[#0B453A] hover:border-[#03624C] hover:bg-[#06302B]/60 transition-all duration-200"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-sans font-bold text-xs sm:text-sm text-[#F1F7F6]">{pipe.ind}</span>
+                    <span className="font-sans font-bold text-xs text-[#F1F7F6]">{pipe.ind}</span>
                     <span className="px-2 py-0.5 rounded-md text-[9px] font-mono font-bold tracking-wider bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30">
                       {pipe.status}
                     </span>
@@ -726,16 +740,16 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* 5. Institutional Navigation Station */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
           <Link
             href="/admin/final-score"
-            className="p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
+            className="p-4 sm:p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
           >
             <div className="flex items-center justify-between">
-              <div className="p-2.5 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
-                <BarChart3 size={18} />
+              <div className="p-2 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
+                <BarChart3 size={17} />
               </div>
-              <ArrowUpRight size={16} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+              <ArrowUpRight size={15} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
             <div>
               <h3 className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
@@ -749,13 +763,13 @@ export default function DashboardPage() {
 
           <Link
             href="/admin/macro-data"
-            className="p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
+            className="p-4 sm:p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
           >
             <div className="flex items-center justify-between">
-              <div className="p-2.5 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
-                <Globe2 size={18} />
+              <div className="p-2 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
+                <Globe2 size={17} />
               </div>
-              <ArrowUpRight size={16} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+              <ArrowUpRight size={15} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
             <div>
               <h3 className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
@@ -769,13 +783,13 @@ export default function DashboardPage() {
 
           <Link
             href="/admin/rating-rules"
-            className="p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
+            className="p-4 sm:p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
           >
             <div className="flex items-center justify-between">
-              <div className="p-2.5 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
-                <ShieldCheck size={18} />
+              <div className="p-2 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
+                <ShieldCheck size={17} />
               </div>
-              <ArrowUpRight size={16} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+              <ArrowUpRight size={15} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
             <div>
               <h3 className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
@@ -789,13 +803,13 @@ export default function DashboardPage() {
 
           <Link
             href="/admin/settings"
-            className="p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
+            className="p-4 sm:p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
           >
             <div className="flex items-center justify-between">
-              <div className="p-2.5 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
-                <SlidersHorizontal size={18} />
+              <div className="p-2 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
+                <SlidersHorizontal size={17} />
               </div>
-              <ArrowUpRight size={16} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+              <ArrowUpRight size={15} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
             <div>
               <h3 className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">

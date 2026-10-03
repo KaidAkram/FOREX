@@ -68,7 +68,7 @@ export default function AdminLayout({
         {/* --- Main Content Layout --- */}
         <AdminSidebar />
         
-        <div className="flex-1 flex flex-col h-full overflow-y-auto z-10 relative">
+        <div className="flex-1 flex flex-col h-full overflow-y-auto scrollbar-thin scrollbar-thumb-[#0B453A] scrollbar-track-transparent hover:scrollbar-thumb-[#00DF81]/40 z-10 relative">
           <MobileTopBar />
           {children}
         </div>

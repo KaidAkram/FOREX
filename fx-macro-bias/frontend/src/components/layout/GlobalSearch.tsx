@@ -387,8 +387,8 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
         type="button"
         onClick={() => setIsOpen(true)}
         className={clsx(
-          "flex items-center gap-2 sm:gap-3 bg-[#032221]/90 hover:bg-[#06302B] backdrop-blur-xl border border-[#0B453A] hover:border-[#03624C] rounded-2xl p-2.5 sm:px-4 sm:py-2.5 md:py-3 w-auto sm:w-[220px] md:w-[260px] xl:w-[320px] transition-all duration-200 text-left group shadow-[0_8px_32px_rgba(2,27,26,0.4)] focus:outline-none focus:ring-2 focus:ring-[#00DF81]/40 shrink-0",
-          className
+          "flex items-center gap-2 sm:gap-3 bg-[#032221]/90 hover:bg-[#06302B] backdrop-blur-xl border border-[#0B453A] hover:border-[#03624C] rounded-2xl p-2.5 sm:px-3.5 sm:py-2 md:py-2.5 transition-all duration-200 text-left group shadow-[0_8px_32px_rgba(2,27,26,0.4)] focus:outline-none focus:ring-2 focus:ring-[#00DF81]/40 shrink-0",
+          className || "w-auto sm:w-[200px] md:w-[240px] xl:w-[280px]"
         )}
         aria-label="Open search dialog"
       >

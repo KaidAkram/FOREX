@@ -53,6 +53,11 @@
   }
 
   /* Custom Emerald Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-basil) var(--color-rich-black);
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;

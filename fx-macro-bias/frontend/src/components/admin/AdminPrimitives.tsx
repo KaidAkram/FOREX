@@ -1,6 +1,9 @@
 "use client";
 import React from "react";
 import { SearchIcon } from "@primer/octicons-react";
+import { motion } from "framer-motion";
+import { AnimatedMetricValue } from "@/components/motion/AnimatedNumberAndMorphChart";
+import { soundFX } from "@/lib/soundEngine";
 
 export type WashVariant = "lime" | "emerald" | "slate" | "sky" | "purple" | "rose";
 
@@ -125,6 +128,10 @@ export function AdminPageHeader({
 export function CatalogueKPICard({
   title,
   value,
+  numericValue,
+  decimals = 1,
+  prefix = "",
+  suffix = "",
   unit,
   subtitle,
   icon,
@@ -134,10 +141,16 @@ export function CatalogueKPICard({
   customHero,
   customSubtitle,
   className = "",
+  isActive = false,
+  layoutId = "kpi-focus-wash",
   onClick,
 }: {
   title: string;
   value?: string | number;
+  numericValue?: number;
+  decimals?: number;
+  prefix?: string;
+  suffix?: string;
   unit?: string;
   subtitle?: React.ReactNode;
   icon?: React.ReactNode;
@@ -147,19 +160,35 @@ export function CatalogueKPICard({
   customHero?: React.ReactNode;
   customSubtitle?: React.ReactNode;
   className?: string;
+  isActive?: boolean;
+  layoutId?: string;
   onClick?: () => void;
 }) {
   const style = WASH_STYLES[variant];
 
   return (
     <div
-      onClick={onClick}
-      className={`rounded-[22px] p-4 sm:p-5 bg-[#0E1015] hover:bg-[#12151C] ${style.bg} border border-white/[0.06] hover:border-white/[0.12] ${style.borderTop} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_20px_40px_-15px_rgba(0,0,0,0.7)] relative overflow-hidden flex flex-col justify-between transition-all duration-200 ease-out ${
+      onClick={() => {
+        if (onClick) {
+          soundFX.playPop(1.15);
+          onClick();
+        }
+      }}
+      className={`rounded-[22px] p-4 sm:p-5 bg-[#0E1015] hover:bg-[#12151C] ${style.bg} border border-white/[0.06] hover:border-white/[0.14] ${style.borderTop} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_20px_40px_-15px_rgba(0,0,0,0.7)] relative overflow-hidden flex flex-col justify-between transition-all duration-200 ease-out select-none ${
         onClick ? "cursor-pointer" : ""
-      } ${className}`}
+      } ${isActive ? "ring-1 ring-[var(--fx-accent,#D4FF00)]/40 border-[var(--fx-accent,#D4FF00)]/30" : ""} ${className}`}
     >
+      {/* Hero Card "Active Focus" Inversion (Fernly Video 00:00 & 00:10) */}
+      {isActive && (
+        <motion.div
+          layoutId={layoutId}
+          transition={{ type: "spring", stiffness: 420, damping: 32 }}
+          className="absolute inset-0 bg-gradient-to-br from-[var(--fx-accent-muted,rgba(212,255,0,0.12))] via-transparent to-transparent pointer-events-none z-0"
+        />
+      )}
+
       {/* Row 1: Header */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="relative z-10 flex items-center justify-between gap-2">
         <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-300 whitespace-nowrap">
           {title}
         </span>
@@ -167,21 +196,27 @@ export function CatalogueKPICard({
       </div>
 
       {/* Row 2: Hero Metric (Pearl White #F8FAFC + Tabular-Nums) */}
-      {customHero ? (
-        customHero
-      ) : (
-        <div className="flex items-baseline gap-2 my-1">
-          <span className="font-mono text-[clamp(1.5rem,2vw,1.95rem)] leading-none font-extrabold tracking-tight tabular-nums text-[#F8FAFC]">
-            {value}
-          </span>
-          {unit && (
-            <span className="font-sans text-xs text-slate-400 font-medium whitespace-nowrap">{unit}</span>
-          )}
-        </div>
-      )}
+      <div className="relative z-10">
+        {customHero ? (
+          customHero
+        ) : (
+          <div className="flex items-baseline gap-2 my-1">
+            <span className="font-mono text-[clamp(1.5rem,2vw,1.95rem)] leading-none font-extrabold tracking-tight tabular-nums text-[#F8FAFC]">
+              {numericValue !== undefined ? (
+                <AnimatedMetricValue value={numericValue} decimals={decimals} prefix={prefix} suffix={suffix} />
+              ) : (
+                value
+              )}
+            </span>
+            {unit && (
+              <span className="font-sans text-xs text-slate-400 font-medium whitespace-nowrap">{unit}</span>
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* Row 3: Subtitle + 4-Bar Micro Sparkline */}
-      <div className="flex items-end justify-between gap-1.5 pt-1">
+      {/* Row 3: Subtitle + Staggered Baseline Micro Sparkline */}
+      <div className="relative z-10 flex items-end justify-between gap-1.5 pt-1">
         {customSubtitle ? (
           customSubtitle
         ) : (
@@ -194,9 +229,17 @@ export function CatalogueKPICard({
         ) : (
           <div className="flex items-end gap-[3.5px] h-4 shrink-0">
             {bars.map((h, idx) => (
-              <span
+              <motion.span
                 key={idx}
-                style={{ height: `${h}%` }}
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{
+                  delay: idx * 0.035,
+                  type: "spring",
+                  stiffness: 380,
+                  damping: 28,
+                }}
+                style={{ height: `${h}%`, transformOrigin: "bottom" }}
                 className={`w-[3.5px] rounded-full ${style.bar}`}
               />
             ))}

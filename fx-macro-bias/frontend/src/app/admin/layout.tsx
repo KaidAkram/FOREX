@@ -12,6 +12,7 @@ import { Ambient3DBackground } from "@/components/canvas/Ambient3DBackground";
 import { motion, AnimatePresence } from "framer-motion";
 import { XIcon, SyncIcon } from "@primer/octicons-react";
 import { SPRING_WEIGHTLESS } from "@/lib/uxEngineeringStandards";
+import { GlobalThemeToast } from "@/components/theme/WorkspaceThemeSwitcher";
 
 // Self-contained page views for instant sub-millisecond workspace toggling
 import DashboardPage from "./dashboard/page";
@@ -215,6 +216,9 @@ export default function AdminLayout({
     <SidebarProvider>
       {/* Ambient 3D Geometric Glass Objects Layer */}
       <Ambient3DBackground />
+
+      {/* Global Bottom-Center Floating Pill Toast for Theme Re-Tinting */}
+      <GlobalThemeToast />
 
       {/* Global Raycast ⌘K Command Palette */}
       <CommandPaletteModal

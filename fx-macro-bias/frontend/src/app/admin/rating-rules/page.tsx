@@ -13,6 +13,8 @@ import {
 } from "@/components/admin/AdminPrimitives";
 import { SPRING_SNAPPY } from "@/components/ui/DopaminePrimitives";
 import { playClickSound, playTabSound, playSuccessSound } from "@/lib/soundEffects";
+import { soundFX } from "@/lib/soundEngine";
+import { GhostWireframeDissolve } from "@/components/motion/AnimatedNumberAndMorphChart";
 import confetti from "canvas-confetti";
 import OFFICIAL_RATING_RULES_DATA from "@/data/officialRatingRules.json";
 
@@ -112,6 +114,7 @@ export default function RatingRulesPage() {
         return [...(old || []), newRule];
       });
       setModalMode(null);
+      soundFX.playChime();
       playSuccessSound();
       confetti({ particleCount: 30, spread: 45, origin: { y: 0.5 } });
     }
@@ -127,6 +130,7 @@ export default function RatingRulesPage() {
         return old?.map((r: any) => r.id === updatedRule.id ? updatedRule : r);
       });
       setModalMode(null);
+      soundFX.playChime();
       playSuccessSound();
     }
   });
@@ -250,7 +254,10 @@ export default function RatingRulesPage() {
           {INDICATORS.map((ind) => (
             <button
               key={ind.id}
-              onClick={() => { setActiveIndicator(ind.id); playTabSound(); }}
+              onClick={() => { 
+                soundFX.playPop(1); 
+                setActiveIndicator(ind.id); 
+              }}
               className={clsx(
                 "px-4 py-1.5 rounded-full text-xs font-mono transition-all cursor-pointer whitespace-nowrap",
                 activeIndicator === ind.id 
@@ -272,6 +279,7 @@ export default function RatingRulesPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 3. RULES TABLE CONTAINER (Rounded-[24px])                         */}
       {/* ══════════════════════════════════════════════════════════════════ */}
+      <GhostWireframeDissolve isRefreshing={isLoading}>
       <SculptedTableContainer className="p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-white/[0.06] gap-3 mb-3">
           <div>
@@ -422,6 +430,7 @@ export default function RatingRulesPage() {
           </span>
         </div>
       </SculptedTableContainer>
+      </GhostWireframeDissolve>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* ADD / EDIT RULE MODAL (Smoked Obsidian Subsurface Glass)          */}

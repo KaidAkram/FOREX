@@ -25,6 +25,7 @@ import {
   GlowSparkline, StaggerContainer, StaggerItem, MiniBarChart, SPRING_SNAPPY
 } from "@/components/ui/DopaminePrimitives";
 import { QuantumWaitingScreen } from "@/components/ui/QuantumWaitingScreen";
+import { QuickThemePaletteButton, GlobalThemeToast } from "@/components/theme/WorkspaceThemeSwitcher";
 
 // Generate pseudo-random sparkline data seeded by pair name
 function genSparkline(pair: string, sentiment: "bullish" | "bearish" | "neutral"): number[] {
@@ -209,10 +210,12 @@ export default function TraderPortalPage() {
             </Link>
           )}
 
+          <QuickThemePaletteButton />
           <GlobalSearch placeholder="Rechercher une paire..." />
           <AuthHeaderWidget />
         </div>
       </header>
+      <GlobalThemeToast />
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* MAIN CONTENT                                                      */}

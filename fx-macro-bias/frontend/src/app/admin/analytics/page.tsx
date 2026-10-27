@@ -1,14 +1,20 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createChart, ColorType, CrosshairMode, AreaSeries } from "lightweight-charts";
-import { ChevronDown, Check, TrendingUp, TrendingDown, Activity, Database, Calendar } from "lucide-react";
+import { ChevronDown, TrendingUp, TrendingDown, Activity, Database, Calendar, Layers, Sparkles } from "lucide-react";
 import { clsx } from "clsx";
 import { 
   AdminPageHeader, CatalogueKPICard 
 } from "@/components/admin/AdminPrimitives";
 import { FXPairFlags } from "@/components/ui/DopaminePrimitives";
+import { 
+  AnimatedMetricValue, 
+  MorphingSplineChart, 
+  StaggeredBaselineBars,
+  GhostWireframeDissolve
+} from "@/components/motion/AnimatedNumberAndMorphChart";
+import { soundFX } from "@/lib/soundEngine";
 
 // --- Constants ---
 const INDICATORS = [
@@ -32,17 +38,88 @@ const FX_PAIRS = [
   "GBP/JPY"
 ];
 
-// --- Mock Data Generators ---
-const generateTimeSeriesData = (points = 365, startYear = 2025, volatility = 1.2, startVal = 115, seed = 1) => {
-  const res = [];
-  let val = startVal;
-  for (let i = 0; i < points; i++) {
-    val += (Math.random() * volatility - (volatility / 2)) * seed;
-    const date = new Date(startYear, 0, i + 1);
-    const time = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-    res.push({ time, value: parseFloat(val.toFixed(2)) });
+// Timeframe configuration with dynamic KPI values & spline dataset
+const TIMEFRAME_CONFIG: Record<
+  string,
+  {
+    label: string;
+    confidence: number;
+    divergence: number;
+    ingestion: number;
+    signals: number;
+    splinePoints: number[];
+    labels: string[];
+    bars: { label: string; value: number; formatted?: string }[];
   }
-  return res;
+> = {
+  "1S": {
+    label: "7 Jours",
+    confidence: 76.4,
+    divergence: 18.2,
+    ingestion: 99.8,
+    signals: 142,
+    splinePoints: [58, 62, 71, 65, 74, 82, 76.4],
+    labels: ["J-6", "J-5", "J-4", "J-3", "J-2", "Hier", "Aujourd'hui"],
+    bars: [
+      { label: "PIB", value: 3.2 },
+      { label: "IPC", value: -1.4 },
+      { label: "Taux", value: 4.5 },
+      { label: "BC", value: 0.8 },
+      { label: "RÉS", value: -2.1 },
+      { label: "ACT", value: 5.6 },
+    ],
+  },
+  "1M": {
+    label: "30 Jours",
+    confidence: 82.4,
+    divergence: 14.1,
+    ingestion: 99.9,
+    signals: 576,
+    splinePoints: [48, 52, 55, 68, 62, 75, 71, 79, 84, 80, 82.4],
+    labels: ["Sem 1", "Sem 1.5", "Sem 2", "Sem 2.5", "Sem 3", "Sem 3.5", "Sem 4", "Sem 4.2", "Sem 4.5", "Sem 4.8", "Clôture"],
+    bars: [
+      { label: "PIB", value: 4.8 },
+      { label: "IPC", value: -2.2 },
+      { label: "Taux", value: 6.1 },
+      { label: "BC", value: 1.5 },
+      { label: "RÉS", value: -0.9 },
+      { label: "ACT", value: 7.4 },
+    ],
+  },
+  "3M": {
+    label: "90 Jours",
+    confidence: 86.8,
+    divergence: 11.2,
+    ingestion: 100.0,
+    signals: 1480,
+    splinePoints: [38, 45, 52, 60, 58, 67, 74, 70, 79, 85, 82, 86.8],
+    labels: ["Mois -3", "S1", "S2", "S3", "Mois -2", "S5", "S6", "S7", "Mois -1", "S9", "S10", "Récent"],
+    bars: [
+      { label: "PIB", value: 6.2 },
+      { label: "IPC", value: -3.5 },
+      { label: "Taux", value: 8.4 },
+      { label: "BC", value: 2.1 },
+      { label: "RÉS", value: 1.2 },
+      { label: "ACT", value: 9.8 },
+    ],
+  },
+  "1A": {
+    label: "12 Mois",
+    confidence: 91.5,
+    divergence: 8.7,
+    ingestion: 99.9,
+    signals: 4890,
+    splinePoints: [28, 34, 42, 51, 63, 59, 68, 77, 83, 80, 87, 91.5],
+    labels: ["T4 '25", "Nov", "Déc", "Jan '26", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep '26"],
+    bars: [
+      { label: "PIB", value: 7.9 },
+      { label: "IPC", value: -4.1 },
+      { label: "Taux", value: 11.2 },
+      { label: "BC", value: 3.4 },
+      { label: "RÉS", value: 2.5 },
+      { label: "ACT", value: 12.0 },
+    ],
+  },
 };
 
 // --- Reusable Animated Dropdown Component ---
@@ -75,7 +152,10 @@ const CustomDropdown = ({
   return (
     <div className="relative z-40" ref={dropdownRef}>
       <button 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          soundFX.playPop(1.1);
+          setIsOpen(!isOpen);
+        }}
         className="flex items-center gap-2 bg-[#0A0B0F] hover:bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full transition-colors h-10 cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
       >
         <span className="font-mono text-xs text-slate-400">{label} :</span>
@@ -99,17 +179,18 @@ const CustomDropdown = ({
               {options.map((opt) => (
                 <button
                   key={opt}
-                  onClick={() => { onChange(opt); setIsOpen(false); }}
+                  onClick={() => {
+                    soundFX.playPop(1.2);
+                    onChange(opt);
+                    setIsOpen(false);
+                  }}
                   className={clsx(
-                    "flex items-center justify-between w-full px-3 py-2 rounded-xl transition-colors text-left cursor-pointer text-xs font-mono",
-                    value === opt ? "bg-[#D4FF00]/15 text-[#D4FF00] font-bold" : "text-slate-300 hover:bg-white/[0.06]"
+                    "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono transition-colors text-left w-full cursor-pointer",
+                    value === opt ? "bg-[var(--fx-accent,#D4FF00)] text-[#07090D] font-bold" : "text-slate-300 hover:bg-white/[0.06] hover:text-white"
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    {isPair && <FXPairFlags pair={opt} size="sm" />}
-                    <span>{opt}</span>
-                  </div>
-                  {value === opt && <Check size={13} className="text-[#D4FF00]" />}
+                  {isPair && <FXPairFlags pair={opt} size="sm" />}
+                  <span>{opt}</span>
                 </button>
               ))}
             </div>
@@ -120,97 +201,46 @@ const CustomDropdown = ({
   );
 };
 
-// --- Reusable TradingView Chart Component ---
-const LightweightAreaChart = ({ data, color = "#D4FF00" }: { data: any[]; color?: string }) => {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
-    const container = chartContainerRef.current;
-
-    const chart = createChart(container, {
-      layout: {
-        background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#94A3B8",
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: 11,
-      },
-      grid: {
-        vertLines: { color: "rgba(255, 255, 255, 0.03)" },
-        horzLines: { color: "rgba(255, 255, 255, 0.04)" },
-      },
-      crosshair: { mode: CrosshairMode.Magnet },
-      rightPriceScale: { borderVisible: false },
-      timeScale: { borderVisible: false },
-      width: container.clientWidth || 300,
-      height: container.clientHeight || 340,
-    });
-
-    const series = chart.addSeries(AreaSeries, {
-      lineColor: color,
-      topColor: "rgba(212, 255, 0, 0.18)",
-      bottomColor: "rgba(212, 255, 0, 0.0)",
-      lineWidth: 2,
-    });
-    
-    series.setData(data);
-    chart.timeScale().fitContent();
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.contentRect.width > 0) {
-          chart.applyOptions({ 
-            width: entry.contentRect.width,
-            height: entry.contentRect.height > 0 ? entry.contentRect.height : 340
-          });
-        }
-      }
-    });
-    resizeObserver.observe(container);
-
-    return () => {
-      resizeObserver.disconnect();
-      chart.remove();
-    };
-  }, [data, color]);
-
-  return <div ref={chartContainerRef} className="w-full h-[360px] relative" />;
-};
-
 export default function AnalyticsPage() {
   const [activePair, setActivePair] = useState("EUR/USD");
   const [activeIndicator, setActiveIndicator] = useState("Croissance PIB (GDP)");
-  const [timeRange, setTimeRange] = useState("1A");
+  const [timeRange, setTimeRange] = useState<"1S" | "1M" | "3M" | "1A">("1M");
   const [windowRange, setWindowRange] = useState("12 Mois");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeKpiIndex, setActiveKpiIndex] = useState(0);
 
-  const [macroData, setMacroData] = useState<any[]>([]);
+  const currentTf = TIMEFRAME_CONFIG[timeRange];
 
-  useEffect(() => {
-    const seed = activePair === "EUR/USD" ? 1 : 1.25;
-    const points = timeRange === "1S" ? 7 : timeRange === "1M" ? 30 : timeRange === "3M" ? 90 : 365;
-    setMacroData(generateTimeSeriesData(points, 2025, 1.2, 118, seed));
-  }, [activeIndicator, activePair, timeRange]);
+  const handleTimeframeChange = (tf: "1S" | "1M" | "3M" | "1A") => {
+    soundFX.playPop(1);
+    setIsRefreshing(true);
+    setTimeRange(tf);
+    setTimeout(() => setIsRefreshing(false), 160);
+  };
 
   return (
     <div className="w-full max-w-[1550px] mx-auto p-4 sm:p-6 lg:p-8 flex flex-col text-white">
       
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
+      {/* 1. UNIFIED ADMIN PAGE HEADER                                       */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <AdminPageHeader
-        eyebrow="TÉLÉMÉTRIE PLATEFORME • SHIFTFX ENGINE"
-        badgeText="FLUX TEMPS RÉEL"
+        eyebrow="TÉLÉMÉTRIE QUANTITATIVE • SHIFTFX CHOREOGRAPHY"
+        badgeText="MOTEUR DYNAMIQUE"
         title="Analytique & Performance Modèle"
         searchPlaceholder="Rechercher un indicateur, paire..."
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         rightActions={
           <div className="h-10 px-4 rounded-full bg-[#101218] border border-white/[0.08] flex items-center gap-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <Calendar size={13} className="text-[#D4FF00]" />
+            <Calendar size={13} style={{ color: "var(--fx-accent, #D4FF00)" }} />
             <select
               value={windowRange}
-              onChange={(e) => setWindowRange(e.target.value)}
+              onChange={(e) => {
+                soundFX.playPop(1.1);
+                setWindowRange(e.target.value);
+              }}
               aria-label="Sélectionner la fenêtre temporelle"
               className="bg-transparent font-mono text-xs text-slate-300 outline-none cursor-pointer pr-1"
             >
@@ -223,120 +253,166 @@ export default function AnalyticsPage() {
         }
       />
 
-      {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 2. TOP KPI ROW (4 Uniform CatalogueKPICard components)             */}
-      {/* ══════════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
-        
-        {/* KPI 1: Bullish Confidence */}
-        <CatalogueKPICard
-          title="CONFIANCE BIAIS ACHETEUR"
-          value="82.4%"
-          unit="+14.2%"
-          subtitle="Précision directionnelle Long"
-          variant="emerald"
-          icon={<TrendingUp size={14} />}
-          bars={[40, 65, 75, 95]}
-        />
+      <GhostWireframeDissolve isRefreshing={isRefreshing}>
+        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* 2. TOP KPI ROW WITH SIMULTANEOUS NUMBER COUNTING (Fernly 00:03)    */}
+        {/* ══════════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+          
+          {/* KPI 1: Bullish Confidence */}
+          <CatalogueKPICard
+            title="CONFIANCE BIAIS ACHETEUR"
+            numericValue={currentTf.confidence}
+            decimals={1}
+            unit="%"
+            subtitle="Précision directionnelle Long"
+            variant="emerald"
+            isActive={activeKpiIndex === 0}
+            onClick={() => setActiveKpiIndex(0)}
+            icon={<TrendingUp size={14} />}
+            bars={[40, 65, 75, 95]}
+          />
 
-        {/* KPI 2: Bearish Divergence Rate */}
-        <CatalogueKPICard
-          title="TAUX DIVERGENCE VENDEUR"
-          value="14.1%"
-          unit="-5.1%"
-          subtitle="Écart de régime Short"
-          variant="rose"
-          icon={<TrendingDown size={14} />}
-          bars={[65, 45, 30, 15]}
-        />
+          {/* KPI 2: Bearish Divergence Rate */}
+          <CatalogueKPICard
+            title="TAUX DIVERGENCE VENDEUR"
+            numericValue={currentTf.divergence}
+            decimals={1}
+            unit="%"
+            subtitle="Écart de régime Short"
+            variant="rose"
+            isActive={activeKpiIndex === 1}
+            onClick={() => setActiveKpiIndex(1)}
+            icon={<TrendingDown size={14} />}
+            bars={[65, 45, 30, 15]}
+          />
 
-        {/* KPI 3: Macro Data Ingestion */}
-        <CatalogueKPICard
-          title="INGESTION DONNÉES MACRO"
-          value="99.9%"
-          unit="Stable"
-          subtitle="Flux banques centrales G10"
-          variant="lime"
-          icon={<Database size={14} />}
-          bars={[80, 85, 95, 100]}
-        />
+          {/* KPI 3: Macro Data Ingestion */}
+          <CatalogueKPICard
+            title="INGESTION DONNÉES MACRO"
+            numericValue={currentTf.ingestion}
+            decimals={1}
+            unit="%"
+            subtitle="Flux banques centrales G10"
+            variant="lime"
+            isActive={activeKpiIndex === 2}
+            onClick={() => setActiveKpiIndex(2)}
+            icon={<Database size={14} />}
+            bars={[90, 95, 99, 100]}
+          />
 
-        {/* KPI 4: Average G10 Dispersion */}
-        <CatalogueKPICard
-          title="DISPERSION MOYENNE G10"
-          value="12.7%"
-          unit="Élevée"
-          subtitle="Écart-type inter-devises"
-          variant="sky"
-          icon={<Activity size={14} />}
-          bars={[30, 50, 70, 85]}
-        />
+          {/* KPI 4: Total Signals Evaluated */}
+          <CatalogueKPICard
+            title="SIGNAUX QUANTITATIFS"
+            numericValue={currentTf.signals}
+            decimals={0}
+            unit="Pts"
+            subtitle={`Échantillon sur ${currentTf.label}`}
+            variant="sky"
+            isActive={activeKpiIndex === 3}
+            onClick={() => setActiveKpiIndex(3)}
+            icon={<Activity size={14} />}
+            bars={[30, 50, 70, 85]}
+          />
 
-      </div>
+        </div>
 
-      {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 3. MAIN CHART CONTAINER (Historical Macro Metric)                 */}
-      {/* ══════════════════════════════════════════════════════════════════ */}
-      <section className="rounded-[24px] bg-[#101218] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_20px_40px_-15px_rgba(0,0,0,0.7)] p-6 mb-5">
-        
-        {/* Top Toolbar inside Card */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.06]">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <h2 className="text-base font-bold text-white tracking-tight mr-2 whitespace-nowrap">
-              Historique des Métriques Macroéconomiques
-            </h2>
-            <div className="flex items-center gap-2 flex-wrap">
-              <CustomDropdown
-                label="Paire"
-                value={activePair}
-                options={FX_PAIRS}
-                onChange={setActivePair}
-                isPair={true}
-              />
-              <CustomDropdown
-                label="Indicateur"
-                value={activeIndicator}
-                options={INDICATORS}
-                onChange={setActiveIndicator}
-                isPair={false}
-              />
+        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* 3. MORPHING SVG SPLINE CHART + INTERACTIVE SCRUBBER (Fernly 00:04) */}
+        {/* ══════════════════════════════════════════════════════════════════ */}
+        <section className="rounded-[24px] bg-[#101218] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_20px_40px_-15px_rgba(0,0,0,0.7)] p-4 sm:p-6 mb-5">
+          
+          {/* Top Toolbar inside Card */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.06]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <h2 className="text-base font-bold text-white tracking-tight mr-2 whitespace-nowrap flex items-center gap-2">
+                <Sparkles size={16} style={{ color: "var(--fx-accent, #D4FF00)" }} />
+                <span>Courbe Spline & Morphing Vectoriel</span>
+              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <CustomDropdown
+                  label="Paire"
+                  value={activePair}
+                  options={FX_PAIRS}
+                  onChange={setActivePair}
+                  isPair={true}
+                />
+                <CustomDropdown
+                  label="Indicateur"
+                  value={activeIndicator}
+                  options={INDICATORS}
+                  onChange={setActiveIndicator}
+                  isPair={false}
+                />
+              </div>
+            </div>
+
+            {/* Timeframe pill track with audio pop (Fernly 00:03) */}
+            <div className="rounded-full bg-[#0A0B0F] border border-white/[0.06] p-1 inline-flex items-center gap-1 text-xs font-mono">
+              {(["1S", "1M", "3M", "1A"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => handleTimeframeChange(t)}
+                  className={clsx(
+                    "px-3.5 py-1 rounded-full transition-all cursor-pointer font-bold",
+                    timeRange === t 
+                      ? "bg-[var(--fx-accent,#D4FF00)] text-[#07080C] shadow-[0_0_12px_rgba(var(--fx-accent-rgb),0.35)]" 
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Timeframe pill track */}
-          <div className="rounded-full bg-[#0A0B0F] border border-white/[0.06] p-1 inline-flex items-center gap-1 text-xs font-mono">
-            {["1S", "1M", "3M", "1A"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setTimeRange(t)}
-                className={clsx(
-                  "px-3.5 py-1 rounded-full transition-all cursor-pointer",
-                  timeRange === t 
-                    ? "bg-[#D4FF00] text-[#07080C] font-bold shadow-[0_0_12px_rgba(212,255,0,0.3)]" 
-                    : "text-slate-400 hover:text-white"
-                )}
-              >
-                {t}
-              </button>
-            ))}
+          {/* Morphing Liquid SVG Spline Wave with Scrubbing Readout */}
+          <div className="w-full relative py-2">
+            <MorphingSplineChart
+              data={currentTf.splinePoints}
+              labels={currentTf.labels}
+              accentColor="var(--fx-accent, #D4FF00)"
+              height={140}
+            />
           </div>
-        </div>
 
-        {/* Lightweight TradingView Area Chart */}
-        <div className="w-full relative">
-          <LightweightAreaChart data={macroData} color="#D4FF00" />
-        </div>
-
-        {/* Sub-footer stats */}
-        <div className="flex items-center justify-between pt-4 mt-2 border-t border-white/[0.06] text-xs font-mono text-slate-400">
-          <div className="flex items-center gap-4">
-            <span>Points échantillonnés : <span className="text-white font-bold">{macroData.length}</span></span>
-            <span>Régime observé : <span className="text-emerald-400 font-bold">Expansion Modérée</span></span>
+          {/* Sub-footer stats */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 mt-2 border-t border-white/[0.06] text-xs font-mono text-slate-400 gap-2">
+            <div className="flex items-center gap-4">
+              <span>Points interpolés : <span className="text-white font-bold">{currentTf.splinePoints.length}</span></span>
+              <span>Régime observé : <span className="text-emerald-400 font-bold">Expansion Modérée</span></span>
+            </div>
+            <span>Dernière mise à jour : 26 Oct 2026 • Synchronisé UTC</span>
           </div>
-          <span>Dernière mise à jour du modèle : 26 Oct 2026</span>
-        </div>
 
-      </section>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* 4. STAGGERED BASELINE BARS FACTOR DISTRIBUTION (Fernly 00:10/00:12) */}
+        {/* ══════════════════════════════════════════════════════════════════ */}
+        <section className="rounded-[24px] bg-[#101218] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_20px_40px_-15px_rgba(0,0,0,0.7)] p-4 sm:p-6 mb-5">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.06]">
+            <div>
+              <h3 className="font-display font-bold text-sm text-white">
+                Décomposition Factorielle Macroéconomique ({currentTf.label})
+              </h3>
+              <p className="font-sans text-xs text-slate-400 mt-0.5">
+                Surperformance relative des piliers souverains (PIB, IPC, Taux, BC, RÉS, ACT)
+              </p>
+            </div>
+            <span className="font-mono text-xs text-slate-400">
+              Échelle : <span className="text-[var(--fx-accent,#D4FF00)] font-bold">±15%</span>
+            </span>
+          </div>
+
+          <StaggeredBaselineBars
+            bars={currentTf.bars}
+            accentColor="var(--fx-accent, #D4FF00)"
+            height={70}
+            className="w-full"
+          />
+        </section>
+      </GhostWireframeDissolve>
 
     </div>
   );

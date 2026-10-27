@@ -17,11 +17,13 @@ import {
   GearIcon,
   LinkExternalIcon,
   SignOutIcon,
+  MuteIcon,
+  UnmuteIcon,
 } from "@primer/octicons-react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { SPRING_WEIGHTLESS } from "@/lib/uxEngineeringStandards";
-import { playTabSound } from "@/lib/soundEffects";
+import { soundFX } from "@/lib/soundEngine";
 
 export interface NavItemDef {
   id: string;
@@ -57,6 +59,20 @@ export function CollapsibleGlassSidebar({
   const { lang, setLang, t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const [optimisticActive, setOptimisticActive] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Synchronize soundEnabled state
+  useEffect(() => {
+    setSoundEnabled(soundFX.enabled);
+    const onToggle = (e: any) => setSoundEnabled(e.detail);
+    window.addEventListener("shiftfx-sound-toggle", onToggle);
+    return () => window.removeEventListener("shiftfx-sound-toggle", onToggle);
+  }, []);
+
+  const handleToggleSound = () => {
+    const next = soundFX.toggle();
+    setSoundEnabled(next);
+  };
 
   // Eagerly prefetch all 7 admin routes so page navigation is instantaneous (<16ms)
   useEffect(() => {
@@ -200,7 +216,7 @@ export function CollapsibleGlassSidebar({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                playTabSound();
+                soundFX.playPop(1);
                 setOptimisticActive(item.href);
                 if (onSelect) {
                   onSelect(item.id);
@@ -257,31 +273,47 @@ export function CollapsibleGlassSidebar({
       <div className="relative z-10 pt-3 border-t border-white/[0.06] flex flex-col gap-2">
         {!effectiveCollapsed && (
           <div className="flex items-center justify-between px-1 text-[11px] font-mono">
-            <span className="text-slate-400">LANGUE / LANG :</span>
-            <div className="flex items-center bg-black/40 border border-white/10 rounded-full p-0.5">
+            <span className="text-slate-400">LANGUE / AUDIO :</span>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center bg-black/40 border border-white/10 rounded-full p-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFX.playPop(1.1);
+                    setLang("fr");
+                  }}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+                    lang === "fr" ? "bg-[var(--fx-accent,#D4FF00)] text-[#07080C] shadow-sm" : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  FR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFX.playPop(1.1);
+                    setLang("en");
+                  }}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+                    lang === "en" ? "bg-[var(--fx-accent,#D4FF00)] text-[#07080C] shadow-sm" : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  EN
+                </button>
+              </div>
+
+              {/* Procedural WebAudio UI Sound Mute/Unmute Toggle */}
               <button
                 type="button"
-                onClick={() => {
-                  playTabSound();
-                  setLang("fr");
-                }}
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                  lang === "fr" ? "bg-[#D4FF00] text-[#07080C] shadow-sm" : "text-slate-400 hover:text-white"
+                onClick={handleToggleSound}
+                title={soundEnabled ? "Couper le retour sonore" : "Activer le retour sonore"}
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer border ${
+                  soundEnabled
+                    ? "bg-white/[0.08] text-[var(--fx-accent,#D4FF00)] border-white/[0.14]"
+                    : "bg-white/[0.02] text-slate-500 border-white/[0.04] hover:text-white"
                 }`}
               >
-                FR
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  playTabSound();
-                  setLang("en");
-                }}
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                  lang === "en" ? "bg-[#D4FF00] text-[#07080C] shadow-sm" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                EN
+                {soundEnabled ? <UnmuteIcon size={12} /> : <MuteIcon size={12} />}
               </button>
             </div>
           </div>

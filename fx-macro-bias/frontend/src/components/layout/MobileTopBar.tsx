@@ -8,6 +8,7 @@ import {
 } from "@primer/octicons-react";
 import { ShiftFXMark } from "@/components/brand/ShiftFXLogo";
 import { PeriodSelectorPopover } from "@/components/shell/PeriodSelectorPopover";
+import { QuickThemePaletteButton } from "@/components/theme/WorkspaceThemeSwitcher";
 
 export function MobileTopBar({
   onOpenMobileMenu,
@@ -48,8 +49,11 @@ export function MobileTopBar({
         </Link>
       </div>
 
-      {/* Right: Search Button + Compact Period Selector + HQ Avatar */}
+      {/* Right: Quick Theme Palette + Search Button + Compact Period Selector + HQ Avatar */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Quick Theme Signature Selector */}
+        <QuickThemePaletteButton />
+
         {/* Compact ⌘K Search Button with Hit-Slop */}
         <button
           onClick={onOpenSearch}

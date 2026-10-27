@@ -31,14 +31,17 @@ import {
   Copy,
   ChevronDown,
   Sparkles,
-  Activity
+  Activity,
+  Palette
 } from "lucide-react";
 import { clsx } from "clsx";
 import confetti from "canvas-confetti";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { playClickSound, playSuccessSound, playTabSound } from "@/lib/soundEffects";
+import { soundFX } from "@/lib/soundEngine";
 import { CurrencyFlag } from "@/components/ui/DopaminePrimitives";
+import { WorkspaceThemeSwitcher } from "@/components/theme/WorkspaceThemeSwitcher";
 
 // High-end styling primitives
 const glassPanel = "bg-[#10131A]/90 border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.12)] rounded-[26px] p-6 backdrop-blur-2xl";
@@ -279,7 +282,7 @@ export default function AdminSettingsPage() {
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
         {[
           { id: "cron", label: t("settings.tab.cron"), icon: Clock },
-          { id: "language", label: t("settings.tab.language"), icon: Globe2 },
+          { id: "language", label: lang === "fr" ? "Apparence & Langue" : "Appearance & Language", icon: Palette },
           { id: "security", label: t("settings.tab.security"), icon: ShieldCheck },
           { id: "ingestion", label: t("settings.tab.ingestion"), icon: Database },
           { id: "audit", label: t("settings.tab.audit"), icon: Activity },
@@ -464,6 +467,8 @@ export default function AdminSettingsPage() {
         {/* ═══════════════════════════════════════════════════════════════ */}
         {/* TAB 2: PLATFORM LANGUAGE & LOCALIZATION (FR / EN)               */}
         {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* TAB 2: APPARENCE & SIGNATURE CHROMATIQUE + LANGUE             */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
         {activeTab === "language" && (
           <motion.div
             key="language"
@@ -471,101 +476,136 @@ export default function AdminSettingsPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.16 }}
-            className={`${glassPanel} space-y-6`}
+            className="space-y-6"
           >
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Globe2 size={16} className="text-[#D4FF00]" />
-                <h3 className="font-display font-bold text-xl text-white">
-                  {t("settings.lang.title")}
-                </h3>
+            {/* Visual Bento 1: Institutional Quant Themes (Video 00:08 - 00:10) */}
+            <div className={`${glassPanel} space-y-5`}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-white">
+                    <Palette size={20} className="text-[var(--fx-accent,#D4FF00)]" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-xl text-white">
+                      {lang === "fr" ? "Signature Chromatique & Thème Quant" : "Institutional Chromatic Signature"}
+                    </h3>
+                    <p className="font-sans text-xs text-slate-400 mt-0.5">
+                      {lang === "fr"
+                        ? "Teinte instantanément l'intégralité du terminal (strokes, KPI washes, boutons actifs, halos) via variables CSS persistées"
+                        : "Instantly re-tints the entire terminal (strokes, KPI washes, active buttons, luminous halos) via persistent CSS variables"}
+                    </p>
+                  </div>
+                </div>
+
+                <span className="font-mono text-[11px] px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-slate-300">
+                  CSS 3 Variable Engine
+                </span>
               </div>
-              <p className="font-sans text-sm text-slate-400">
-                {t("settings.lang.subtitle")}
-              </p>
+
+              {/* Theme Swatch Switcher Pod */}
+              <div className="pt-2">
+                <WorkspaceThemeSwitcher />
+              </div>
             </div>
 
-            {/* Language Selection Bento Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* French Option Card */}
-              <button
-                type="button"
-                onClick={() => {
-                  playSuccessSound();
-                  setLang("fr");
-                }}
-                className={clsx(
-                  "p-6 rounded-[24px] text-left transition-all cursor-pointer relative flex flex-col justify-between gap-4 border",
-                  lang === "fr"
-                    ? "bg-[#D4FF00]/10 border-[#D4FF00] shadow-[0_0_30px_rgba(212,255,0,0.15)] ring-1 ring-[#D4FF00]"
-                    : "bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.08]"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-white/20 shadow-md flex items-center justify-center">
-                      <CurrencyFlag currency="EUR" size="lg" />
-                    </div>
-                    <div>
-                      <h4 className="font-display font-bold text-base text-white">
-                        {t("settings.lang.select_fr")}
-                      </h4>
-                      <span className="font-mono text-xs text-slate-400">Français (FR)</span>
-                    </div>
-                  </div>
-                  {lang === "fr" && (
-                    <span className="px-3 py-1 rounded-full bg-[#D4FF00] text-[#07080C] font-mono text-[11px] font-extrabold uppercase">
-                      {t("settings.lang.active_badge")}
-                    </span>
-                  )}
+            {/* Visual Bento 2: Sovereign Language Switcher */}
+            <div className={`${glassPanel} space-y-5`}>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Globe2 size={18} className="text-[var(--fx-accent,#D4FF00)]" />
+                  <h3 className="font-display font-bold text-xl text-white">
+                    {t("settings.lang.title")}
+                  </h3>
                 </div>
-                <p className="font-sans text-xs text-slate-300 leading-relaxed">
-                  {t("settings.lang.select_fr_desc")}
+                <p className="font-sans text-sm text-slate-400">
+                  {t("settings.lang.subtitle")}
                 </p>
-              </button>
+              </div>
 
-              {/* English Option Card */}
-              <button
-                type="button"
-                onClick={() => {
-                  playSuccessSound();
-                  setLang("en");
-                }}
-                className={clsx(
-                  "p-6 rounded-[24px] text-left transition-all cursor-pointer relative flex flex-col justify-between gap-4 border",
-                  lang === "en"
-                    ? "bg-[#D4FF00]/10 border-[#D4FF00] shadow-[0_0_30px_rgba(212,255,0,0.15)] ring-1 ring-[#D4FF00]"
-                    : "bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.08]"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-white/20 shadow-md flex items-center justify-center">
-                      <CurrencyFlag currency="GBP" size="lg" />
-                    </div>
-                    <div>
-                      <h4 className="font-display font-bold text-base text-white">
-                        {t("settings.lang.select_en")}
-                      </h4>
-                      <span className="font-mono text-xs text-slate-400">English (EN)</span>
-                    </div>
-                  </div>
-                  {lang === "en" && (
-                    <span className="px-3 py-1 rounded-full bg-[#D4FF00] text-[#07080C] font-mono text-[11px] font-extrabold uppercase">
-                      {t("settings.lang.active_badge")}
-                    </span>
+              {/* Language Selection Bento Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* French Option Card */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFX.playPop(1);
+                    playSuccessSound();
+                    setLang("fr");
+                  }}
+                  className={clsx(
+                    "p-6 rounded-[24px] text-left transition-all cursor-pointer relative flex flex-col justify-between gap-4 border",
+                    lang === "fr"
+                      ? "bg-white/[0.06] border-[var(--fx-accent,#D4FF00)] shadow-[0_0_30px_rgba(212,255,0,0.15)] ring-1 ring-[var(--fx-accent,#D4FF00)]"
+                      : "bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.08]"
                   )}
-                </div>
-                <p className="font-sans text-xs text-slate-300 leading-relaxed">
-                  {t("settings.lang.select_en_desc")}
-                </p>
-              </button>
-            </div>
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-white/20 shadow-md flex items-center justify-center">
+                        <CurrencyFlag currency="EUR" size="lg" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-bold text-base text-white">
+                          {t("settings.lang.select_fr")}
+                        </h4>
+                        <span className="font-mono text-xs text-slate-400">Français (FR)</span>
+                      </div>
+                    </div>
+                    {lang === "fr" && (
+                      <span className="px-3 py-1 rounded-full bg-[var(--fx-accent,#D4FF00)] text-[#07080C] font-mono text-[11px] font-extrabold uppercase">
+                        {t("settings.lang.active_badge")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-sans text-xs text-slate-300 leading-relaxed">
+                    {t("settings.lang.select_fr_desc")}
+                  </p>
+                </button>
 
-            {/* Instant Application Notice */}
-            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-3 text-xs font-sans text-slate-300">
-              <Sparkles size={18} className="text-[#D4FF00] shrink-0" />
-              <span>{t("settings.lang.instant_notice")}</span>
+                {/* English Option Card */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFX.playPop(1);
+                    playSuccessSound();
+                    setLang("en");
+                  }}
+                  className={clsx(
+                    "p-6 rounded-[24px] text-left transition-all cursor-pointer relative flex flex-col justify-between gap-4 border",
+                    lang === "en"
+                      ? "bg-white/[0.06] border-[var(--fx-accent,#D4FF00)] shadow-[0_0_30px_rgba(212,255,0,0.15)] ring-1 ring-[var(--fx-accent,#D4FF00)]"
+                      : "bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.08]"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-white/20 shadow-md flex items-center justify-center">
+                        <CurrencyFlag currency="GBP" size="lg" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-bold text-base text-white">
+                          {t("settings.lang.select_en")}
+                        </h4>
+                        <span className="font-mono text-xs text-slate-400">English (EN)</span>
+                      </div>
+                    </div>
+                    {lang === "en" && (
+                      <span className="px-3 py-1 rounded-full bg-[var(--fx-accent,#D4FF00)] text-[#07080C] font-mono text-[11px] font-extrabold uppercase">
+                        {t("settings.lang.active_badge")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-sans text-xs text-slate-300 leading-relaxed">
+                    {t("settings.lang.select_en_desc")}
+                  </p>
+                </button>
+              </div>
+
+              {/* Instant Application Notice */}
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-3 text-xs font-sans text-slate-300">
+                <Sparkles size={18} className="text-[var(--fx-accent,#D4FF00)] shrink-0" />
+                <span>{t("settings.lang.instant_notice")}</span>
+              </div>
             </div>
           </motion.div>
         )}

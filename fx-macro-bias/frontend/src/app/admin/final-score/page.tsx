@@ -39,6 +39,8 @@ import {
   AdminPageHeader, CatalogueKPICard, SculptedFilterPod, SculptedTableContainer 
 } from "@/components/admin/AdminPrimitives";
 import { FXPairFlags } from "@/components/ui/DopaminePrimitives";
+import { soundFX } from "@/lib/soundEngine";
+import { AnimatedMetricValue, GhostWireframeDissolve } from "@/components/motion/AnimatedNumberAndMorphChart";
 
 import { 
   INDICATORS, 
@@ -250,6 +252,7 @@ export default function FinalScorePage() {
   const [regimeFilter, setRegimeFilter] = useState<"ALL" | "BULLISH" | "BEARISH" | "NEUTRAL">("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [heatmapMode, setHeatmapMode] = useState<boolean>(true);
+  const [activeKpiKey, setActiveKpiKey] = useState<string>("bullish");
 
   const { data: scoresData, isLoading, refetch } = useQuery({
     queryKey: ["final-scores", selectedYear, userOverrides],
@@ -455,6 +458,7 @@ export default function FinalScorePage() {
       console.error(e);
     }
 
+    soundFX.playChime();
     confetti({
       particleCount: 45,
       spread: 60,
@@ -516,7 +520,10 @@ export default function FinalScorePage() {
             {/* Heatmap toggle */}
             <button
               type="button"
-              onClick={() => setHeatmapMode(!heatmapMode)}
+              onClick={() => {
+                soundFX.playPop(1.1);
+                setHeatmapMode(!heatmapMode);
+              }}
               className={clsx(
                 "h-10 px-4 rounded-full font-mono text-xs transition-all cursor-pointer border flex items-center gap-1.5 whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
                 heatmapMode 
@@ -542,12 +549,18 @@ export default function FinalScorePage() {
             title="PLUS FORT VENT PORTEUR"
             variant="emerald"
             icon={<TrendingUp size={14} />}
+            isActive={activeKpiKey === "bullish"}
+            layoutId="final-score-kpi-focus"
+            onClick={() => {
+              soundFX.playPop(1);
+              setActiveKpiKey("bullish");
+            }}
             customHero={
               <div className="flex items-baseline justify-between my-1">
                 <div className="flex items-center gap-2">
                   <FXPairFlags pair={stats.topBullish.pair} size="sm" />
                   <span className="text-[26px] leading-none font-mono font-extrabold text-emerald-400 tracking-tight">
-                    +{stats.topBullish.score.toFixed(1)}%
+                    <AnimatedMetricValue value={stats.topBullish.score} prefix="+" suffix="%" decimals={1} />
                   </span>
                 </div>
                 <span className="font-sans font-bold text-sm text-white">{stats.topBullish.pair}</span>
@@ -562,12 +575,18 @@ export default function FinalScorePage() {
             title="PLUS FORT VENT CONTRAIRE"
             variant="rose"
             icon={<TrendingDown size={14} />}
+            isActive={activeKpiKey === "bearish"}
+            layoutId="final-score-kpi-focus"
+            onClick={() => {
+              soundFX.playPop(1.05);
+              setActiveKpiKey("bearish");
+            }}
             customHero={
               <div className="flex items-baseline justify-between my-1">
                 <div className="flex items-center gap-2">
                   <FXPairFlags pair={stats.topBearish.pair} size="sm" />
                   <span className="text-[26px] leading-none font-mono font-extrabold text-rose-400 tracking-tight">
-                    {stats.topBearish.score.toFixed(1)}%
+                    <AnimatedMetricValue value={stats.topBearish.score} suffix="%" decimals={1} />
                   </span>
                 </div>
                 <span className="font-sans font-bold text-sm text-white">{stats.topBearish.pair}</span>
@@ -582,20 +601,27 @@ export default function FinalScorePage() {
             title={`LARGEUR DE RÉGIME (${stats.latestSettledMonth})`}
             variant="sky"
             icon={<Activity size={14} />}
+            isActive={activeKpiKey === "distribution"}
+            layoutId="final-score-kpi-focus"
+            onClick={() => {
+              soundFX.playPop(1.1);
+              setActiveKpiKey("distribution");
+            }}
             customHero={
               <div className="flex flex-col gap-1.5 my-1">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-[28px] leading-none font-mono font-extrabold text-white tracking-tight">
-                    {stats.totalPairs} <span className="text-xs font-mono text-slate-400 font-normal">Paires</span>
+                  <span className="text-[28px] leading-none font-mono font-extrabold text-white tracking-tight flex items-baseline">
+                    <AnimatedMetricValue value={stats.totalPairs} decimals={0} />
+                    <span className="text-xs font-mono text-slate-400 font-normal ml-1">Paires</span>
                   </span>
                   <span className="text-[11px] font-mono text-slate-400">
                     <span className="text-emerald-400 font-bold">+{stats.bullishCount}</span> / {stats.neutralCount} / <span className="text-rose-400 font-bold">-{stats.bearishCount}</span>
                   </span>
                 </div>
                 <div className="w-full h-2 rounded-full overflow-hidden flex bg-white/[0.06] p-0.5 border border-white/[0.08]">
-                  <div style={{ width: `${(stats.bullishCount / stats.totalPairs) * 100}%` }} className="h-full bg-emerald-400 rounded-l-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <div style={{ width: `${(stats.neutralCount / stats.totalPairs) * 100}%` }} className="h-full bg-slate-400" />
-                  <div style={{ width: `${(stats.bearishCount / stats.totalPairs) * 100}%` }} className="h-full bg-rose-400 rounded-r-full shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
+                  <div style={{ width: `${(stats.bullishCount / stats.totalPairs) * 100}%` }} className="h-full bg-emerald-400 rounded-l-full shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-500" />
+                  <div style={{ width: `${(stats.neutralCount / stats.totalPairs) * 100}%` }} className="h-full bg-slate-400 transition-all duration-500" />
+                  <div style={{ width: `${(stats.bearishCount / stats.totalPairs) * 100}%` }} className="h-full bg-rose-400 rounded-r-full shadow-[0_0_8px_rgba(244,63,94,0.5)] transition-all duration-500" />
                 </div>
               </div>
             }
@@ -607,10 +633,17 @@ export default function FinalScorePage() {
           <CatalogueKPICard
             title="DISPERSION ABSOLUE G10"
             value={`${stats.avgAbs}%`}
+            numericValue={parseFloat(stats.avgAbs)}
             unit="Haute Conviction"
             subtitle="Divergence Moyenne Absolue"
             variant="lime"
             icon={<Sparkles size={14} />}
+            isActive={activeKpiKey === "dispersion"}
+            layoutId="final-score-kpi-focus"
+            onClick={() => {
+              soundFX.playPop(1.15);
+              setActiveKpiKey("dispersion");
+            }}
             bars={[40, 65, 80, 95]}
           />
 
@@ -638,7 +671,10 @@ export default function FinalScorePage() {
               ].map((grp) => (
                 <button
                   key={grp.key}
-                  onClick={() => setCurrencyGroup(grp.key as any)}
+                  onClick={() => {
+                    soundFX.playPop(1);
+                    setCurrencyGroup(grp.key as any);
+                  }}
                   className={clsx(
                     "px-3.5 py-1.5 rounded-full text-xs font-mono transition-all cursor-pointer whitespace-nowrap",
                     currencyGroup === grp.key
@@ -725,6 +761,7 @@ export default function FinalScorePage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 4. VIEW MODE 1: MATRIX GRID VIEW WITH ZERO RIGHT-EDGE CLIPPING    */}
       {/* ══════════════════════════════════════════════════════════════════ */}
+      <GhostWireframeDissolve isRefreshing={isLoading}>
       {viewMode === "matrix" && (
         <SculptedTableContainer className="overflow-hidden mb-8">
           {/* Header Info Banner */}
@@ -1126,6 +1163,7 @@ export default function FinalScorePage() {
               })}
           </div>
         )}
+      </GhostWireframeDissolve>
 
         {/* ============================================================== */}
         {/* MODAL: CLIENT MACRO ESTIMATION & 3-MONTH SCENARIO STUDIO      */}

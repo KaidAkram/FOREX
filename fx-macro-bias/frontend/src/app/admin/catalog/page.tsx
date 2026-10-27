@@ -18,6 +18,8 @@ import { FXPairFlags, SPRING_SNAPPY } from "@/components/ui/DopaminePrimitives";
 import { 
   AdminPageHeader, CatalogueKPICard, SculptedFilterPod, SculptedTableContainer 
 } from "@/components/admin/AdminPrimitives";
+import { soundFX } from "@/lib/soundEngine";
+import { AnimatedMetricValue } from "@/components/motion/AnimatedNumberAndMorphChart";
 
 // Helper to format carry advantage concisely (prevents any text clipping or double parenthesis)
 function formatConciseCarry(carry: string): string {
@@ -66,6 +68,7 @@ export default function AdminCatalogPage() {
   const [groupFilter, setGroupFilter] = useState<string>("ALL");
   const [tierFilter, setTierFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [activeKpiKey, setActiveKpiKey] = useState<string>("catalogue");
 
   useEffect(() => {
     const loadedConfig = getCatalogConfig();
@@ -226,6 +229,7 @@ export default function AdminCatalogPage() {
     saveCatalogConfig(config);
     setIsDirty(false);
     setSaveSuccess(true);
+    soundFX.playChime();
     playSuccessSound();
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.5 } });
     setTimeout(() => setSaveSuccess(false), 3000);
@@ -313,62 +317,97 @@ export default function AdminCatalogPage() {
       </AnimatePresence>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 2. KPI ROW (6 Cards with CatalogueKPICard standard)               */}
+      {/* 2. KPI ROW (Active Focus Inversion layoutId="catalog-kpi-focus")   */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-6 gap-3.5 mb-5">
         {/* Card 1: Catalogue G10 */}
         <CatalogueKPICard
           title="CATALOGUE G10"
           value={28}
+          numericValue={28}
           unit="Paires"
           subtitle="Paires canoniques"
           variant="lime"
           icon={<Layers size={14} />}
           bars={[40, 65, 55, 95]}
+          isActive={activeKpiKey === "catalogue"}
+          layoutId="catalog-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1);
+            setActiveKpiKey("catalogue");
+          }}
         />
 
         {/* Card 2: Publiées */}
         <CatalogueKPICard
           title="PUBLIÉES"
           value={publishedCount}
+          numericValue={publishedCount}
           unit="Actives"
           subtitle="Visibles au portail"
           variant="emerald"
           icon={<CheckCircle2 size={14} />}
           bars={[50, 75, 80, 100]}
+          isActive={activeKpiKey === "published"}
+          layoutId="catalog-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.05);
+            setActiveKpiKey("published");
+          }}
         />
 
         {/* Card 3: Masquées */}
         <CatalogueKPICard
           title="MASQUÉES"
           value={hiddenCount}
+          numericValue={hiddenCount}
           unit="Filtrées"
           subtitle="Non affichées"
           variant="slate"
           icon={<EyeOff size={14} />}
           bars={[20, 15, 10, Math.max(5, hiddenCount * 10)]}
+          isActive={activeKpiKey === "hidden"}
+          layoutId="catalog-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.1);
+            setActiveKpiKey("hidden");
+          }}
         />
 
         {/* Card 4: Plan Basic */}
         <CatalogueKPICard
           title="PLAN BASIC"
           value={basicCount}
+          numericValue={basicCount}
           unit="Standard"
           subtitle="Accès gratuit"
           variant="sky"
           icon={<Unlock size={14} />}
           bars={[35, 50, 60, 85]}
+          isActive={activeKpiKey === "basic"}
+          layoutId="catalog-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.15);
+            setActiveKpiKey("basic");
+          }}
         />
 
         {/* Card 5: Plan Pro */}
         <CatalogueKPICard
           title="PLAN PRO"
           value={proCount}
+          numericValue={proCount}
           unit="Institutionnel"
           subtitle="Réservé abonnés"
           variant="purple"
           icon={<Lock size={14} />}
           bars={[60, 75, 85, 100]}
+          isActive={activeKpiKey === "pro"}
+          layoutId="catalog-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.2);
+            setActiveKpiKey("pro");
+          }}
         />
 
         {/* Card 6: Top Movers */}
@@ -379,6 +418,12 @@ export default function AdminCatalogPage() {
           subtitle="Ruban vedette"
           variant="lime"
           icon={<Flame size={14} />}
+          isActive={activeKpiKey === "top-movers"}
+          layoutId="catalog-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.25);
+            setActiveKpiKey("top-movers");
+          }}
           customRightFooter={
             <div className="flex items-center gap-1.5 h-4 shrink-0">
               <span className={clsx("w-2 h-2 rounded-full transition-all", topMoversCount >= 1 ? "bg-[#D4FF00] shadow-[0_0_8px_rgba(212,255,0,0.8)]" : "bg-white/10")} />

@@ -33,6 +33,8 @@ import {
   runWithViewTransition,
   SPRING_WEIGHTLESS,
 } from "@/lib/uxEngineeringStandards";
+import { soundFX } from "@/lib/soundEngine";
+import { GhostWireframeDissolve, AnimatedMetricValue } from "@/components/motion/AnimatedNumberAndMorphChart";
 
 const CURRENCY_META: Record<
   string,
@@ -68,6 +70,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
+  const [activeKpiKey, setActiveKpiKey] = useState<string>("pairs");
 
   // 1. Dynamic Pair Scores Calculation from Master Dataset
   const dynamicPairScores = useMemo(() => {
@@ -219,10 +222,12 @@ export default function DashboardPage() {
 
   // CHECKLIST #19: Idempotent Sync Action with double-click locking
   const executeSync = useIdempotentAction(async () => {
+    soundFX.playPop(1);
     setIsRefreshing(true);
     setRefreshNotice(null);
     await new Promise((r) => setTimeout(r, 600));
     setIsRefreshing(false);
+    soundFX.playChime();
     setRefreshNotice(
       "Matrice de biais quantitatif synchronisée. Les 28 paires G10 sont actives."
     );
@@ -313,13 +318,14 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 2. TOP KPI ROW (Crisp Pearl White #F8FAFC + Humanist Satoshi)     */}
+      {/* 2. TOP KPI ROW (Active Focus Inversion layoutId="kpi-focus-wash") */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-5">
         {/* KPI 1: Active FX Pairs */}
         <CatalogueKPICard
           title="PAIRES FX ACTIVES"
           value="28"
+          numericValue={28}
           unit="Couverture 100%"
           subtitle={
             <span className="font-sans font-medium text-xs text-slate-300">
@@ -330,6 +336,12 @@ export default function DashboardPage() {
           icon={<StackIcon size={16} className="text-[#D4FF00]" />}
           bars={[50, 75, 60, 95]}
           className="h-[115px] sm:h-[132px]"
+          isActive={activeKpiKey === "pairs"}
+          layoutId="dashboard-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1);
+            setActiveKpiKey("pairs");
+          }}
         />
 
         {/* KPI 2: Macro Bias Distribution */}
@@ -338,12 +350,18 @@ export default function DashboardPage() {
           variant="emerald"
           icon={<PulseIcon size={16} className="text-emerald-400" />}
           className="h-[115px] sm:h-[132px]"
+          isActive={activeKpiKey === "bias"}
+          layoutId="dashboard-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.05);
+            setActiveKpiKey("bias");
+          }}
           customHero={
             <div className="flex flex-col gap-1.5 my-0.5 sm:my-1">
               <div className="flex items-baseline justify-between">
-                <span className="text-xl sm:text-[28px] leading-none font-mono font-extrabold text-[#F8FAFC] tracking-tight tabular-nums">
-                  {biasDistribution.neutralPct}%{" "}
-                  <span className="font-sans text-xs text-slate-400 font-normal">
+                <span className="text-xl sm:text-[28px] leading-none font-mono font-extrabold text-[#F8FAFC] tracking-tight tabular-nums flex items-baseline">
+                  <AnimatedMetricValue value={biasDistribution.neutralPct} decimals={0} suffix="%" />
+                  <span className="font-sans text-xs text-slate-400 font-normal ml-1.5">
                     Neutre
                   </span>
                 </span>
@@ -361,15 +379,15 @@ export default function DashboardPage() {
               <div className="w-full h-1.5 sm:h-2 rounded-full overflow-hidden flex bg-white/[0.06] p-0.5 border border-white/[0.08]">
                 <div
                   style={{ width: `${biasDistribution.bullishPct}%` }}
-                  className="h-full bg-emerald-400 rounded-l-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                  className="h-full bg-emerald-400 rounded-l-full shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-500"
                 />
                 <div
                   style={{ width: `${biasDistribution.neutralPct}%` }}
-                  className="h-full bg-slate-400"
+                  className="h-full bg-slate-400 transition-all duration-500"
                 />
                 <div
                   style={{ width: `${biasDistribution.bearishPct}%` }}
-                  className="h-full bg-rose-400 rounded-r-full shadow-[0_0_8px_rgba(244,63,94,0.5)]"
+                  className="h-full bg-rose-400 rounded-r-full shadow-[0_0_8px_rgba(244,63,94,0.5)] transition-all duration-500"
                 />
               </div>
             </div>
@@ -390,6 +408,12 @@ export default function DashboardPage() {
           variant="slate"
           icon={<CheckCircleIcon size={16} className="text-slate-300" />}
           className="h-[115px] sm:h-[132px]"
+          isActive={activeKpiKey === "indicators"}
+          layoutId="dashboard-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.1);
+            setActiveKpiKey("indicators");
+          }}
           customSubtitle={
             <div className="flex items-center gap-[3px] whitespace-nowrap overflow-visible pt-0.5 min-w-0 flex-1">
               {["PIB", "BC", "IPC", "Taux", "RÉS", "ACT"].map((pill) => (
@@ -409,6 +433,7 @@ export default function DashboardPage() {
         <CatalogueKPICard
           title="STATUT DU MOTEUR"
           value="100%"
+          numericValue={100}
           unit="Synchronisé"
           subtitle={
             <span className="font-sans font-medium text-xs text-slate-400">
@@ -419,12 +444,19 @@ export default function DashboardPage() {
           icon={<ShieldCheckIcon size={16} className="text-emerald-400" />}
           bars={[80, 85, 90, 100]}
           className="h-[115px] sm:h-[132px]"
+          isActive={activeKpiKey === "engine"}
+          layoutId="dashboard-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.15);
+            setActiveKpiKey("engine");
+          }}
         />
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 3. G10 SOVEREIGN CURRENCY STRENGTH BAROMETER                      */}
       {/* ══════════════════════════════════════════════════════════════════ */}
+      <GhostWireframeDissolve isRefreshing={isRefreshing}>
       <section className="rounded-[24px] bg-[#101218] border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_20px_40px_-15px_rgba(0,0,0,0.7)] p-4 sm:p-6 mb-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/[0.05] pb-4">
           <div className="flex flex-col gap-0.5">
@@ -461,6 +493,7 @@ export default function DashboardPage() {
             return (
               <div
                 key={curr.code}
+                onMouseEnter={() => soundFX.playTick()}
                 className={`min-w-[125px] snap-start shrink-0 lg:min-w-0 flex flex-col justify-between p-3.5 rounded-[18px] bg-[#0A0B0F] ${washStyle.bg} border border-white/[0.06] ${washStyle.borderTop} shadow-md transition-all duration-200 ease-out hover:border-white/[0.14] hover:bg-[#12151C] group`}
               >
                 {/* Top row: Rank + Score pill */}
@@ -551,68 +584,75 @@ export default function DashboardPage() {
             const washStyle = WASH_STYLES[isBull ? "emerald" : "rose"];
 
             return (
-              <Link
+              <motion.div
                 key={pair.pair}
-                href="/admin/final-score"
-                className={`rounded-[22px] p-5 bg-[#101218] ${washStyle.bg} border border-white/[0.06] ${washStyle.borderTop} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_16px_32px_-12px_rgba(0,0,0,0.6)] flex flex-col justify-between gap-3 group transition-all duration-200 ease-out hover:border-white/[0.14] hover:bg-[#12151C]`}
+                whileHover={{ y: -4, rotateX: 1.8, rotateY: -1.2, scale: 1.012 }}
+                transition={{ type: "spring", stiffness: 420, damping: 28 }}
+                onMouseEnter={() => soundFX.playTick()}
+                className="h-full"
               >
-                {/* Header row: Dual Flags + Ticker + Regime pill */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <FXPairFlags pair={pair.pair} size="sm" />
-                    <span className="font-display font-bold text-base text-white group-hover:text-[#D4FF00] transition-colors tracking-tight">
-                      {pair.pair}
+                <Link
+                  href="/admin/final-score"
+                  className={`h-full rounded-[22px] p-5 bg-[#101218] ${washStyle.bg} border border-white/[0.06] ${washStyle.borderTop} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_16px_32px_-12px_rgba(0,0,0,0.6)] flex flex-col justify-between gap-3 group transition-all duration-200 ease-out hover:border-white/[0.14] hover:bg-[#12151C]`}
+                >
+                  {/* Header row: Dual Flags + Ticker + Regime pill */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <FXPairFlags pair={pair.pair} size="sm" />
+                      <span className="font-display font-bold text-base text-white group-hover:text-[#D4FF00] transition-colors tracking-tight">
+                        {pair.pair}
+                      </span>
+                    </div>
+                    <span
+                      className={clsx(
+                        "font-sans text-[9px] font-bold px-2 py-0.5 rounded-full border",
+                        isBull
+                          ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                          : "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                      )}
+                    >
+                      {isBull ? "ACHETEUR" : "VENDEUR"}
                     </span>
                   </div>
-                  <span
-                    className={clsx(
-                      "font-sans text-[9px] font-bold px-2 py-0.5 rounded-full border",
-                      isBull
-                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                        : "bg-rose-500/15 text-rose-400 border-rose-500/30"
-                    )}
-                  >
-                    {isBull ? "ACHETEUR" : "VENDEUR"}
-                  </span>
-                </div>
 
-                {/* Score Hero metric */}
-                <div className="flex items-baseline justify-between mt-1">
-                  <span
-                    className={clsx(
-                      "text-2xl font-mono font-extrabold tracking-tight tabular-nums",
-                      isBull ? "text-emerald-400" : "text-rose-400"
-                    )}
-                  >
-                    {pair.scorePct}
-                  </span>
-                  <span className="font-sans text-xs text-slate-400">
-                    Score : <span className="font-mono tabular-nums">{pair.rating}</span>
-                  </span>
-                </div>
+                  {/* Score Hero metric */}
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span
+                      className={clsx(
+                        "text-2xl font-mono font-extrabold tracking-tight tabular-nums",
+                        isBull ? "text-emerald-400" : "text-rose-400"
+                      )}
+                    >
+                      {pair.scorePct}
+                    </span>
+                    <span className="font-sans text-xs text-slate-400">
+                      Score : <span className="font-mono tabular-nums">{pair.rating}</span>
+                    </span>
+                  </div>
 
-                {/* 2-Line Clean Macro Rationale (Warm Satoshi Font, [text-wrap:pretty]) */}
-                <div className="min-h-[34px] flex items-center">
-                  <p className="font-sans text-xs text-slate-400 leading-relaxed line-clamp-2 [text-wrap:pretty]">
-                    {pair.rationale}
-                  </p>
-                </div>
+                  {/* 2-Line Clean Macro Rationale (Warm Satoshi Font, [text-wrap:pretty]) */}
+                  <div className="min-h-[34px] flex items-center">
+                    <p className="font-sans text-xs text-slate-400 leading-relaxed line-clamp-2 [text-wrap:pretty]">
+                      {pair.rationale}
+                    </p>
+                  </div>
 
-                {/* Dedicated Clean Bottom Row for Inspect Action */}
-                <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-xs font-sans">
-                  <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                    Biais 6-Piliers
-                  </span>
-                  <span
-                    className={clsx(
-                      "inline-flex items-center gap-1 font-semibold transition-transform group-hover:translate-x-1",
-                      isBull ? "text-emerald-400" : "text-rose-400"
-                    )}
-                  >
-                    Inspecter <ArrowRightIcon size={13} />
-                  </span>
-                </div>
-              </Link>
+                  {/* Dedicated Clean Bottom Row for Inspect Action */}
+                  <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-xs font-sans">
+                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                      Biais 6-Piliers
+                    </span>
+                    <span
+                      className={clsx(
+                        "inline-flex items-center gap-1 font-semibold transition-transform group-hover:translate-x-1",
+                        isBull ? "text-emerald-400" : "text-rose-400"
+                      )}
+                    >
+                      Inspecter <ArrowRightIcon size={13} />
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
             );
           })}
         </div>
@@ -741,6 +781,7 @@ export default function DashboardPage() {
           </Link>
         </section>
       </div>
+      </GhostWireframeDissolve>
     </div>
   );
 }

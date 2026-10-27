@@ -31,6 +31,8 @@ import {
 } from "@/components/admin/AdminPrimitives";
 import { CurrencyFlag, FXPairFlags } from "@/components/ui/DopaminePrimitives";
 import { getCountryFlagUrl, formatCleanMacroPercent } from "@/lib/macroFormatters";
+import { soundFX } from "@/lib/soundEngine";
+import { AnimatedMetricValue, GhostWireframeDissolve } from "@/components/motion/AnimatedNumberAndMorphChart";
 
 const TABS = ["Matrice Macro", "Différentiels & Notes"];
 const YEARS = MACRO_YEARS;
@@ -59,6 +61,7 @@ export default function MacroDataPage() {
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [countrySearch, setCountrySearch] = useState("");
   const [headerSearch, setHeaderSearch] = useState("");
+  const [activeKpiKey, setActiveKpiKey] = useState<string>("economies");
 
   // User Assumptions & Forward Overrides state initialized lazily
   const [assumptions, setAssumptions] = useState<Record<string, string>>(() => {
@@ -245,6 +248,7 @@ export default function MacroDataPage() {
       localStorage.setItem("shiftfx_macro_user_assumptions", JSON.stringify(updated));
     } catch {}
     setSelectedAssumptionCell(null);
+    soundFX.playChime();
     playSuccessSound();
     confetti({ particleCount: 30, spread: 45, origin: { y: 0.5 } });
   };
@@ -297,50 +301,83 @@ export default function MacroDataPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 2. TOP KPI ROW (4 Uniform CatalogueKPICard components)             */}
       {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 2. TOP KPI ROW (Active Focus Inversion layoutId="macro-data-kpi-focus") */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
         
         {/* KPI 1: Sovereign Economies */}
         <CatalogueKPICard
           title="ÉCONOMIES SOUVERAINES"
           value="8"
+          numericValue={8}
           unit="Zones G10"
           subtitle="Couverture 100%"
           variant="lime"
           icon={<Database size={14} />}
           bars={[50, 75, 80, 95]}
+          isActive={activeKpiKey === "economies"}
+          layoutId="macro-data-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1);
+            setActiveKpiKey("economies");
+          }}
         />
 
         {/* KPI 2: Matrix Observations */}
         <CatalogueKPICard
           title="MATRICE OBSERVATIONS"
           value="576"
+          numericValue={576}
           unit="Points Macro"
           subtitle="6 Piliers × 12 Mois"
           variant="sky"
           icon={<CheckCircle2 size={14} />}
           bars={[60, 70, 85, 100]}
+          isActive={activeKpiKey === "observations"}
+          layoutId="macro-data-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.05);
+            setActiveKpiKey("observations");
+          }}
         />
 
         {/* KPI 3: Published Data */}
         <CatalogueKPICard
           title="DONNÉES PUBLIÉES (PUB)"
           value="75%"
+          numericValue={75}
+          suffix="%"
           unit="Officielles"
           subtitle="Janvier – Septembre 2026"
           variant="emerald"
           icon={<Sparkles size={14} />}
           bars={[70, 75, 80, 75]}
+          isActive={activeKpiKey === "published"}
+          layoutId="macro-data-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.1);
+            setActiveKpiKey("published");
+          }}
         />
 
         {/* KPI 4: Quant Estimates */}
         <CatalogueKPICard
           title="ESTIMATIONS QUANT (EST)"
           value="25%"
+          numericValue={25}
+          suffix="%"
           unit="Projections"
           subtitle="Octobre – Décembre 2026"
           variant="purple"
           icon={<Calendar size={14} />}
           bars={[25, 25, 25, 25]}
+          isActive={activeKpiKey === "estimates"}
+          layoutId="macro-data-kpi-focus"
+          onClick={() => {
+            soundFX.playPop(1.15);
+            setActiveKpiKey("estimates");
+          }}
         />
 
       </div>
@@ -354,7 +391,10 @@ export default function MacroDataPage() {
           {TABS.map((tab) => (
             <button
               key={tab}
-              onClick={() => { setActiveTab(tab); playTabSound(); }}
+              onClick={() => { 
+                soundFX.playPop(1); 
+                setActiveTab(tab); 
+              }}
               className={clsx(
                 "px-4 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap",
                 activeTab === tab
@@ -372,7 +412,10 @@ export default function MacroDataPage() {
           {INDICATORS.map((ind) => (
             <button
               key={ind}
-              onClick={() => { setActiveInd(ind); playTabSound(); }}
+              onClick={() => { 
+                soundFX.playPop(1.05); 
+                setActiveInd(ind); 
+              }}
               className={clsx(
                 "px-3 py-1.5 rounded-full text-xs font-mono transition-all cursor-pointer whitespace-nowrap shrink-0",
                 activeInd === ind 
@@ -389,6 +432,7 @@ export default function MacroDataPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 4. MATRIX TABLE CONTAINER (Strictly Zero Right-Edge Clipping!)    */}
       {/* ══════════════════════════════════════════════════════════════════ */}
+      <GhostWireframeDissolve isRefreshing={matrixLoading}>
       <SculptedTableContainer className="p-6">
         {/* Table Subheader Bar with Title & Clean Legend & Country Search */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-white/[0.06] mb-3">
@@ -748,6 +792,7 @@ export default function MacroDataPage() {
           </span>
         </div>
       </SculptedTableContainer>
+      </GhostWireframeDissolve>
 
       {/* Assumption / Override Modal */}
       <AnimatePresence>

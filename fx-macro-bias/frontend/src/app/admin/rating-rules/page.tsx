@@ -2,28 +2,28 @@
 
 import React, { useState } from "react";
 import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  ShieldCheck, 
-  X, 
-  Check, 
-  SlidersHorizontal,
-  AlertCircle,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Sparkles,
-  Infinity as InfinityIcon
+  Plus, Edit2, Trash2, ShieldCheck, X, Check, SlidersHorizontal,
+  AlertCircle, TrendingUp, TrendingDown, Minus, Sparkles
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { GlobalSearch } from "@/components/layout/GlobalSearch";
-import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
+import { 
+  AdminPageHeader, SculptedFilterPod, SculptedTableContainer 
+} from "@/components/admin/AdminPrimitives";
+import { SPRING_SNAPPY } from "@/components/ui/DopaminePrimitives";
+import { playClickSound, playTabSound, playSuccessSound } from "@/lib/soundEffects";
+import confetti from "canvas-confetti";
+import OFFICIAL_RATING_RULES_DATA from "@/data/officialRatingRules.json";
 
-const INDICATORS = ["GDP", "Current Account", "CPI", "Interest Rate", "FX Reserves", "Equity"];
-const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)]";
+const INDICATORS = [
+  { id: "GDP", label: "PIB (GDP)" },
+  { id: "Current Account", label: "Balance Courante" },
+  { id: "CPI", label: "Inflation (IPC)" },
+  { id: "Interest Rate", label: "Taux Directeurs" },
+  { id: "FX Reserves", label: "Réserves FX" },
+  { id: "Equity", label: "Marchés Actions" }
+];
 
 // Helper to parse numeric or infinity bound
 const parseBound = (val: string): { isValid: boolean; num: number; display: string } => {
@@ -48,8 +48,6 @@ const parseBound = (val: string): { isValid: boolean; num: number; display: stri
   return { isValid: true, num: n, display: clean };
 };
 
-import OFFICIAL_RATING_RULES_DATA from "@/data/officialRatingRules.json";
-
 const INDICATOR_SLUG_MAP: Record<string, string> = {
   "GDP": "gdp",
   "Current Account": "ca_gdp",
@@ -61,7 +59,7 @@ const INDICATOR_SLUG_MAP: Record<string, string> = {
 
 const OFFICIAL_RATING_RULES: Record<string, any[]> = OFFICIAL_RATING_RULES_DATA;
 
-// API Fetcher with fallback to official rating rule.docx data
+// API Fetcher with fallback
 const fetchRules = async (indicator: string) => {
   const slug = INDICATOR_SLUG_MAP[indicator] || "gdp";
   try {
@@ -74,19 +72,23 @@ const fetchRules = async (indicator: string) => {
           min: r.min_diff === null ? "-∞" : String(r.min_diff),
           max: r.max_diff === null ? "+∞" : String(r.max_diff),
           rating: r.rating,
-          regime: r.rating >= 7 ? "Strong Bullish Bias" : r.rating > 0 ? "Moderate Bullish Bias" : r.rating === 0 ? "Neutral / Balanced" : r.rating <= -7 ? "Strong Bearish Bias" : "Moderate Bearish Bias"
+          regime: r.rating >= 7 ? "Biais Acheteur Fort" : r.rating > 0 ? "Biais Acheteur Modéré" : r.rating === 0 ? "Régime Neutre / Équilibré" : r.rating <= -7 ? "Biais Vendeur Fort" : "Biais Vendeur Modéré"
         }));
       }
     }
   } catch (err) {
     // fallback
   }
-  return OFFICIAL_RATING_RULES[indicator] || OFFICIAL_RATING_RULES["GDP"] || [];
+  return (OFFICIAL_RATING_RULES[indicator] || OFFICIAL_RATING_RULES["GDP"] || []).map((r: any) => ({
+    ...r,
+    regime: r.rating >= 7 ? "Biais Acheteur Fort" : r.rating > 0 ? "Biais Acheteur Modéré" : r.rating === 0 ? "Régime Neutre / Équilibré" : r.rating <= -7 ? "Biais Vendeur Fort" : "Biais Vendeur Modéré"
+  }));
 };
 
 export default function RatingRulesPage() {
   const queryClient = useQueryClient();
-  const [activeIndicator, setActiveIndicator] = useState(INDICATORS[0]);
+  const [activeIndicator, setActiveIndicator] = useState<string>("GDP");
+  const [searchQuery, setSearchQuery] = useState("");
   const [modalMode, setModalMode] = useState<"add" | "edit" | null>(null);
   const [selectedRule, setSelectedRule] = useState<any>(null);
   const [formMin, setFormMin] = useState("");
@@ -102,7 +104,7 @@ export default function RatingRulesPage() {
   // Mutations
   const addRuleMutation = useMutation({
     mutationFn: async (newRule: any) => {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
       return { ...newRule, id: Date.now() };
     },
     onSuccess: (newRule) => {
@@ -110,12 +112,14 @@ export default function RatingRulesPage() {
         return [...(old || []), newRule];
       });
       setModalMode(null);
+      playSuccessSound();
+      confetti({ particleCount: 30, spread: 45, origin: { y: 0.5 } });
     }
   });
 
   const editRuleMutation = useMutation({
     mutationFn: async (updatedRule: any) => {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
       return updatedRule;
     },
     onSuccess: (updatedRule) => {
@@ -123,29 +127,34 @@ export default function RatingRulesPage() {
         return old?.map((r: any) => r.id === updatedRule.id ? updatedRule : r);
       });
       setModalMode(null);
+      playSuccessSound();
     }
   });
 
   const deleteRuleMutation = useMutation({
     mutationFn: async (id: number) => {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
       return id;
     },
     onSuccess: (deletedId) => {
       queryClient.setQueryData(["rating-rules", activeIndicator], (old: any) => {
         return old?.filter((r: any) => r.id !== deletedId);
       });
+      playClickSound();
     }
   });
 
   const openAddModal = () => {
+    playClickSound();
     setFormMin("2.0");
     setFormMax("+∞");
-    setFormRating(10);
+    setFormRating(8);
+    setSelectedRule(null);
     setModalMode("add");
   };
 
   const openEditModal = (rule: any) => {
+    playClickSound();
     setSelectedRule(rule);
     setFormMin(rule.min);
     setFormMax(rule.max);
@@ -153,24 +162,9 @@ export default function RatingRulesPage() {
     setModalMode("edit");
   };
 
-  // Validation calculations
   const parsedMin = parseBound(formMin);
   const parsedMax = parseBound(formMax);
-
-  let validationError = "";
-  if (!formMin.trim()) {
-    validationError = "Minimum boundary value is required.";
-  } else if (!parsedMin.isValid) {
-    validationError = "Min value must be a valid number or -∞.";
-  } else if (!formMax.trim()) {
-    validationError = "Maximum boundary value is required.";
-  } else if (!parsedMax.isValid) {
-    validationError = "Max value must be a valid number or +∞.";
-  } else if (parsedMin.num >= parsedMax.num) {
-    validationError = "Min boundary must be strictly lower than Max boundary (e.g. -2.0 to 1.0).";
-  }
-
-  const isFormValid = validationError === "";
+  const isFormValid = parsedMin.isValid && parsedMax.isValid && parsedMin.num < parsedMax.num;
 
   const handleMinChange = (raw: string) => {
     const trimmed = raw.trim();
@@ -195,10 +189,10 @@ export default function RatingRulesPage() {
     if (!isFormValid) return;
 
     const computedRegime = 
-      formRating >= 8 ? "Strong Bullish Advantage" :
-      formRating > 0 ? "Moderate Bullish Bias" :
-      formRating === 0 ? "Neutral / Balanced Regime" :
-      formRating > -8 ? "Moderate Bearish Bias" : "Strong Bearish Bias";
+      formRating >= 7 ? "Biais Acheteur Fort" :
+      formRating > 0 ? "Biais Acheteur Modéré" :
+      formRating === 0 ? "Régime Neutre / Équilibré" :
+      formRating > -7 ? "Biais Vendeur Modéré" : "Biais Vendeur Fort";
 
     if (modalMode === "add") {
       addRuleMutation.mutate({
@@ -218,207 +212,220 @@ export default function RatingRulesPage() {
     }
   };
 
+  const activeIndLabel = INDICATORS.find(i => i.id === activeIndicator)?.label || activeIndicator;
+
   return (
-    <div className="flex flex-col w-full min-h-full bg-transparent relative justify-start">
-      {/* Header */}
-      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-50 flex-shrink-0 gap-4">
-        <div className="flex flex-col gap-0.5">
-          <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Logic Configuration</span>
-          <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">
-            Rating Rules
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
-          <GlobalSearch placeholder="Search rating rules, thresholds..." />
-          <div className="hidden sm:flex items-center gap-2 bg-[#06302B]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3.5 py-2 shadow-lg shrink-0">
-             <ShieldCheck size={16} className="text-[#00DF81]" />
-             <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine: <span className="text-[#F1F7F6] font-bold">Live</span></span>
-          </div>
-          <AuthHeaderWidget />
-        </div>
-      </header>
-
-      {/* Main Container */}
-      <main className="flex-1 flex flex-col px-4 sm:px-6 lg:px-10 gap-5 pb-8 max-w-[1600px] w-full mx-auto justify-center">
-        
-        {/* Controls Toolbar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 opacity-0 animate-slideUp">
-          <div className="flex items-center bg-[#06302B]/90 p-1 rounded-2xl border border-[#0B453A] shadow-lg overflow-x-auto no-scrollbar max-w-full shrink-0">
-            {INDICATORS.map((ind) => (
-              <button
-                key={ind}
-                onClick={() => setActiveIndicator(ind)}
-                className={clsx(
-                  "relative px-3.5 sm:px-4 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 z-10 cursor-pointer whitespace-nowrap",
-                  activeIndicator === ind
-                    ? "text-[#021B1A]"
-                    : "text-[#AACBC4] hover:text-[#F1F7F6]"
-                )}
-              >
-                {ind}
-                {activeIndicator === ind && (
-                  <motion.div
-                    layoutId="activeRatingIndicator"
-                    className="absolute inset-0 bg-[#00DF81] rounded-xl z-[-1] shadow-[0_0_14px_rgba(0,223,129,0.35)]"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-
+    <div className="w-full max-w-[1550px] mx-auto p-4 sm:p-6 lg:p-8 flex flex-col text-white font-sans">
+      
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <AdminPageHeader
+        eyebrow="CALIBRATION QUANTITATIVE • MODÈLE MULTI-PILIERS"
+        badgeText="ENGINE LIVE"
+        title="Règles de Notation Macroéconomique"
+        searchPlaceholder="Rechercher une règle, seuil..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        rightActions={
           <motion.button 
             whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.96 }}
+            transition={SPRING_SNAPPY}
             onClick={openAddModal}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00DF81] text-[#021B1A] font-sans font-bold text-xs transition-all hover:brightness-110 shadow-[0_0_16px_rgba(0,223,129,0.35)] cursor-pointer shrink-0"
+            className="h-10 px-5 rounded-full bg-[#D4FF00] hover:bg-[#dfeb34] text-[#07080C] font-bold text-xs flex items-center gap-2 shadow-[0_0_20px_rgba(212,255,0,0.25)] transition-all cursor-pointer whitespace-nowrap"
           >
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Add New Rule</span>
+            <Plus size={15} strokeWidth={2.5} />
+            <span>Ajouter une Règle</span>
           </motion.button>
+        }
+      />
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 2. FILTER & INDICATOR POD (SculptedFilterPod from Catalogue)      */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <SculptedFilterPod className="p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        {/* Left Pill Track */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full">
+          {INDICATORS.map((ind) => (
+            <button
+              key={ind.id}
+              onClick={() => { setActiveIndicator(ind.id); playTabSound(); }}
+              className={clsx(
+                "px-4 py-1.5 rounded-full text-xs font-mono transition-all cursor-pointer whitespace-nowrap",
+                activeIndicator === ind.id 
+                  ? "bg-[#D4FF00] text-[#07080C] font-bold shadow-[0_0_15px_rgba(212,255,0,0.3)]" 
+                  : "text-slate-400 hover:text-white"
+              )}
+            >
+              {ind.label}
+            </button>
+          ))}
         </div>
 
-        {/* Rules Table Card */}
-        <div className="flex-1 flex flex-col justify-center my-auto w-full py-2">
-          <div className={clsx("p-4 sm:p-6 flex flex-col gap-3.5 w-full opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#0B453A] pb-3 gap-2.5">
-              <div>
-                <h2 className="font-sans font-bold text-base sm:text-lg text-[#F1F7F6] tracking-tight">
-                  {activeIndicator} Differential Transformation Table
-                </h2>
-                <p className="text-xs text-[#AACBC4] mt-0.5">Threshold boundaries applied to pairwise economic differentials (Base − Quote)</p>
-              </div>
-              <span className="font-sans font-bold text-xs sm:text-sm font-mono text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full shrink-0">
-                Score Scale: −10 (Bearish) to +10 (Bullish)
+        {/* Right Info Pill */}
+        <div className="rounded-full bg-[#D4FF00]/10 border border-[#D4FF00]/30 text-[#D4FF00] px-4 py-1.5 text-xs font-mono whitespace-nowrap shrink-0">
+          Échelle : −10 (Vendeur) à +10 (Acheteur)
+        </div>
+      </SculptedFilterPod>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 3. RULES TABLE CONTAINER (Rounded-[24px])                         */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <SculptedTableContainer className="p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-white/[0.06] gap-3 mb-3">
+          <div>
+            <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+              <span>Table de Transformation Différentielle : {activeIndLabel}</span>
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-white/[0.04] text-slate-400 border border-white/[0.08]">
+                Base − Quote
               </span>
-            </div>
+            </h2>
+            <p className="text-xs font-mono text-slate-400 mt-1">
+              Intervalles de différentiels macro appliqués pour générer les scores de conviction (−10 à +10).
+            </p>
+          </div>
+        </div>
 
-            {/* Centralized Table Layout */}
-            <div className="overflow-x-auto w-full">
-              <table className="w-full border-collapse min-w-[620px]">
-                <thead>
-                  <tr className="border-b border-[#0B453A] text-xs font-mono font-bold uppercase tracking-wider text-[#AACBC4]">
-                    <th className="py-3 px-4 text-left w-[120px]">Tier Level</th>
-                    <th className="py-3 px-4 text-center w-[230px]">Differential Range (Base − Quote)</th>
-                    <th className="py-3 px-4 text-center w-[290px]">Engine Sentiment & Macro Regime</th>
-                    <th className="py-3 px-4 text-center w-[150px]">Rating Impact</th>
-                    <th className="py-3 px-4 text-right w-[100px]">Actions</th>
+        {/* Centralized Table Layout */}
+        <div className="overflow-x-auto w-full">
+          <table className="w-full border-separate border-spacing-0 min-w-[720px]">
+            <thead>
+              <tr className="text-[11px] font-mono uppercase tracking-wider text-slate-400 border-b border-white/[0.06] h-10">
+                <th className="py-2.5 px-4 text-left w-[120px]">PALIER</th>
+                <th className="py-2.5 px-4 text-center w-[250px]">PLAGE DIFFÉRENTIELLE</th>
+                <th className="py-2.5 px-4 text-center w-[300px]">RÉGIME MACRO &amp; SENTIMENT</th>
+                <th className="py-2.5 px-4 text-center w-[150px]">IMPACT SCORE</th>
+                <th className="py-2.5 px-4 text-right w-[100px]">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.03]">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-shimmer h-14">
+                    <td className="py-3 px-4"><div className="w-16 h-5 bg-white/[0.04] rounded-full" /></td>
+                    <td className="py-3 px-4"><div className="w-32 h-5 bg-white/[0.04] rounded-full mx-auto" /></td>
+                    <td className="py-3 px-4"><div className="w-36 h-5 bg-white/[0.04] rounded-full mx-auto" /></td>
+                    <td className="py-3 px-4"><div className="w-14 h-5 bg-white/[0.04] rounded-full mx-auto" /></td>
+                    <td className="py-3 px-4"><div className="w-12 h-5 bg-white/[0.04] rounded-full ml-auto" /></td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-[#0B453A]/40">
-                  {isLoading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>
-                      <td className="py-3 px-4"><div className="w-[70px] h-[20px] bg-[#06302B] rounded-md animate-pulse" /></td>
-                      <td className="py-3 px-4"><div className="w-[160px] h-[22px] bg-[#06302B] rounded-md animate-pulse mx-auto" /></td>
-                      <td className="py-3 px-4"><div className="w-[180px] h-[22px] bg-[#06302B] rounded-md animate-pulse mx-auto" /></td>
-                      <td className="py-3 px-4"><div className="w-[50px] h-[22px] bg-[#06302B] rounded-md animate-pulse mx-auto" /></td>
-                      <td className="py-3 px-4"></td>
-                    </tr>
-                  ))
-                ) : (
-                  rules?.map((rule: any, i: number) => {
-                    const isPositive = rule.rating > 0;
-                    const isNegative = rule.rating < 0;
+                ))
+              ) : (
+                rules?.map((rule: any, i: number) => {
+                  const isPositive = rule.rating > 0;
+                  const isNegative = rule.rating < 0;
 
-                    return (
-                      <tr key={rule.id} className="group hover:bg-[#06302B]/40 transition-colors">
-                        
-                        {/* 1. Tier Level */}
-                        <td className="py-3.5 px-4 text-left">
-                          <span className="font-mono text-sm font-bold text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-3 py-1.5 rounded-lg whitespace-nowrap">
+                  return (
+                    <tr 
+                      key={rule.id}
+                      className="hover:bg-white/[0.02] transition-colors h-14 border-b border-white/[0.03]"
+                    >
+                      {/* 1. Palier Level */}
+                      <td className="py-3 px-4 text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-slate-500">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <span className="font-sans text-xs font-semibold text-slate-300">
                             Tier {i + 1}
                           </span>
-                        </td>
+                        </div>
+                      </td>
 
-                        {/* 2. Differential Range */}
-                        <td className="py-3.5 px-4 text-center">
-                          <div className="inline-flex items-center gap-2 font-mono text-sm font-bold text-[#F1F7F6] bg-[#06302B] border border-[#0B453A] px-3.5 py-1.5 rounded-xl shadow-inner">
-                            <span className="text-[#00DF81]">{rule.min}</span>
-                            <span className="text-[#AACBC4] font-sans text-xs font-normal">to</span>
-                            <span className="text-[#00DF81]">{rule.max}</span>
-                          </div>
-                        </td>
-
-                        {/* 3. Engine Macro Regime & Sentiment */}
-                        <td className="py-3.5 px-4 text-center">
-                          <div className="inline-flex items-center gap-2">
-                            {isPositive && (
-                              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81] text-sm font-semibold">
-                                <TrendingUp size={14} />
-                                <span>{rule.regime || (rule.rating >= 8 ? "Strong Bullish Bias" : "Moderate Bullish Bias")}</span>
-                              </div>
-                            )}
-                            {isNegative && (
-                              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FF5555]/10 border border-[#FF5555]/25 text-[#FF5555] text-sm font-semibold">
-                                <TrendingDown size={14} />
-                                <span>{rule.regime || (rule.rating <= -8 ? "Strong Bearish Bias" : "Moderate Bearish Bias")}</span>
-                              </div>
-                            )}
-                            {!isPositive && !isNegative && (
-                              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#06302B] border border-[#0B453A] text-[#AACBC4] text-sm font-semibold">
-                                <Minus size={14} />
-                                <span>Neutral / Balanced Regime</span>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* 4. Rating Impact Score */}
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={clsx(
-                            "inline-block min-w-[56px] px-3.5 py-1.5 rounded-xl font-mono font-black text-sm shadow-sm",
-                            isPositive ? "bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 shadow-[0_0_10px_rgba(0,223,129,0.15)]" :
-                            isNegative ? "bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30" :
-                            "bg-[#06302B] text-[#AACBC4] border border-[#0B453A]"
-                          )}>
-                            {isPositive ? `+${rule.rating}` : rule.rating}
+                      {/* 2. Plage Differentielle */}
+                      <td className="py-3 px-4 text-center">
+                        <div className="inline-flex items-center justify-center gap-2 font-mono text-xs font-semibold bg-[#0A0B0F] px-3.5 py-1 rounded-full border border-white/[0.06]">
+                          <span className={clsx(rule.min === "-∞" ? "text-slate-500" : "text-white")}>
+                            {rule.min}
                           </span>
-                        </td>
+                          <span className="text-slate-500 text-xs font-sans">à</span>
+                          <span className={clsx(rule.max === "+∞" ? "text-slate-500" : "text-white")}>
+                            {rule.max}
+                          </span>
+                        </div>
+                      </td>
 
-                        {/* 5. Actions */}
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex justify-end gap-1.5">
-                            <button 
-                              onClick={() => openEditModal(rule)}
-                              className="p-1.5 rounded-lg bg-[#06302B] hover:bg-[#095544] text-[#AACBC4] hover:text-[#F1F7F6] border border-[#0B453A] transition-colors cursor-pointer"
-                              title="Modify Rule"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                            <button 
-                              onClick={() => deleteRuleMutation.mutate(rule.id)}
-                              className="p-1.5 rounded-lg bg-[#06302B] hover:bg-[#FF5555]/15 text-[#AACBC4] hover:text-[#FF5555] border border-[#0B453A] transition-colors cursor-pointer"
-                              title="Delete Rule"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
+                      {/* 3. Regime Macro & Sentiment */}
+                      <td className="py-3 px-4 text-center">
+                        <div className="inline-flex items-center justify-center gap-2">
+                          {isPositive && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
+                              {rule.regime || "Biais Acheteur"}
+                            </span>
+                          )}
+                          {isNegative && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/25 px-3 py-1 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
+                              {rule.regime || "Biais Vendeur"}
+                            </span>
+                          )}
+                          {!isPositive && !isNegative && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-400 bg-slate-400/10 border border-slate-400/20 px-3 py-1 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                              Régime Neutre / Équilibré
+                            </span>
+                          )}
+                        </div>
+                      </td>
 
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                      {/* 4. Score Impact Pillow */}
+                      <td className="py-3 px-4 text-center">
+                        <span className={clsx(
+                          "inline-flex items-center justify-center min-w-[50px] px-3 py-1 rounded-[10px] font-mono text-xs font-bold tabular-nums border",
+                          isPositive 
+                            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)]" 
+                            : isNegative 
+                            ? "bg-rose-500/15 text-rose-300 border-rose-500/30 shadow-[0_0_12px_rgba(244,63,94,0.2)]" 
+                            : "bg-white/[0.04] text-slate-300 border-white/[0.08]"
+                        )}>
+                          {isPositive ? `+${rule.rating}` : rule.rating}
+                        </span>
+                      </td>
 
-          {/* Bottom Summary Bar */}
-          <div className="flex items-center justify-between px-6 py-3 border-t border-[#0B453A] bg-[#021B1A]/80 text-sm mt-1">
-            <span className="font-sans text-[#AACBC4]">
-              Continuous Coverage: <strong className="text-[#F1F7F6]">5 Active Differential Tiers</strong> (−∞ to +∞) for {activeIndicator}.
-            </span>
-            <span className="font-mono text-[#00DF81] text-xs font-bold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00DF81] animate-pulse" />
-              Rating Engine: Live & Synced
-            </span>
-          </div>
+                      {/* 5. Actions */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex justify-end items-center gap-1.5">
+                          <button 
+                            onClick={() => openEditModal(rule)}
+                            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                            title="Modifier"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button 
+                            onClick={() => deleteRuleMutation.mutate(rule.id)}
+                            className="p-1.5 rounded-full text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            title="Supprimer"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-        </div>
-      </main>
 
-      {/* --- Add / Modify Rule Modal --- */}
+        {/* Bottom Status Strip */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 rounded-2xl bg-[#0A0B0F] border border-white/[0.05] text-xs font-mono mt-4 gap-2">
+          <span className="text-slate-400">
+            Couverture continue : <strong className="text-white">{rules?.length || 5} Paliers Actifs</strong> (−∞ à +∞) pour {activeIndLabel}.
+          </span>
+          <span className="text-[#D4FF00] font-bold flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] animate-pulse" />
+            Moteur de calcul : En Direct &amp; Synchronisé
+          </span>
+        </div>
+      </SculptedTableContainer>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ADD / EDIT RULE MODAL (Smoked Obsidian Subsurface Glass)          */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {modalMode && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -427,175 +434,83 @@ export default function RatingRulesPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setModalMode(null)}
-              className="fixed inset-0 bg-[#021B1A]/80 backdrop-blur-md"
+              className="fixed inset-0 bg-[#06070A]/85 backdrop-blur-md"
             />
 
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-[94vw] sm:max-w-[480px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-5 sm:p-7 shadow-2xl z-10 flex flex-col gap-4 sm:gap-5 max-h-[90vh] overflow-y-auto"
+              transition={SPRING_SNAPPY}
+              className="relative w-full max-w-md rounded-[24px] bg-[#101218] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_25px_50px_-12px_rgba(0,0,0,0.85)] p-6 z-10"
             >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between border-b border-[#0B453A] pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81]">
-                    <SlidersHorizontal size={18} />
+              <div className="flex items-center justify-between pb-4 border-b border-white/[0.06] mb-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#D4FF00]/15 border border-[#D4FF00]/30 flex items-center justify-center text-[#D4FF00]">
+                    <SlidersHorizontal size={15} />
                   </div>
                   <div>
-                    <h3 className="font-sans font-bold text-lg text-[#F1F7F6]">
-                      {modalMode === "add" ? "Add Differential Rule" : "Modify Rule"}
+                    <h3 className="font-bold text-base text-white">
+                      {modalMode === "add" ? "Ajouter un Palier" : "Modifier le Palier"}
                     </h3>
-                    <p className="text-xs text-[#AACBC4]">{activeIndicator} Transformation</p>
+                    <p className="text-xs font-mono text-slate-400">
+                      Indicateur : {activeIndLabel}
+                    </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setModalMode(null)}
-                  className="p-2 rounded-xl text-[#AACBC4] hover:text-[#F1F7F6] hover:bg-[#06302B] transition-colors cursor-pointer"
+                  className="p-1.5 rounded-full hover:bg-white/[0.08] text-slate-400 hover:text-white transition-colors cursor-pointer"
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSaveModal} className="flex flex-col gap-4">
-                
-                {/* Min & Max Inputs */}
-                <div className="grid grid-cols-2 gap-4">
-                  
-                  {/* Min Value Input */}
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-[#AACBC4]">Min Boundary</label>
-                      <button
-                        type="button"
-                        onClick={() => setFormMin("-∞")}
-                        className="text-[10px] font-mono text-[#00DF81] hover:underline bg-[#00DF81]/10 px-1.5 py-0.5 rounded cursor-pointer"
-                        title="Set to Negative Infinity"
-                      >
-                        -∞ (Neg Inf)
-                      </button>
-                    </div>
-
-                    <div className={clsx(
-                      "flex items-center bg-[#021B1A] border rounded-xl px-3 py-2 transition-all",
-                      !parsedMin.isValid && formMin.trim() ? "border-[#FF5555]" : "border-[#0B453A] focus-within:border-[#00DF81]"
-                    )}>
+              <form onSubmit={handleSaveModal} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-mono uppercase text-slate-400 mb-1.5">
+                    Plage Différentielle (Min à Max)
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
                       <input
                         type="text"
-                        required
                         value={formMin}
                         onChange={(e) => handleMinChange(e.target.value)}
-                        placeholder="-2.0 or -∞"
-                        className="w-full bg-transparent border-none outline-none font-mono text-sm text-[#F1F7F6] placeholder:text-[#AACBC4]/40"
+                        placeholder="Ex: -2.5 ou -∞"
+                        className="w-full h-10 px-3.5 rounded-xl bg-[#0A0B0F] border border-white/[0.08] font-mono text-xs text-white focus:outline-none focus:border-[#D4FF00]/50"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setFormMin("-∞")}
-                        className="p-1 rounded text-[#AACBC4] hover:text-[#00DF81] font-mono text-xs cursor-pointer ml-1"
-                        title="Insert -∞"
-                      >
-                        -∞
-                      </button>
+                      <span className="text-[10px] font-mono text-slate-500 mt-1 block">Borne inférieure</span>
                     </div>
-                  </div>
-
-                  {/* Max Value Input */}
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-[#AACBC4]">Max Boundary</label>
-                      <button
-                        type="button"
-                        onClick={() => setFormMax("+∞")}
-                        className="text-[10px] font-mono text-[#2CC295] hover:underline bg-[#2CC295]/10 px-1.5 py-0.5 rounded cursor-pointer"
-                        title="Set to Positive Infinity"
-                      >
-                        +∞ (Pos Inf)
-                      </button>
-                    </div>
-
-                    <div className={clsx(
-                      "flex items-center bg-[#021B1A] border rounded-xl px-3 py-2 transition-all",
-                      !parsedMax.isValid && formMax.trim() ? "border-[#FF5555]" : "border-[#0B453A] focus-within:border-[#00DF81]"
-                    )}>
+                    <div>
                       <input
                         type="text"
-                        required
                         value={formMax}
                         onChange={(e) => handleMaxChange(e.target.value)}
-                        placeholder="2.0 or +∞"
-                        className="w-full bg-transparent border-none outline-none font-mono text-sm text-[#F1F7F6] placeholder:text-[#AACBC4]/40"
+                        placeholder="Ex: +∞ ou 3.0"
+                        className="w-full h-10 px-3.5 rounded-xl bg-[#0A0B0F] border border-white/[0.08] font-mono text-xs text-white focus:outline-none focus:border-[#D4FF00]/50"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setFormMax("+∞")}
-                        className="p-1 rounded text-[#AACBC4] hover:text-[#2CC295] font-mono text-xs cursor-pointer ml-1"
-                        title="Insert +∞"
-                      >
-                        +∞
-                      </button>
+                      <span className="text-[10px] font-mono text-slate-500 mt-1 block">Borne supérieure</span>
                     </div>
                   </div>
-
+                  {!isFormValid && (
+                    <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1.5 font-mono">
+                      <AlertCircle size={12} />
+                      Intervalle invalide (le minimum doit être strictement inférieur au maximum).
+                    </p>
+                  )}
                 </div>
 
-                {/* Quick Presets Clickable Chips */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-mono text-[#AACBC4]">Quick Interval Values (Click to insert):</span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {["-∞", "-2.0", "-1.0", "0.0", "1.0", "2.0", "+∞"].map((val) => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => {
-                          if (!formMin || formMin === "-∞") {
-                            setFormMin(val);
-                          } else {
-                            setFormMax(val);
-                          }
-                        }}
-                        className="px-2 py-0.5 rounded-md bg-[#06302B] hover:bg-[#095544] border border-[#0B453A] text-[11px] font-mono text-[#F1F7F6] transition-colors cursor-pointer"
-                      >
-                        {val}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Real-time Validation Error Banner */}
-                <AnimatePresence>
-                  {validationError && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="p-2.5 rounded-xl bg-[#FF5555]/10 border border-[#FF5555]/30 flex items-center gap-2 text-[#FF5555] text-xs"
-                    >
-                      <AlertCircle size={15} className="flex-shrink-0" />
-                      <span>{validationError}</span>
-                    </motion.div>
-                  )}
-                  {isFormValid && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-2 rounded-xl bg-[#00DF81]/10 border border-[#00DF81]/25 flex items-center justify-between text-[#00DF81] text-[11px] font-mono"
-                    >
-                      <span>Valid interval: [{parsedMin.display} to {parsedMax.display}]</span>
-                      <Check size={14} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Rating Impact Slider */}
-                <div className="flex flex-col gap-1.5 pt-1">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-[#AACBC4]">Rating Impact (-10 to +10)</label>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-mono uppercase text-slate-400">
+                      Impact Score (−10 à +10)
+                    </label>
                     <span className={clsx(
-                      "font-mono font-bold text-sm px-2 py-0.5 rounded-lg",
-                      formRating > 0 ? "bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30" : 
-                      formRating < 0 ? "bg-[#FF5555]/10 text-[#FF5555] border border-[#FF5555]/30" : 
-                      "bg-[#06302B] text-[#F1F7F6] border border-[#0B453A]"
+                      "font-mono font-bold text-xs px-2 py-0.5 rounded-lg border",
+                      formRating > 0 ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
+                      formRating < 0 ? "bg-rose-500/15 text-rose-300 border-rose-500/30" :
+                      "bg-white/[0.04] text-slate-300 border-white/[0.08]"
                     )}>
                       {formRating > 0 ? `+${formRating}` : formRating}
                     </span>
@@ -606,32 +521,34 @@ export default function RatingRulesPage() {
                     max="10"
                     step="1"
                     value={formRating}
-                    onChange={(e) => setFormRating(Number(e.target.value))}
-                    className="w-full accent-[#00DF81] cursor-pointer"
+                    onChange={(e) => setFormRating(parseInt(e.target.value, 10))}
+                    className="w-full accent-[#D4FF00] cursor-pointer"
                   />
-                  <div className="flex justify-between text-[10px] font-mono text-[#AACBC4]">
-                    <span>-10 (Bearish)</span>
-                    <span>0 (Neutral)</span>
-                    <span>+10 (Bullish)</span>
+                  <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+                    <span>−10 (Max Vendeur)</span>
+                    <span>0 (Neutre)</span>
+                    <span>+10 (Max Acheteur)</span>
                   </div>
                 </div>
 
-                {/* Modal Action Buttons */}
-                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#0B453A]">
+                <div className="pt-4 border-t border-white/[0.06] flex items-center justify-end gap-2.5">
                   <button
                     type="button"
                     onClick={() => setModalMode(null)}
-                    className="flex-1 py-2.5 rounded-xl bg-[#06302B] hover:bg-[#095544] text-[#F1F7F6] border border-[#0B453A] font-sans text-xs font-bold transition-all cursor-pointer"
+                    className="h-9 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-xs font-mono text-slate-300 transition-colors cursor-pointer"
                   >
-                    Cancel
+                    Annuler
                   </button>
                   <button
                     type="submit"
                     disabled={!isFormValid}
-                    className="flex-1 py-2.5 rounded-xl bg-[#00DF81] text-[#021B1A] font-sans text-xs font-bold hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_16px_rgba(0,223,129,0.3)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className={clsx(
+                      "h-9 px-5 rounded-full text-xs font-bold font-sans transition-all flex items-center gap-2 cursor-pointer shadow-lg",
+                      isFormValid ? "bg-[#D4FF00] hover:bg-[#dfeb34] text-[#07080C] shadow-[0_0_15px_rgba(212,255,0,0.3)]" : "bg-white/[0.04] text-slate-500 cursor-not-allowed border border-white/[0.06]"
+                    )}
                   >
-                    <Check size={16} />
-                    <span>{modalMode === "add" ? "Create Rule" : "Save Changes"}</span>
+                    <Check size={14} />
+                    <span>{modalMode === "add" ? "Ajouter" : "Enregistrer"}</span>
                   </button>
                 </div>
               </form>
@@ -639,6 +556,7 @@ export default function RatingRulesPage() {
           </div>
         )}
       </AnimatePresence>
+
     </div>
   );
 }

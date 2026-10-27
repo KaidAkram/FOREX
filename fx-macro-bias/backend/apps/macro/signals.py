@@ -5,6 +5,22 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Global flag to bypass individual per-record recalculations during bulk scraper ingestion
+DISABLE_RECALCULATION_SIGNALS = False
+
+
+class disable_macro_signals:
+    """Context manager to temporarily disable signals during batch upserts."""
+    def __enter__(self):
+        global DISABLE_RECALCULATION_SIGNALS
+        self.prev = DISABLE_RECALCULATION_SIGNALS
+        DISABLE_RECALCULATION_SIGNALS = True
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global DISABLE_RECALCULATION_SIGNALS
+        DISABLE_RECALCULATION_SIGNALS = self.prev
+
 
 @receiver(post_save, sender="macro.MacroDataPoint")
 def on_macro_data_change(sender, instance, created, **kwargs):
@@ -12,6 +28,8 @@ def on_macro_data_change(sender, instance, created, **kwargs):
     When a MacroDataPoint is saved, recalculate all (pair, month) combinations
     that involve this country + indicator + month.
     """
+    if DISABLE_RECALCULATION_SIGNALS:
+        return
     from apps.macro.models import FXPair
     from apps.macro.services.calculator import recalculate_all_for_month
 

@@ -2,29 +2,39 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SparkAreaChart } from "@tremor/react";
-import { createChart, ColorType, CrosshairMode, LineSeries, AreaSeries } from "lightweight-charts";
-import { ChevronDown, Check } from "lucide-react";
+import { createChart, ColorType, CrosshairMode, AreaSeries } from "lightweight-charts";
+import { ChevronDown, Check, TrendingUp, TrendingDown, Activity, Database, Calendar } from "lucide-react";
 import { clsx } from "clsx";
-import { GlobalSearch } from "@/components/layout/GlobalSearch";
-import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
+import { 
+  AdminPageHeader, CatalogueKPICard 
+} from "@/components/admin/AdminPrimitives";
+import { FXPairFlags } from "@/components/ui/DopaminePrimitives";
 
 // --- Constants ---
-const INDICATORS = ["Interest Rates", "GDP Growth", "Inflation", "Unemployment", "Retail Sales"];
-const FX_PAIRS = [
-  { name: "EUR/USD", base: "eu", quote: "us" },
-  { name: "GBP/USD", base: "gb", quote: "us" },
-  { name: "USD/JPY", base: "us", quote: "jp" },
-  { name: "AUD/USD", base: "au", quote: "us" },
-  { name: "USD/CAD", base: "us", quote: "ca" },
-  { name: "USD/CHF", base: "us", quote: "ch" },
-  { name: "NZD/USD", base: "nz", quote: "us" }
+const INDICATORS = [
+  "Croissance PIB (GDP)",
+  "Taux Directeurs (Rates)",
+  "Inflation (IPC / CPI)",
+  "Balance Courante (CA)",
+  "Réserves FX",
+  "Marchés Actions"
 ];
-const FX_PAIR_NAMES = FX_PAIRS.map(p => p.name);
+
+const FX_PAIRS = [
+  "EUR/USD",
+  "GBP/USD",
+  "USD/JPY",
+  "AUD/USD",
+  "USD/CAD",
+  "USD/CHF",
+  "NZD/USD",
+  "EUR/GBP",
+  "GBP/JPY"
+];
 
 // --- Mock Data Generators ---
-const generateTimeSeriesData = (points = 365, startYear = 2024, volatility = 2, startVal = 100, seed = 1) => {
-  let res = [];
+const generateTimeSeriesData = (points = 365, startYear = 2025, volatility = 1.2, startVal = 115, seed = 1) => {
+  const res = [];
   let val = startVal;
   for (let i = 0; i < points; i++) {
     val += (Math.random() * volatility - (volatility / 2)) * seed;
@@ -35,22 +45,20 @@ const generateTimeSeriesData = (points = 365, startYear = 2024, volatility = 2, 
   return res;
 };
 
-const generateTremorData = (points = 20) => {
-  return Array.from({ length: points }).map((_, i) => ({
-    month: `M${i}`,
-    Performance: Math.floor(Math.random() * 100)
-  }));
-};
-
-const FlagStack = ({ base, quote }: { base: string; quote: string }) => (
-  <div className="flex items-center flex-shrink-0 mr-[4px]">
-    <img src={`/flags/${base}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#0B453A] z-10 shadow-sm" alt={base} />
-    <img src={`/flags/${quote}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#0B453A] -ml-[8px] z-0 shadow-sm" alt={quote} />
-  </div>
-);
-
 // --- Reusable Animated Dropdown Component ---
-const CustomDropdown = ({ options, value, onChange, label, isPair = false }: { options: string[], value: string, onChange: (val: string) => void, label: string, isPair?: boolean }) => {
+const CustomDropdown = ({ 
+  options, 
+  value, 
+  onChange, 
+  label, 
+  isPair = false 
+}: { 
+  options: string[]; 
+  value: string; 
+  onChange: (val: string) => void; 
+  label: string; 
+  isPair?: boolean; 
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -64,49 +72,44 @@ const CustomDropdown = ({ options, value, onChange, label, isPair = false }: { o
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const getFlags = (pairName: string) => {
-    const pair = FX_PAIRS.find(p => p.name === pairName);
-    if (!pair) return null;
-    return <FlagStack base={pair.base} quote={pair.quote} />;
-  };
-
   return (
-    <div className="relative z-50" ref={dropdownRef}>
+    <div className="relative z-40" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-[8px] bg-[#06302B] hover:bg-[#095544] border border-[#0B453A] px-[16px] py-[8px] rounded-[12px] transition-colors h-[40px] cursor-pointer"
+        className="flex items-center gap-2 bg-[#0A0B0F] hover:bg-white/[0.04] border border-white/[0.08] px-4 py-2 rounded-full transition-colors h-10 cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
       >
-        <span className="font-sans font-medium text-[13px] text-[#AACBC4]">{label}:</span>
-        <div className="flex items-center gap-[6px]">
-          {isPair && getFlags(value)}
-          <span className="font-sans font-bold text-[13px] text-[#F1F7F6]">{value}</span>
+        <span className="font-mono text-xs text-slate-400">{label} :</span>
+        <div className="flex items-center gap-2">
+          {isPair && <FXPairFlags pair={value} size="sm" />}
+          <span className="font-mono font-bold text-xs text-white">{value}</span>
         </div>
-        <ChevronDown size={14} className={clsx("text-[#AACBC4] transition-transform duration-300", isOpen && "rotate-180")} />
+        <ChevronDown size={13} className={clsx("text-slate-400 transition-transform duration-200", isOpen && "rotate-180")} />
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="absolute top-[calc(100%+8px)] left-0 w-[200px] bg-[#032221] border border-[#0B453A] rounded-[12px] shadow-2xl overflow-hidden z-50"
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-[calc(100%+6px)] left-0 min-w-[210px] bg-[#101218] border border-white/[0.1] rounded-[18px] shadow-2xl overflow-hidden z-50 p-1.5 backdrop-blur-2xl"
           >
-            <div className="flex flex-col py-[8px]">
+            <div className="flex flex-col gap-0.5 max-h-[260px] overflow-y-auto no-scrollbar">
               {options.map((opt) => (
                 <button
                   key={opt}
                   onClick={() => { onChange(opt); setIsOpen(false); }}
-                  className="flex items-center justify-between w-full px-[16px] py-[10px] hover:bg-[#06302B] transition-colors text-left cursor-pointer"
+                  className={clsx(
+                    "flex items-center justify-between w-full px-3 py-2 rounded-xl transition-colors text-left cursor-pointer text-xs font-mono",
+                    value === opt ? "bg-[#D4FF00]/15 text-[#D4FF00] font-bold" : "text-slate-300 hover:bg-white/[0.06]"
+                  )}
                 >
-                  <div className="flex items-center gap-[6px]">
-                    {isPair && getFlags(opt)}
-                    <span className={clsx("font-sans text-[13px]", value === opt ? "font-bold text-[#00DF81]" : "font-medium text-[#F1F7F6]")}>
-                      {opt}
-                    </span>
+                  <div className="flex items-center gap-2">
+                    {isPair && <FXPairFlags pair={opt} size="sm" />}
+                    <span>{opt}</span>
                   </div>
-                  {value === opt && <Check size={14} className="text-[#00DF81]" />}
+                  {value === opt && <Check size={13} className="text-[#D4FF00]" />}
                 </button>
               ))}
             </div>
@@ -118,237 +121,223 @@ const CustomDropdown = ({ options, value, onChange, label, isPair = false }: { o
 };
 
 // --- Reusable TradingView Chart Component ---
-const LightweightChart = ({ data, color, type = "line" }: { data: any[], color: string, type?: "line" | "area" }) => {
+const LightweightAreaChart = ({ data, color = "#D4FF00" }: { data: any[]; color?: string }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartInstanceRef = useRef<any>(null);
-  const seriesRef = useRef<any>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
-    
-    // Initialize chart only once
-    if (!chartInstanceRef.current) {
-      const chart = createChart(chartContainerRef.current, {
-        layout: {
-          background: { type: ColorType.Solid, color: "transparent" },
-          textColor: "#AACBC4",
-          fontFamily: "'JetBrains Mono', monospace",
-        },
-        grid: {
-          vertLines: { color: "rgba(11, 69, 58, 0.4)" },
-          horzLines: { color: "rgba(11, 69, 58, 0.4)" },
-        },
-        crosshair: { mode: CrosshairMode.Magnet },
-        rightPriceScale: { borderVisible: false },
-        timeScale: { borderVisible: false },
-        width: chartContainerRef.current.clientWidth,
-        height: chartContainerRef.current.clientHeight,
-      });
+    const container = chartContainerRef.current;
 
-      let series;
-      if (type === "area") {
-        series = chart.addSeries(AreaSeries, {
-          lineColor: color,
-          topColor: `${color}60`,
-          bottomColor: `${color}00`,
-          lineWidth: 2,
-        });
-      } else {
-        series = chart.addSeries(LineSeries, { color, lineWidth: 2 });
-      }
-      
-      chartInstanceRef.current = chart;
-      seriesRef.current = series;
-      
-      const handleResize = () => {
-        if (chartContainerRef.current) {
-          chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+    const chart = createChart(container, {
+      layout: {
+        background: { type: ColorType.Solid, color: "transparent" },
+        textColor: "#94A3B8",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 11,
+      },
+      grid: {
+        vertLines: { color: "rgba(255, 255, 255, 0.03)" },
+        horzLines: { color: "rgba(255, 255, 255, 0.04)" },
+      },
+      crosshair: { mode: CrosshairMode.Magnet },
+      rightPriceScale: { borderVisible: false },
+      timeScale: { borderVisible: false },
+      width: container.clientWidth || 300,
+      height: container.clientHeight || 340,
+    });
+
+    const series = chart.addSeries(AreaSeries, {
+      lineColor: color,
+      topColor: "rgba(212, 255, 0, 0.18)",
+      bottomColor: "rgba(212, 255, 0, 0.0)",
+      lineWidth: 2,
+    });
+    
+    series.setData(data);
+    chart.timeScale().fitContent();
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          chart.applyOptions({ 
+            width: entry.contentRect.width,
+            height: entry.contentRect.height > 0 ? entry.contentRect.height : 340
+          });
         }
-      };
-      window.addEventListener("resize", handleResize);
-    }
-    
-    // Update data on prop change seamlessly
-    seriesRef.current.setData(data);
-    chartInstanceRef.current.timeScale().fitContent();
+      }
+    });
+    resizeObserver.observe(container);
 
-  }, [data, color, type]);
+    return () => {
+      resizeObserver.disconnect();
+      chart.remove();
+    };
+  }, [data, color]);
 
-  return <div ref={chartContainerRef} className="w-full h-full absolute inset-0" />;
+  return <div ref={chartContainerRef} className="w-full h-[360px] relative" />;
 };
 
-// --- Page Component ---
 export default function AnalyticsPage() {
-  const [activePairMacro, setActivePairMacro] = useState("EUR/USD");
-  const [activeIndicator, setActiveIndicator] = useState("GDP Growth");
-  const [activePairScore, setActivePairScore] = useState("EUR/USD");
-  const [timeRange, setTimeRange] = useState("1Y");
+  const [activePair, setActivePair] = useState("EUR/USD");
+  const [activeIndicator, setActiveIndicator] = useState("Croissance PIB (GDP)");
+  const [timeRange, setTimeRange] = useState("1A");
+  const [windowRange, setWindowRange] = useState("12 Mois");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Dynamic state for charts that updates when dropdowns change
   const [macroData, setMacroData] = useState<any[]>([]);
-  const [scoreData, setScoreData] = useState<any[]>([]);
 
   useEffect(() => {
-    const seed = Math.random() > 0.5 ? 1 : -1;
-    const points = timeRange === "1W" ? 7 : timeRange === "1M" ? 30 : 365;
-    setMacroData(generateTimeSeriesData(points, 2024, 1.5, 120, seed));
-  }, [activeIndicator, activePairMacro, timeRange]);
-
-  useEffect(() => {
-    const seed = Math.random() > 0.5 ? 1.2 : 0.8;
-    setScoreData(generateTimeSeriesData(730, 2024, 0.5, 5, seed));
-  }, [activePairScore]);
-  
-  const [tremorData1] = useState(generateTremorData());
-  const [tremorData2] = useState(generateTremorData());
-  const [tremorData3] = useState(generateTremorData());
-
-  const springConfig = { type: "spring" as const, stiffness: 300, damping: 30 };
+    const seed = activePair === "EUR/USD" ? 1 : 1.25;
+    const points = timeRange === "1S" ? 7 : timeRange === "1M" ? 30 : timeRange === "3M" ? 90 : 365;
+    setMacroData(generateTimeSeriesData(points, 2025, 1.2, 118, seed));
+  }, [activeIndicator, activePair, timeRange]);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={springConfig}
-      className="flex flex-col w-full h-full bg-transparent overflow-y-auto no-scrollbar"
-    >
-      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:px-6 lg:p-[32px_44px] pb-4 sm:pb-6 gap-4">
-        <div className="flex flex-col gap-1">
-          <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Platform Telemetry</span>
-          <h1 className="font-sans font-bold text-2xl sm:text-3xl lg:text-[38px] text-[#F1F7F6] tracking-tight leading-none">
-            Analytics Dashboard
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3.5 w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
-          <GlobalSearch />
-          <AuthHeaderWidget />
-        </div>
-      </header>
+    <div className="w-full max-w-[1550px] mx-auto p-4 sm:p-6 lg:p-8 flex flex-col text-white">
+      
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <AdminPageHeader
+        eyebrow="TÉLÉMÉTRIE PLATEFORME • SHIFTFX ENGINE"
+        badgeText="FLUX TEMPS RÉEL"
+        title="Analytique & Performance Modèle"
+        searchPlaceholder="Rechercher un indicateur, paire..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        rightActions={
+          <div className="h-10 px-4 rounded-full bg-[#101218] border border-white/[0.08] flex items-center gap-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <Calendar size={13} className="text-[#D4FF00]" />
+            <select
+              value={windowRange}
+              onChange={(e) => setWindowRange(e.target.value)}
+              aria-label="Sélectionner la fenêtre temporelle"
+              className="bg-transparent font-mono text-xs text-slate-300 outline-none cursor-pointer pr-1"
+            >
+              <option value="12 Mois" className="bg-[#101218] text-white">Fenêtre : 12 Mois</option>
+              <option value="6 Mois" className="bg-[#101218] text-white">Fenêtre : 6 Mois</option>
+              <option value="3 Mois" className="bg-[#101218] text-white">Fenêtre : 3 Mois</option>
+              <option value="Tout l'historique" className="bg-[#101218] text-white">Tout l'historique</option>
+            </select>
+          </div>
+        }
+      />
 
-      <main className="flex flex-col px-4 sm:px-6 lg:px-10 gap-5 sm:gap-6 pb-12 sm:pb-16 max-w-[1600px] w-full mx-auto">
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 2. TOP KPI ROW (4 Uniform CatalogueKPICard components)             */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
         
-        {/* KPI Sparkline Row (Tremor) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <motion.div 
-            whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-5 sm:p-6 shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[155px] sm:h-[170px]"
-          >
-            <div className="flex justify-between items-start">
-              <span className="font-sans font-medium text-sm sm:text-15px text-[#AACBC4]">Bullish Bias Confidence</span>
-              <span className="bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 px-2.5 py-0.5 rounded-full font-mono font-bold text-xs shadow-[0_0_10px_rgba(0,223,129,0.2)]">+14.2%</span>
-            </div>
-            <div className="flex items-end gap-3 sm:gap-4 h-[55px] sm:h-[60px] w-full">
-              <span className="font-sans font-bold text-2xl sm:text-3xl lg:text-[36px] text-[#F1F7F6] leading-none font-mono">82.4%</span>
-              <div className="h-full flex-1 w-full ml-auto">
-                <SparkAreaChart
-                  data={tremorData1}
-                  categories={["Performance"]}
-                  index="month"
-                  colors={["emerald"]}
-                  className="h-full w-full"
-                />
-              </div>
-            </div>
-          </motion.div>
+        {/* KPI 1: Bullish Confidence */}
+        <CatalogueKPICard
+          title="CONFIANCE BIAIS ACHETEUR"
+          value="82.4%"
+          unit="+14.2%"
+          subtitle="Précision directionnelle Long"
+          variant="emerald"
+          icon={<TrendingUp size={14} />}
+          bars={[40, 65, 75, 95]}
+        />
 
-          <motion.div 
-            whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-5 sm:p-6 shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[155px] sm:h-[170px]"
-          >
-            <div className="flex justify-between items-start">
-              <span className="font-sans font-medium text-sm sm:text-15px text-[#AACBC4]">Bearish Divergence Rate</span>
-              <span className="bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30 px-2.5 py-0.5 rounded-full font-mono font-bold text-xs">-5.1%</span>
-            </div>
-            <div className="flex items-end gap-3 sm:gap-4 h-[55px] sm:h-[60px] w-full">
-              <span className="font-sans font-bold text-2xl sm:text-3xl lg:text-[36px] text-[#F1F7F6] leading-none font-mono">14.1%</span>
-              <div className="h-full flex-1 w-full ml-auto">
-                <SparkAreaChart
-                  data={tremorData2}
-                  categories={["Performance"]}
-                  index="month"
-                  colors={["rose"]}
-                  className="h-full w-full"
-                />
-              </div>
-            </div>
-          </motion.div>
+        {/* KPI 2: Bearish Divergence Rate */}
+        <CatalogueKPICard
+          title="TAUX DIVERGENCE VENDEUR"
+          value="14.1%"
+          unit="-5.1%"
+          subtitle="Écart de régime Short"
+          variant="rose"
+          icon={<TrendingDown size={14} />}
+          bars={[65, 45, 30, 15]}
+        />
 
-          <motion.div 
-            whileHover={{ y: -3, transition: { duration: 0.2 } }}
-            className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-5 sm:p-6 shadow-[0_12px_36px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col justify-between h-[155px] sm:h-[170px] sm:col-span-2 lg:col-span-1"
-          >
-            <div className="flex justify-between items-start">
-              <span className="font-sans font-medium text-sm sm:text-15px text-[#AACBC4]">Macro Data Ingestion</span>
-              <span className="bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 px-2.5 py-0.5 rounded-full font-mono font-bold text-xs">Stable</span>
-            </div>
-            <div className="flex items-end gap-3 sm:gap-4 h-[55px] sm:h-[60px] w-full">
-              <span className="font-sans font-bold text-2xl sm:text-3xl lg:text-[36px] text-[#F1F7F6] leading-none font-mono">99.9%</span>
-              <div className="h-full flex-1 w-full ml-auto opacity-70">
-                <SparkAreaChart
-                  data={tremorData3}
-                  categories={["Performance"]}
-                  index="month"
-                  colors={["teal"]}
-                  className="h-full w-full"
-                />
-              </div>
-            </div>
-          </motion.div>
-        </div>
+        {/* KPI 3: Macro Data Ingestion */}
+        <CatalogueKPICard
+          title="INGESTION DONNÉES MACRO"
+          value="99.9%"
+          unit="Stable"
+          subtitle="Flux banques centrales G10"
+          variant="lime"
+          icon={<Database size={14} />}
+          bars={[80, 85, 95, 100]}
+        />
 
-        {/* TradingView Chart Row 1 - MACRO METRIC */}
-        <div className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-4 sm:p-6 lg:p-7 shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col h-[320px] sm:h-[370px] lg:h-[420px] relative overflow-hidden z-20">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5 z-10 mb-3 sm:mb-4">
-            <div className="flex flex-col gap-1 sm:gap-2">
-              <h3 className="font-sans font-bold text-base sm:text-lg lg:text-xl text-[#F1F7F6]">Historical Macro Metric</h3>
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                <CustomDropdown options={FX_PAIR_NAMES} value={activePairMacro} onChange={setActivePairMacro} label="Pair" isPair />
-                <CustomDropdown options={INDICATORS} value={activeIndicator} onChange={setActiveIndicator} label="Metric" />
-              </div>
-            </div>
-            <div className="flex items-center bg-[#06302B] p-1 sm:p-1.5 rounded-2xl border border-[#0B453A] shrink-0">
-              {["1W", "1M", "1Y"].map((range) => (
-                <button 
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={clsx(
-                    "relative px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl text-xs font-bold font-mono transition-colors z-10 cursor-pointer",
-                    timeRange === range ? "text-[#021B1A]" : "text-[#AACBC4] hover:text-[#F1F7F6]"
-                  )}
-                >
-                  {range}
-                  {timeRange === range && (
-                    <motion.div
-                      layoutId="activeRangePill"
-                      className="absolute inset-0 bg-[#00DF81] rounded-xl z-[-1] shadow-[0_0_12px_rgba(0,223,129,0.35)]"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </button>
-              ))}
+        {/* KPI 4: Average G10 Dispersion */}
+        <CatalogueKPICard
+          title="DISPERSION MOYENNE G10"
+          value="12.7%"
+          unit="Élevée"
+          subtitle="Écart-type inter-devises"
+          variant="sky"
+          icon={<Activity size={14} />}
+          bars={[30, 50, 70, 85]}
+        />
+
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 3. MAIN CHART CONTAINER (Historical Macro Metric)                 */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <section className="rounded-[24px] bg-[#101218] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_20px_40px_-15px_rgba(0,0,0,0.7)] p-6 mb-5">
+        
+        {/* Top Toolbar inside Card */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.06]">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <h2 className="text-base font-bold text-white tracking-tight mr-2 whitespace-nowrap">
+              Historique des Métriques Macroéconomiques
+            </h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <CustomDropdown
+                label="Paire"
+                value={activePair}
+                options={FX_PAIRS}
+                onChange={setActivePair}
+                isPair={true}
+              />
+              <CustomDropdown
+                label="Indicateur"
+                value={activeIndicator}
+                options={INDICATORS}
+                onChange={setActiveIndicator}
+                isPair={false}
+              />
             </div>
           </div>
-          <div className="flex-1 w-full relative mt-2">
-             {macroData.length > 0 && <LightweightChart data={macroData} color="#00DF81" type="line" />}
+
+          {/* Timeframe pill track */}
+          <div className="rounded-full bg-[#0A0B0F] border border-white/[0.06] p-1 inline-flex items-center gap-1 text-xs font-mono">
+            {["1S", "1M", "3M", "1A"].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTimeRange(t)}
+                className={clsx(
+                  "px-3.5 py-1 rounded-full transition-all cursor-pointer",
+                  timeRange === t 
+                    ? "bg-[#D4FF00] text-[#07080C] font-bold shadow-[0_0_12px_rgba(212,255,0,0.3)]" 
+                    : "text-slate-400 hover:text-white"
+                )}
+              >
+                {t}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* TradingView Chart Row 2 - FINAL SCORE */}
-        <div className="bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] p-4 sm:p-6 lg:p-7 shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] flex flex-col h-[320px] sm:h-[370px] lg:h-[420px] relative overflow-hidden z-10">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5 z-10 mb-3 sm:mb-4">
-            <div className="flex flex-col gap-1 sm:gap-2">
-              <h3 className="font-sans font-bold text-base sm:text-lg lg:text-xl text-[#F1F7F6]">Final Score Trajectory</h3>
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                 <CustomDropdown options={FX_PAIR_NAMES} value={activePairScore} onChange={setActivePairScore} label="Pair" isPair />
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 w-full relative mt-2">
-             {scoreData.length > 0 && <LightweightChart data={scoreData} color="#2CC295" type="area" />}
-          </div>
+        {/* Lightweight TradingView Area Chart */}
+        <div className="w-full relative">
+          <LightweightAreaChart data={macroData} color="#D4FF00" />
         </div>
 
-      </main>
-    </motion.div>
+        {/* Sub-footer stats */}
+        <div className="flex items-center justify-between pt-4 mt-2 border-t border-white/[0.06] text-xs font-mono text-slate-400">
+          <div className="flex items-center gap-4">
+            <span>Points échantillonnés : <span className="text-white font-bold">{macroData.length}</span></span>
+            <span>Régime observé : <span className="text-emerald-400 font-bold">Expansion Modérée</span></span>
+          </div>
+          <span>Dernière mise à jour du modèle : 26 Oct 2026</span>
+        </div>
+
+      </section>
+
+    </div>
   );
 }

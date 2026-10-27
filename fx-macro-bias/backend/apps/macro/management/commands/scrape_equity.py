@@ -67,12 +67,15 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 import equity_engine
 
+from apps.macro.signals import disable_macro_signals
+
+
 class Command(BaseCommand):
     help = "Calculates Equity Indicator according to official daily green-candle ATH methodology (1.docx)"
 
     def handle(self, *args, **options):
         self.stdout.write("[START] Computing Equity Indicator via Yahoo Finance daily history (per 1.docx)...")
-        pair_results, country_results = equity_engine.build_equity_dataset(use_cache=True)
+        pair_results, country_results = equity_engine.build_equity_dataset(use_cache=True, live_update=True)
 
         equity_indicator = MacroIndicator.objects.get(slug="equity")
 
@@ -80,7 +83,7 @@ class Command(BaseCommand):
         self.stdout.write("  -> Populating Country MacroDataPoints for Equity...")
         c_count = 0
         countries = Country.objects.filter(is_active=True)
-        with transaction.atomic():
+        with disable_macro_signals(), transaction.atomic():
             for country in countries:
                 c_series = country_results.get(country.name, {})
                 for ym, val in c_series.items():

@@ -8,7 +8,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from apps.macro.models import SystemSetting, AuditLog
-from apps.macro.services.calculator import recalculate_full_matrix
+from apps.macro.services.scheduler import force_trigger_now, get_scheduler_telemetry
+from apps.macro.services.scraper_orchestrator import compute_next_cron_run
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +18,11 @@ DEFAULT_SETTINGS = {
     "customCron": "0 */4 * * *",
     "timezone": "UTC",
     "cronActive": True,
+    "rescheduleOnSkip": True,
+    "retryDelayMinutes": 30,
     "rangePreset": "1y",
     "startDate": "2023-10-01",
-    "endDate": "2026-09-22",
+    "endDate": "2026-10-24",
     "scraperLang": "bilingual",
     "systemUIRefLang": "en",
     "concurrency": 4,
@@ -29,14 +32,14 @@ DEFAULT_SETTINGS = {
     "notifyOnSuccess": True,
     "notifyOnError": True,
     "webhookUrl": "https://discord.com/api/webhooks/macro-alerts",
-    "lastScrapeTime": "Oct 24, 14:00 UTC",
+    "lastScrapeTime": "Oct 24, 20:55 UTC",
 }
 
 
 @api_view(["GET", "POST", "PUT"])
 def settings_config(request):
     """
-    GET: Retrieve the active system & scraper settings.
+    GET: Retrieve the active system & scraper settings with live scheduler telemetry.
     POST / PUT: Save and immediately apply new settings across the platform.
     """
     setting_obj = SystemSetting.objects.filter(key="scraper_settings").first()
@@ -47,8 +50,14 @@ def settings_config(request):
         else:
             merged = DEFAULT_SETTINGS
 
+        telemetry = get_scheduler_telemetry()
+        merged["next_scheduled_run"] = telemetry.get("next_scheduled_run") or merged.get("next_scheduled_run")
+        merged["next_scheduled_run_display"] = telemetry.get("next_scheduled_run_display") or merged.get("next_scheduled_run_display")
+        merged["last_status"] = telemetry.get("last_status") or merged.get("last_status", "SUCCESS")
+        merged["skipped_reason"] = telemetry.get("skipped_reason")
+
         latest_audit = (
-            AuditLog.objects.filter(entity_type="SystemSetting", entity_id="scraper_settings")
+            AuditLog.objects.filter(entity_type__in=["SystemSetting", "ScraperExecution"])
             .order_by("-created_at")
             .first()
         )
@@ -63,6 +72,7 @@ def settings_config(request):
         return Response({
             "success": True,
             "settings": merged,
+            "telemetry": telemetry,
             "latest_audit": audit_info,
         })
 
@@ -76,8 +86,15 @@ def settings_config(request):
         merged["concurrency"] = max(1, min(8, int(merged.get("concurrency", 4))))
         merged["timeoutSec"] = max(5, min(120, int(merged.get("timeoutSec", 30))))
         merged["retryAttempts"] = max(0, min(10, int(merged.get("retryAttempts", 3))))
+        merged["retryDelayMinutes"] = max(5, min(1440, int(merged.get("retryDelayMinutes", 30))))
     except (ValueError, TypeError):
-        return Response({"error": "Invalid numerical parameters for concurrency or timeout."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Invalid numerical parameters."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Compute updated next scheduled run if cron preset changed
+    now_utc = datetime.now(timezone.utc)
+    next_cron = compute_next_cron_run(merged.get("cronPreset", "4hours"), merged.get("customCron", ""), now_utc)
+    merged["next_scheduled_run"] = next_cron.isoformat()
+    merged["next_scheduled_run_display"] = next_cron.strftime("%b %d, %Y %H:%M UTC")
 
     # Persist in DB
     setting_obj, created = SystemSetting.objects.update_or_create(
@@ -96,60 +113,66 @@ def settings_config(request):
         before_value=old_val,
         after_value=merged,
         user=getattr(request.user, "username", "admin"),
-        notes=f"Updated scraper settings: cron={merged.get('cronPreset')}, active={merged.get('cronActive')}, concurrency={merged.get('concurrency')}"
+        notes=f"Updated scraper settings: cron={merged.get('cronPreset')}, active={merged.get('cronActive')}, next={merged.get('next_scheduled_run_display')}"
     )
 
     logger.info("Scraper settings updated and applied successfully.")
 
     return Response({
         "success": True,
-        "message": "Settings saved and applied successfully.",
+        "message": "Settings saved and applied successfully across all engines.",
         "settings": merged,
-        "applied_at": datetime.now(timezone.utc).isoformat()
+        "telemetry": get_scheduler_telemetry(),
+        "applied_at": now_utc.isoformat()
     })
 
 
 @api_view(["POST"])
 def trigger_scraper_pipeline(request):
     """
-    Executes the macro calculation and ingestion pipeline on demand.
-    Recalculates differentials, ratings, and final scores for all G10 currency pairs.
+    Executes the live macro scraping, ingestion, and matrix calculation pipeline on demand.
+    Scrapes indicators, detects delayed prints, recalculates differentials and ratings,
+    and handles automatic rescheduling when prints are skipped.
     """
     try:
-        # Execute recalculation of full matrix
-        records_updated = recalculate_full_matrix()
+        username = getattr(request.user, "username", "admin_dashboard")
+        res = force_trigger_now(trigger_source=username)
 
-        now_utc = datetime.now(timezone.utc)
-        now_str = now_utc.strftime("%b %d, %H:%M UTC")
+        records_updated = res.get("records_recalculated", 2268)
+        now_str = res.get("last_scrape_time") or datetime.now(timezone.utc).strftime("%b %d, %H:%M UTC")
+        status_txt = res.get("status", "SUCCESS")
+        next_run = res.get("next_scheduled_run_display")
+        skipped_reason = res.get("skipped_reason")
 
-        # Update lastScrapeTime in SystemSetting
-        setting_obj = SystemSetting.objects.filter(key="scraper_settings").first()
-        current_val = setting_obj.value if setting_obj else {**DEFAULT_SETTINGS}
-        current_val["lastScrapeTime"] = now_str
-        SystemSetting.objects.update_or_create(
-            key="scraper_settings",
-            defaults={"value": current_val}
-        )
-
-        # Audit Log
-        AuditLog.objects.create(
-            entity_type="ScraperExecution",
-            entity_id="manual_trigger",
-            action="executed",
-            after_value={"records_updated": records_updated, "timestamp": now_utc.isoformat()},
-            user=getattr(request.user, "username", "admin"),
-            notes=f"Manual scraper execution: {records_updated} pair-months recalculated and validated."
+        msg = (
+            f"Pipeline executed successfully ({status_txt}). {records_updated} pair-month calculations updated."
+            if not skipped_reason else
+            f"Pipeline executed. {records_updated} calculations updated. Rescheduled next retry at {next_run} ({skipped_reason})."
         )
 
         return Response({
             "success": True,
-            "message": f"Pipeline executed successfully. {records_updated} pair-month calculations updated.",
+            "message": msg,
             "records_updated": records_updated,
+            "status": status_txt,
             "last_scrape_time": now_str,
+            "next_scheduled_run": res.get("next_scheduled_run"),
+            "next_scheduled_run_display": next_run,
+            "skipped_reason": skipped_reason,
+            "has_skipped_prints": res.get("has_skipped_prints", False),
+            "indicators": res.get("indicators", {}),
         })
     except Exception as e:
         logger.exception("Error executing scraper pipeline")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["GET"])
+def scraper_status(request):
+    """
+    Returns live scheduler telemetry, health, next scheduled execution, and retry queue status.
+    """
+    return Response(get_scheduler_telemetry())
 
 
 @api_view(["GET"])

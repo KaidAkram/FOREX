@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { GlobalSearch } from "./GlobalSearch";
+import { AuthHeaderWidget } from "./AuthHeaderWidget";
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin/dashboard":    { title: "Dashboard",    subtitle: "System overview & data status" },
@@ -22,16 +23,16 @@ export function AdminTopbar() {
   return (
     <header
       style={{ height: "var(--topbar-height, 64px)", left: "var(--sidebar-width, 280px)" }}
-      className="fixed top-0 right-0 z-40 flex items-center justify-between px-8 border-b border-[#0B453A] bg-[#032221]/90 backdrop-blur-xl"
+      className="fixed top-0 right-0 z-40 flex items-center justify-between px-8 border-b border-white/[0.08] bg-[#0C0D12]/90 backdrop-blur-xl"
       role="banner"
     >
       {/* Left: page identity */}
       <div>
-        <h1 className="font-sans text-xl font-bold text-[#F1F7F6] leading-none tracking-tight">
+        <h1 className="font-sans text-xl font-bold text-white leading-none tracking-tight">
           {page.title}
         </h1>
         {page.subtitle && (
-          <p className="text-xs font-sans text-[#AACBC4] mt-1">{page.subtitle}</p>
+          <p className="text-xs font-sans text-[#A0A5B1] mt-1">{page.subtitle}</p>
         )}
       </div>
 
@@ -40,26 +41,16 @@ export function AdminTopbar() {
         <GlobalSearch />
       </div>
 
-      {/* Right: dev mode indicator + mock user */}
+      {/* Right: dev mode indicator + user widget */}
       <div className="flex items-center gap-4">
         {/* Dev mode badge */}
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#06302B] text-[#00DF81] border border-[#0B453A] text-[10px] font-mono font-bold uppercase tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#00DF81] animate-pulse" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#14151b] text-[#D2F646] border border-white/10 text-[10px] font-mono font-bold uppercase tracking-wider">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#6FF542] animate-pulse" />
           Live Engine
         </span>
 
-        {/* Quant admin user */}
-        <div className="flex items-center gap-2.5 pl-4 border-l border-[#0B453A]">
-          <div className="w-8 h-8 rounded-full bg-[#06302B] border border-[#0B453A] flex items-center justify-center">
-            <span className="font-sans text-xs font-bold text-[#00DF81]">Q</span>
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-xs font-sans font-semibold text-[#F1F7F6] leading-none">
-              Quant Admin
-            </p>
-            <p className="text-[10px] font-mono text-[#AACBC4] mt-1">is_staff: true</p>
-          </div>
-        </div>
+        {/* User profile widget */}
+        <AuthHeaderWidget />
       </div>
     </header>
   );

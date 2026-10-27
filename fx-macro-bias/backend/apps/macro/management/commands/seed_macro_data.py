@@ -90,6 +90,22 @@ G10_COUNTRIES = [
         "imf_country_code": "NZL",
         "oecd_country_code": "NZL",
     },
+    {
+        "name": "Sweden",
+        "iso_code": "SEK",
+        "trading_economics_slug": "sweden",
+        "yfinance_equity_ticker": "^OMX",
+        "imf_country_code": "SWE",
+        "oecd_country_code": "SWE",
+    },
+    {
+        "name": "Norway",
+        "iso_code": "NOK",
+        "trading_economics_slug": "norway",
+        "yfinance_equity_ticker": "OSEBX.OL",
+        "imf_country_code": "NOR",
+        "oecd_country_code": "NOR",
+    },
 ]
 
 # Maps names used in EXCEL8EXAMPLE.xlsx → our canonical iso_code
@@ -107,6 +123,8 @@ EXCEL_COUNTRY_MAP = {
     "switzerland": "CHF",
     "new zealand": "NZD",
     "new zelaand": "NZD",  # typo in the Excel
+    "sweden": "SEK",
+    "norway": "NOK",
 }
 
 INDICATORS = [

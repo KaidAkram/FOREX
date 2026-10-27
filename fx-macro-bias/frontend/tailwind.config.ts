@@ -9,61 +9,66 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // --- Brand Primary Palette (Official Brand Spec) ---
-        "rich-black": "#021B1A", // RGB 2, 27, 26 - Deep base canvas
-        "dark-green": "#032221", // RGB 3, 34, 33 - Primary elevated surfaces & cards
-        "bangladesh": "#03624C", // RGB 3, 98, 76 - Structural borders & accents
-        "meadow": "#2CC295",     // RGB 44, 194, 149 - Primary positive/bullish accent
-        "caribbean": "#00DF81",  // RGB 0, 223, 129 - Radiant Hero CTA & neon highlights
-        "anti-flash": "#F1F7F6", // RGB 241, 247, 246 - High-contrast text & headings
+        // --- Sleek Dark Canvas & Surface Tokens (Restored Screenshot Palette) ---
+        void: "#0C0D12",            // Deep matte obsidian canvas
+        surface: "#121418",         // Primary elevated glass card surface
+        "surface-2": "#181A20",     // Secondary surface, nested cards, pills
+        "surface-3": "#20232B",     // Active dark pill, hover states
+        "border-glass": "rgba(255, 255, 255, 0.08)",
+        "text-primary": "#FFFFFF",
+        "text-muted": "#A0A5B1",
+        "text-slate": "#8B949E",
 
-        // --- Brand Secondary Palette (Official Brand Spec) ---
-        "pine": "#06302B",       // RGB 6, 48, 43 - Surface hover, nested cards
-        "basil": "#0B453A",      // RGB 11, 69, 58 - Container borders & dividers
-        "forest": "#095544",     // RGB 9, 85, 68 - Secondary buttons & chip fills
-        "frog": "#17876D",       // RGB 23, 135, 109 - Intermediate badges & icons
-        "brand-mint": "#2FA98C", // RGB 47, 169, 140 - Secondary telemetry/chart fills
-        "stone": "#707D7D",      // RGB 112, 125, 125 - Muted text, timestamps
-        "pistachio": "#AACBC4",  // RGB 170, 203, 196 - Soft headers (th), subtitles
-
-        // --- UI & Canvas Semantic Tokens ---
-        void: "#021B1A",
-        surface: "#032221",
-        "surface-2": "#06302B",
-        "border-glass": "rgba(11, 69, 58, 0.6)",
-        "text-primary": "#F1F7F6",
-        "text-muted": "#AACBC4",
-        "text-slate": "#707D7D",
-
-        // --- Semantic Financial Indicators ---
+        // --- Signature Volt Lime Accent (The Exact Screenshot Pill & Accent) ---
+        volt: {
+          DEFAULT: "#D2F646",
+          hover: "#E1FA68",
+          glow: "rgba(210, 246, 70, 0.35)",
+          border: "rgba(210, 246, 70, 0.40)",
+        },
         brand: {
-          DEFAULT: "#00DF81",
-          glow: "rgba(0, 223, 129, 0.35)",
+          DEFAULT: "#D2F646",
+          glow: "rgba(210, 246, 70, 0.35)",
         },
         mint: {
-          DEFAULT: "#00DF81", // Caribbean Green for Bullish
-          glow: "rgba(0, 223, 129, 0.25)",
-          border: "rgba(0, 223, 129, 0.40)",
+          DEFAULT: "#6FF542",        // Electric Neon Green for Status & Bullish
+          glow: "rgba(111, 245, 66, 0.25)",
+          border: "rgba(111, 245, 66, 0.40)",
         },
         coral: {
-          DEFAULT: "#FF5555", // Balanced Crimson/Coral for Bearish
-          bg: "rgba(255, 85, 85, 0.12)",
-          border: "rgba(255, 85, 85, 0.35)",
+          DEFAULT: "#FF5B5B",        // Coral Red for Bearish & Alerts
+          bg: "rgba(255, 91, 91, 0.12)",
+          border: "rgba(255, 91, 91, 0.35)",
         },
         cyan: {
-          DEFAULT: "#2CC295", // Mountain Meadow for neutral/balanced active
-          glow: "rgba(44, 194, 149, 0.2)",
+          DEFAULT: "#00E5FF",        // Electric Cyan
+          glow: "rgba(0, 229, 255, 0.2)",
         },
         amber: {
-          DEFAULT: "#2FA98C",
-          glow: "rgba(47, 169, 140, 0.2)",
+          DEFAULT: "#FFD066",        // Warm Amber / Forecast Indicator
+          glow: "rgba(255, 208, 102, 0.2)",
         },
+
+        // --- Backwards-Compatibility Aliases (Mapped to Sleek Charcoal / Volt) ---
+        "rich-black": "#0C0D12",
+        "dark-green": "#121418",
+        "bangladesh": "#1F222A",
+        "meadow": "#6FF542",
+        "caribbean": "#D2F646",
+        "anti-flash": "#FFFFFF",
+        "pine": "#181A20",
+        "basil": "rgba(255, 255, 255, 0.08)",
+        "forest": "#20232B",
+        "frog": "#D2F646",
+        "brand-mint": "#6FF542",
+        "stone": "#8B949E",
+        "pistachio": "#A0A5B1",
       },
       fontFamily: {
-        axiforma: ["Axiforma", "var(--font-jakarta)", "var(--font-sans)", "system-ui", "sans-serif"],
-        hero: ["Axiforma", "var(--font-jakarta)", "var(--font-hero)", "sans-serif"],
-        sans: ["Axiforma", "var(--font-jakarta)", "var(--font-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "monospace"],
+        display: ["var(--font-display)", "'Cabinet Grotesk'", "sans-serif"],
+        sans: ["var(--font-sans)", "'Satoshi'", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "'Fragment Mono'", "monospace"],
+        hero: ["var(--font-display)", "'Cabinet Grotesk'", "sans-serif"],
       },
       fontSize: {
         "kpi-xl": ["4rem", { lineHeight: "1", fontWeight: "700", letterSpacing: "-0.02em" }],
@@ -84,16 +89,18 @@ const config: Config = {
         "pill": "9999px",
       },
       backgroundImage: {
-        "glass-card": "linear-gradient(135deg, rgba(3, 34, 33, 0.95) 0%, rgba(6, 48, 43, 0.85) 100%)",
-        "emerald-glow": "radial-gradient(ellipse at center, rgba(0, 223, 129, 0.15) 0%, transparent 70%)",
-        "meadow-glow": "radial-gradient(ellipse at center, rgba(44, 194, 149, 0.15) 0%, transparent 70%)",
-        "coral-glow": "radial-gradient(ellipse at center, rgba(255, 85, 85, 0.12) 0%, transparent 70%)",
+        "glass-card": "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
+        "volt-glow": "radial-gradient(ellipse at center, rgba(210, 246, 70, 0.20) 0%, transparent 70%)",
+        "mint-glow": "radial-gradient(ellipse at center, rgba(111, 245, 66, 0.15) 0%, transparent 70%)",
+        "coral-glow": "radial-gradient(ellipse at center, rgba(255, 91, 91, 0.12) 0%, transparent 70%)",
       },
       boxShadow: {
-        "card": "0 20px 40px rgba(2, 27, 26, 0.6)",
-        "glow-caribbean": "0 0 24px rgba(0, 223, 129, 0.35)",
-        "glow-meadow": "0 0 20px rgba(44, 194, 149, 0.3)",
-        "glow-coral": "0 0 20px rgba(255, 85, 85, 0.25)",
+        "card": "0 20px 40px rgba(0, 0, 0, 0.5)",
+        "glow-volt": "0 0 24px rgba(210, 246, 70, 0.35)",
+        "glow-mint": "0 0 20px rgba(111, 245, 66, 0.25)",
+        "glow-coral": "0 0 20px rgba(255, 91, 91, 0.25)",
+        "glow-caribbean": "0 0 24px rgba(210, 246, 70, 0.35)",
+        "glow-meadow": "0 0 20px rgba(111, 245, 66, 0.25)",
       },
       keyframes: {
         shimmer: {
@@ -113,12 +120,17 @@ const config: Config = {
           "0%, 100%": { opacity: "0.35", transform: "scale(1)" },
           "50%": { opacity: "0.7", transform: "scale(1.08)" },
         },
+        pulseGlow: {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(210, 246, 70, 0.4)" },
+          "50%": { boxShadow: "0 0 0 8px rgba(210, 246, 70, 0)" },
+        },
       },
       animation: {
         shimmer: "shimmer 2.5s infinite",
         slideUp: "slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         fadeIn: "fadeIn 0.5s ease-out forwards",
         breathe: "breathe 4s ease-in-out infinite",
+        pulseGlow: "pulseGlow 2s infinite",
       },
     },
   },

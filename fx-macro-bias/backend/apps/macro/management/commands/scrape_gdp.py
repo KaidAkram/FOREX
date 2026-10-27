@@ -212,8 +212,8 @@ class Command(BaseCommand):
         self.stdout.write(f"\n--> Upserting {len(all_records)} total MacroDataPoints into database...")
         upserted_count = 0
         affected_months = set()
-
-        with transaction.atomic():
+        from apps.macro.signals import disable_macro_signals
+        with disable_macro_signals(), transaction.atomic():
             for rec in all_records:
                 MacroDataPoint.objects.update_or_create(
                     country=rec["country"],

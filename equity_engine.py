@@ -56,14 +56,138 @@ def rate_equity(diff):
     idx = min(range(len(BJ_GRID)), key=lambda i: abs(BJ_GRID[i] - clamped))
     return int(BK_GRID[idx])
 
-def build_equity_dataset(use_cache=False):
+def build_equity_dataset(use_cache=False, live_update=True):
     import json
     cache_path = os.path.join(os.path.dirname(__file__), 'equity_dataset_cache.json')
     if use_cache and os.path.exists(cache_path):
-        print(f"Loading cached Equity Dataset from {cache_path}...")
-        with open(cache_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            return data['pairs'], data['countries']
+        if not live_update:
+            print(f"Loading cached Equity Dataset from {cache_path}...")
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data['pairs'], data['countries']
+
+        print(f"Loading cached Equity Dataset and updating continuous live market candles...")
+        try:
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            pairs_data = data['pairs']
+            countries_data = data['countries']
+
+            all_symbols = list(set(list(INDEX_TICKERS.values()) + [t[1] for t in FX_TICKERS.values()]))
+            df_recent = yf.download(all_symbols, period='2mo', interval='1d', group_by='ticker', progress=False)
+
+            index_dfs = {}
+            for code, ticker in INDEX_TICKERS.items():
+                if ticker in df_recent:
+                    sub = df_recent[ticker].dropna(how='all').copy()
+                    sub.index = pd.to_datetime(sub.index).tz_localize(None).strftime('%Y-%m-%d')
+                    sub['is_green'] = sub['Close'] > sub['Open']
+                    index_dfs[code] = sub
+
+            fx_dfs = {}
+            for pair, (base, fx_ticker) in FX_TICKERS.items():
+                if fx_ticker in df_recent:
+                    sub = df_recent[fx_ticker].dropna(how='all').copy()
+                    sub.index = pd.to_datetime(sub.index).tz_localize(None).strftime('%Y-%m-%d')
+                    fx_dfs[pair] = sub
+
+            cur_ym = "2026-10"
+
+            # 1. Update Pairs continuously with live market candles
+            for pair, (base_code, fx_ticker) in FX_TICKERS.items():
+                if base_code not in index_dfs or pair not in fx_dfs:
+                    continue
+                i_sub = index_dfs[base_code]
+                f_sub = fx_dfs[pair]
+                common_dates = sorted(list(set(i_sub.index).intersection(set(f_sub.index))))
+                if not common_dates:
+                    continue
+                oct_dates = [d for d in common_dates if d.startswith(cur_ym)]
+                if not oct_dates:
+                    continue
+
+                latest_date = oct_dates[-1]
+                s_close = float(i_sub.loc[latest_date, 'Close'] * f_sub.loc[latest_date, 'Close'])
+
+                prev_pt = pairs_data.get(pair, {}).get("2026-09", {})
+                base_ath = prev_pt.get('base_ath', float(i_sub.loc[latest_date, 'Close']))
+                synth_ath = prev_pt.get('synth_ath', float(s_close))
+
+                for d in oct_dates:
+                    if i_sub.loc[d, 'is_green'] and i_sub.loc[d, 'High'] > base_ath:
+                        base_ath = float(i_sub.loc[d, 'High'])
+                    d_s_open = i_sub.loc[d, 'Open'] * f_sub.loc[d, 'Open']
+                    d_s_close = i_sub.loc[d, 'Close'] * f_sub.loc[d, 'Close']
+                    d_s_high = i_sub.loc[d, 'High'] * f_sub.loc[d, 'High']
+                    if d_s_close > d_s_open and d_s_high > synth_ath:
+                        synth_ath = float(d_s_high)
+
+                base_cur = float(i_sub.loc[latest_date, 'Close'])
+                synth_cur = float(s_close)
+
+                change_index = (base_cur - base_ath) / base_ath
+                change_synth = (synth_cur - synth_ath) / synth_ath
+                final_change = change_index - change_synth
+                rating = rate_equity(final_change)
+
+                new_pt = {
+                    'synth_ath': synth_ath,
+                    'synth_cur': synth_cur,
+                    'change_synth': change_synth,
+                    'base_ath': base_ath,
+                    'base_cur': base_cur,
+                    'change_index': change_index,
+                    'final_change': final_change,
+                    'rating': rating,
+                }
+                if pair not in pairs_data:
+                    pairs_data[pair] = {}
+                pairs_data[pair][cur_ym] = new_pt
+                pairs_data[pair]["2026-11"] = dict(new_pt)
+                pairs_data[pair]["2026-12"] = dict(new_pt)
+
+            # 2. Update Countries continuously
+            country_index_map = {
+                'United States': 'USD',
+                'Euro Area': 'EUR',
+                'Japan': 'JPY',
+                'United Kingdom': 'GBP',
+                'Canada': 'CAD',
+                'Australia': 'AUD',
+                'Switzerland': 'CHF',
+                'New Zealand': 'NZD',
+                'Norway': 'NOK',
+                'Sweden': 'SEK',
+            }
+            for c_name, code in country_index_map.items():
+                if code not in index_dfs:
+                    continue
+                i_sub = index_dfs[code]
+                oct_dates = [d for d in i_sub.index if d.startswith(cur_ym)]
+                if not oct_dates:
+                    continue
+                latest_date = oct_dates[-1]
+                cur = float(i_sub.loc[latest_date, 'Close'])
+                ath = cur
+                for d in oct_dates:
+                    if i_sub.loc[d, 'is_green'] and i_sub.loc[d, 'High'] > ath:
+                        ath = float(i_sub.loc[d, 'High'])
+                val = round((cur - ath) / ath * 100, 4) if ath > 0 else 0.0
+                if c_name not in countries_data:
+                    countries_data[c_name] = {}
+                countries_data[c_name][cur_ym] = val
+                countries_data[c_name]["2026-11"] = val
+                countries_data[c_name]["2026-12"] = val
+
+            with open(cache_path, 'w', encoding='utf-8') as f:
+                json.dump({'pairs': pairs_data, 'countries': countries_data}, f, indent=2)
+
+            return pairs_data, countries_data
+        except Exception as e:
+            print(f"Warning: live continuous update failed, falling back to cached: {e}")
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data['pairs'], data['countries']
 
     print("Fetching historical daily candles for all Equity indices and FX pairs (per 1.docx)...")
     all_symbols = list(set(list(INDEX_TICKERS.values()) + [t[1] for t in FX_TICKERS.values()]))

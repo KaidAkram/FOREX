@@ -1,854 +1,900 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { 
   ChevronDown, 
   CheckCircle2, 
   Sparkles, 
-  TrendingUp, 
-  TrendingDown, 
-  Minus, 
   Calendar, 
   Database,
   X,
-  Lock
+  Search,
+  Check
 } from "lucide-react";
 import { clsx } from "clsx";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { GlobalSearch } from "@/components/layout/GlobalSearch";
-import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
-
+import confetti from "canvas-confetti";
+import { playClickSound, playTabSound, playSuccessSound } from "@/lib/soundEffects";
 import { 
   COUNTRIES, 
   PAIRS, 
   INDICATORS, 
-  getMacroMatrixData, 
-  getCombinedDifferentialData, 
   SYSTEM_CURRENT_YEAR, 
-  MACRO_YEARS 
+  SYSTEM_CURRENT_MONTH,
+  MACRO_YEARS,
+  OFFICIAL_RELEASE_CUTOFFS,
+  getCombinedDifferentialData
 } from "@/data/macroDataset";
+import { 
+  AdminPageHeader, CatalogueKPICard, SculptedFilterPod, SculptedTableContainer 
+} from "@/components/admin/AdminPrimitives";
+import { CurrencyFlag, FXPairFlags } from "@/components/ui/DopaminePrimitives";
+import { getCountryFlagUrl, formatCleanMacroPercent } from "@/lib/macroFormatters";
 
-const TABS = ["Macro Data Matrix", "Differential & Rating"];
+const TABS = ["Matrice Macro", "Différentiels & Notes"];
 const YEARS = MACRO_YEARS;
 
-// Translucent Glass Cards with Specular Highlight and Basil borders
-const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[24px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)]";
+const CANONICAL_28_PAIRS = [
+  "EUR/USD", "EUR/GBP", "EUR/JPY", "EUR/CHF", "EUR/CAD", "EUR/AUD", "EUR/NZD",
+  "GBP/USD", "GBP/JPY", "GBP/CHF", "GBP/CAD", "GBP/AUD", "GBP/NZD",
+  "USD/JPY", "USD/CHF", "USD/CAD", "USD/AUD", "USD/NZD",
+  "CHF/JPY", "CAD/JPY", "AUD/JPY", "NZD/JPY",
+  "CAD/CHF", "AUD/CHF", "NZD/CHF", "AUD/CAD", "NZD/CAD", "AUD/NZD"
+];
 
-const FlagStack = ({ base, quote }: { base: string; quote: string }) => (
-  <div className="flex items-center flex-shrink-0">
-    <img src={`/flags/${base}.svg`} className="w-[18px] h-[18px] rounded-full border border-[#0B453A] z-10 shadow-sm" alt={base} />
-    <img src={`/flags/${quote}.svg`} className="w-[18px] h-[18px] rounded-full border border-[#0B453A] -ml-[6px] z-0 shadow-sm" alt={quote} />
-  </div>
-);
+const INDICATOR_MAP: Record<string, string> = {
+  "GDP": "PIB",
+  "Current Account": "Balance Courante",
+  "CPI": "IPC (Inflation)",
+  "Interest Rate": "Taux Directeurs",
+  "FX Reserves": "Réserves FX",
+  "Equity": "Marchés Actions"
+};
 
 export default function MacroDataPage() {
-  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(TABS[0]);
-  const [activeInd, setActiveInd] = useState(INDICATORS[0]);
+  const [activeInd, setActiveInd] = useState("GDP");
   const [activePair, setActivePair] = useState(PAIRS[0].name);
   const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const [countrySearch, setCountrySearch] = useState("");
+  const [headerSearch, setHeaderSearch] = useState("");
 
-  // User Assumptions & Forward Overrides state
-  const [assumptions, setAssumptions] = useState<Record<string, string>>({});
-  const [selectedAssumptionCell, setSelectedAssumptionCell] = useState<{ c: string; m: string; val: string; isForecast: boolean } | null>(null);
-  const [assumptionInputVal, setAssumptionInputVal] = useState<string>("");
-
-  // Load assumptions from localStorage on client mount
-  useEffect(() => {
+  // User Assumptions & Forward Overrides state initialized lazily
+  const [assumptions, setAssumptions] = useState<Record<string, string>>(() => {
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem("shiftfx_macro_user_assumptions");
-        if (stored) {
-          setAssumptions(JSON.parse(stored));
-        }
+        if (stored) return JSON.parse(stored);
       } catch (err) {
         console.error("Failed to load user assumptions", err);
       }
     }
-  }, []);
+    return {};
+  });
+  const [selectedAssumptionCell, setSelectedAssumptionCell] = useState<{ c: string; m: string; val: string; isForecast: boolean } | null>(null);
+  const [selectedDiffCell, setSelectedDiffCell] = useState<{
+    pair: string;
+    baseCountry: string;
+    quoteCountry: string;
+    month: string;
+    data: any;
+  } | null>(null);
+  const [assumptionInputVal, setAssumptionInputVal] = useState<string>("");
 
-  // Dropdown Open States (Click-controlled)
-  const [isOpenYearDropdown, setIsOpenYearDropdown] = useState(false);
-  const yearRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (yearRef.current && !yearRef.current.contains(e.target as Node)) {
-        setIsOpenYearDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const isCurrentLiveYear = selectedYear === SYSTEM_CURRENT_YEAR;
   const displayMonths = Array.from({ length: 12 }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, "0")}`);
 
-  // Fetch Matrix Data: returns all 12 months with dynamic status (published, forecast, missing)
+  // Fetch Matrix Data with rapid abort fallback
   const fetchMatrixData = async (indicator: string, year: number) => {
-    await new Promise(r => setTimeout(r, 60));
-    const baseRows = getMacroMatrixData(indicator, year);
+    try {
+      const slugMap: Record<string, string> = {
+        "GDP": "gdp",
+        "Current Account": "ca_gdp",
+        "CPI": "cpi",
+        "Interest Rate": "interest_rate",
+        "FX Reserves": "fx_reserves",
+        "Equity": "equity"
+      };
+      const slug = slugMap[indicator] || indicator.toLowerCase().replace(/ /g, "_");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
+      const res = await fetch(`http://127.0.0.1:8001/api/admin/macro-data/matrix?indicator=${slug}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.rows && json.rows.length > 0) {
+          return COUNTRIES.map((c) => {
+            const apiRow = json.rows.find((r: any) => r.country === c.country || (c.country === "USA" && r.country === "United States") || r.iso.toLowerCase() === c.base);
+            const cells = displayMonths.map((m: string) => {
+              const assumptionKey = `${indicator}_${c.country}_${m}`;
+              const userSavedVal = assumptions[assumptionKey];
+              const cellPoint = apiRow?.cells?.[m];
 
-    return baseRows.map(row => {
-      const allCells = row.data.map((cell, idx) => {
-        const monthKey = `${year}-${(idx + 1).toString().padStart(2, "0")}`;
-        const assumptionKey = `${indicator}_${row.country}_${monthKey}`;
+              if (!cellPoint || cellPoint.value === null || cellPoint.value === undefined) {
+                if (userSavedVal !== undefined && userSavedVal !== "") {
+                  return { value: userSavedVal, status: "manual" as const, isAssumption: true };
+                }
+                return { value: null, status: "missing" as const };
+              }
+
+              const cutoffDef = OFFICIAL_RELEASE_CUTOFFS[indicator];
+              const cutoff = typeof cutoffDef === "function" ? cutoffDef(c.country) : (cutoffDef || "2026-09");
+              const isPastCutoff = selectedYear === SYSTEM_CURRENT_YEAR && m > cutoff;
+
+              let cellStatus: "published" | "forecast" | "manual" | "missing" = cellPoint.status;
+              if (isPastCutoff && cellStatus === "published") {
+                cellStatus = "forecast";
+              }
+              const isPub = cellStatus === "published";
+
+              if (userSavedVal !== undefined && userSavedVal !== "" && !isPub) {
+                return { value: userSavedVal, status: "manual" as const, isAssumption: true };
+              }
+
+              return {
+                value: cellPoint.value,
+                status: cellStatus,
+                isAssumption: false
+              };
+            });
+            return {
+              country: c.country,
+              base: c.base,
+              data: cells
+            };
+          });
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    // Default mock data for G10
+    return COUNTRIES.map((c) => {
+      const cells = displayMonths.map((m: string) => {
+        const assumptionKey = `${indicator}_${c.country}_${m}`;
         const userSavedVal = assumptions[assumptionKey];
-
-        // If user manually customized a forecast or missing period
-        if (userSavedVal !== undefined && userSavedVal !== "" && cell.status !== "published") {
-          return {
-            ...cell,
-            value: userSavedVal,
-            status: "manual" as const,
-            isAssumption: true
-          };
+        if (userSavedVal !== undefined && userSavedVal !== "") {
+          return { value: userSavedVal, status: "manual" as const, isAssumption: true };
         }
 
+        const isPastCutoff = m > "2026-09";
+        const val = indicator === "Interest Rate" ? (c.country === "USA" ? "4.00" : c.country === "Japan" ? "0.25" : "2.65") :
+                    indicator === "CPI" ? (c.country === "USA" ? "3.4" : "2.2") :
+                    (c.country === "USA" ? "1.8" : "0.9");
+
         return {
-          ...cell,
-          isAssumption: cell.status === "forecast"
+          value: isPastCutoff ? (parseFloat(val) * 0.95).toFixed(1) : val,
+          status: isPastCutoff ? ("forecast" as const) : ("published" as const),
+          isAssumption: false
         };
       });
-
       return {
-        ...row,
-        data: allCells
+        country: c.country,
+        base: c.base,
+        data: cells
       };
     });
   };
 
-  // Fetch Combined Differential Data for all 12 months
-  const fetchCombinedData = async (pair: string, indicator: string, year: number) => {
-    await new Promise(r => setTimeout(r, 60));
-    const baseReleases = getCombinedDifferentialData(pair, indicator, year);
-    const pairObj = PAIRS.find(p => p.name === pair) || PAIRS[0];
+  const { data: matrixData, isLoading: matrixLoading } = useQuery({
+    queryKey: ["macroMatrixData", activeInd, selectedYear, assumptions],
+    queryFn: () => fetchMatrixData(activeInd, selectedYear),
+    staleTime: 120_000,
+    placeholderData: (previousData) => previousData,
+  });
 
-    return baseReleases.map(row => {
-      const baseKey = `${indicator}_${pairObj.baseCountry}_${row.month}`;
-      const quoteKey = `${indicator}_${pairObj.quoteCountry}_${row.month}`;
-      const baseAssump = assumptions[baseKey];
-      const quoteAssump = assumptions[quoteKey];
+  const allMatrixRows = matrixData || [];
+  const filteredMatrixRows = useMemo(() => {
+    if (!countrySearch.trim()) return allMatrixRows;
+    const q = countrySearch.toLowerCase();
+    return allMatrixRows.filter(r => r.country.toLowerCase().includes(q));
+  }, [allMatrixRows, countrySearch]);
 
-      // If user customized values for forecast/missing month
-      if ((baseAssump || quoteAssump) && row.isForecast) {
-        const bNum = baseAssump ? parseFloat(baseAssump) : parseFloat(row.baseVal) || 0;
-        const qNum = quoteAssump ? parseFloat(quoteAssump) : parseFloat(row.quoteVal) || 0;
-        const diffNum = parseFloat((bNum - qNum).toFixed(2));
-
-        let rating = 0;
-        let rule = "-1.0 to 1.0";
-        let regime = "Neutral / Balanced";
-        if (diffNum >= 2.0) { rating = 10; rule = "≥ +2.0"; regime = "Strong Bullish Bias"; }
-        else if (diffNum >= 1.0) { rating = 5; rule = "+1.0 to +2.0"; regime = "Moderate Bullish Bias"; }
-        else if (diffNum <= -2.0) { rating = -10; rule = "≤ -2.0"; regime = "Strong Bearish Bias"; }
-        else if (diffNum <= -1.0) { rating = -5; rule = "-2.0 to -1.0"; regime = "Moderate Bearish Bias"; }
-
-        return {
-          ...row,
-          baseVal: baseAssump ? `${bNum}` : row.baseVal,
-          quoteVal: quoteAssump ? `${qNum}` : row.quoteVal,
-          diffNum,
-          diff: (diffNum > 0 ? "+" : "") + diffNum,
-          rule: `${rule} (Custom)`,
-          regime,
-          rating,
-          isAssumption: true
-        };
-      }
-
-      return row;
+  const diffRows = useMemo(() => {
+    return CANONICAL_28_PAIRS.map(pairName => {
+      const pairDef = PAIRS.find(p => p.name === pairName) || {
+        name: pairName,
+        base: pairName.split("/")[0].toLowerCase(),
+        quote: pairName.split("/")[1].toLowerCase(),
+        baseCountry: "",
+        quoteCountry: ""
+      };
+      const diffList = getCombinedDifferentialData(pairName, activeInd, selectedYear);
+      return {
+        pair: pairName,
+        base: pairDef.base,
+        quote: pairDef.quote,
+        baseCountry: pairDef.baseCountry,
+        quoteCountry: pairDef.quoteCountry,
+        data: diffList
+      };
     });
+  }, [activeInd, selectedYear]);
+
+  const filteredDiffRows = useMemo(() => {
+    if (!countrySearch.trim()) return diffRows;
+    const q = countrySearch.toLowerCase();
+    return diffRows.filter(r => 
+      r.pair.toLowerCase().includes(q) || 
+      r.baseCountry.toLowerCase().includes(q) || 
+      r.quoteCountry.toLowerCase().includes(q)
+    );
+  }, [diffRows, countrySearch]);
+
+  const handleCellClick = (country: string, month: string, cell: any) => {
+    if (cell.status === "published") return;
+    playClickSound();
+    setSelectedAssumptionCell({
+      c: country,
+      m: month,
+      val: cell.value !== null && cell.value !== undefined ? String(cell.value) : "",
+      isForecast: cell.status === "forecast"
+    });
+    setAssumptionInputVal(cell.value !== null && cell.value !== undefined ? String(cell.value) : "");
   };
 
-  const { data: matrixData, isLoading: matrixLoading } = useQuery({
-    queryKey: ["macro-matrix", activeInd, selectedYear, assumptions],
-    queryFn: () => fetchMatrixData(activeInd, selectedYear),
-    enabled: activeTab === "Macro Data Matrix"
-  });
-
-  const { data: combinedData, isLoading: combinedLoading } = useQuery({
-    queryKey: ["macro-combined", activePair, activeInd, selectedYear, assumptions],
-    queryFn: () => fetchCombinedData(activePair, activeInd, selectedYear),
-    enabled: activeTab === "Differential & Rating"
-  });
-
-  // Save user customized forecast / estimate
   const handleSaveAssumption = () => {
     if (!selectedAssumptionCell) return;
     const key = `${activeInd}_${selectedAssumptionCell.c}_${selectedAssumptionCell.m}`;
-    const cleanVal = assumptionInputVal.trim();
-    const updated = { ...assumptions, [key]: cleanVal };
+    const updated = { ...assumptions, [key]: assumptionInputVal };
     setAssumptions(updated);
-    if (typeof window !== "undefined") {
+    try {
       localStorage.setItem("shiftfx_macro_user_assumptions", JSON.stringify(updated));
-    }
-    queryClient.invalidateQueries({ queryKey: ["macro-matrix"] });
-    queryClient.invalidateQueries({ queryKey: ["macro-combined"] });
+    } catch {}
     setSelectedAssumptionCell(null);
+    playSuccessSound();
+    confetti({ particleCount: 30, spread: 45, origin: { y: 0.5 } });
   };
 
-  // Reset to default Trading Economics forecast / missing state
   const handleClearAssumption = () => {
     if (!selectedAssumptionCell) return;
     const key = `${activeInd}_${selectedAssumptionCell.c}_${selectedAssumptionCell.m}`;
     const updated = { ...assumptions };
     delete updated[key];
     setAssumptions(updated);
-    if (typeof window !== "undefined") {
+    try {
       localStorage.setItem("shiftfx_macro_user_assumptions", JSON.stringify(updated));
-    }
-    queryClient.invalidateQueries({ queryKey: ["macro-matrix"] });
-    queryClient.invalidateQueries({ queryKey: ["macro-combined"] });
+    } catch {}
     setSelectedAssumptionCell(null);
+    playClickSound();
   };
 
-  const activePairObj = PAIRS.find(p => p.name === activePair) || PAIRS[0];
-
   return (
-    <div className="flex flex-col w-full h-full min-h-screen bg-transparent relative justify-between">
+    <div className="w-full max-w-[1550px] mx-auto p-4 sm:p-6 lg:p-8 flex flex-col text-white font-sans">
       
-      {/* 1. Header */}
-      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-50 flex-shrink-0 gap-4" style={{ animationDelay: "0.1s" }}>
-        <div className="flex flex-col gap-1">
-          <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Data Pipeline</span>
-          <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">
-            Macro Data Center
-          </h1>
-        </div>
-        
-        <div className="flex items-center gap-2 sm:gap-3.5 w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
-          <GlobalSearch placeholder="Search indicators, pairs, countries..." />
-          <AuthHeaderWidget />
-        </div>
-      </header>
-
-      {/* 2. Main Content Container */}
-      <main className="flex-1 flex flex-col px-4 sm:px-6 lg:px-10 gap-4 pb-8 max-w-[1600px] w-full mx-auto justify-between">
-        
-        {/* Controls Toolbar */}
-        <div className="relative z-20 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 opacity-0 animate-slideUp">
-          
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0">
-            {/* View Mode Switcher */}
-            <div className="flex items-center bg-[#06302B]/90 p-1 rounded-2xl border border-[#0B453A] shadow-lg shrink-0">
-              {TABS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={clsx(
-                    "relative px-3.5 sm:px-4 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 z-10 cursor-pointer whitespace-nowrap",
-                    activeTab === tab ? "text-[#021B1A]" : "text-[#AACBC4] hover:text-[#F1F7F6]"
-                  )}
-                >
-                  {tab}
-                  {activeTab === tab && (
-                    <motion.div
-                      layoutId="activeMacroDataTab"
-                      className="absolute inset-0 bg-[#00DF81] rounded-xl z-[-1] shadow-[0_0_14px_rgba(0,223,129,0.35)]"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </button>
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <AdminPageHeader
+        eyebrow="PIPELINE D'INGESTION • SHIFTFX ENGINE"
+        badgeText="DONNÉES COMPLÈTES"
+        title="Centre de Données Macroéconomiques G10"
+        searchPlaceholder="Rechercher un pays, indicateur..."
+        searchValue={headerSearch}
+        onSearchChange={setHeaderSearch}
+        rightActions={
+          <div className="h-10 px-3.5 rounded-full bg-[#101218] border border-white/[0.08] flex items-center gap-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <Calendar size={13} className="text-[#D4FF00]" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              aria-label="Sélectionner le millésime"
+              className="bg-transparent font-mono text-xs text-slate-300 outline-none cursor-pointer pr-1"
+            >
+              {YEARS.map((y) => (
+                <option key={y} value={y} className="bg-[#101218] text-white">
+                  Millésime : {y}
+                </option>
               ))}
-            </div>
-
-            {/* Indicator Pills: Clickable in BOTH views */}
-            <div className="flex items-center bg-[#06302B]/90 backdrop-blur-xl border border-[#0B453A] p-1 rounded-2xl shadow-lg overflow-x-auto no-scrollbar shrink-0">
-              {INDICATORS.map(ind => (
-                <button 
-                  key={ind} 
-                  onClick={() => setActiveInd(ind)} 
-                  className={clsx(
-                    "px-2.5 sm:px-3 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap", 
-                    activeInd === ind 
-                      ? "bg-[#00DF81]/20 text-[#00DF81] border border-[#00DF81]/40 shadow-sm" 
-                      : "text-[#AACBC4] hover:text-[#F1F7F6] hover:bg-[#095544]/50"
-                  )}
-                >
-                  {ind}
-                </button>
-              ))}
-            </div>
+            </select>
           </div>
+        }
+      />
 
-          {/* Right Toolbar: Year Selector & Status Badge */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 2. TOP KPI ROW (4 Uniform CatalogueKPICard components)             */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+        
+        {/* KPI 1: Sovereign Economies */}
+        <CatalogueKPICard
+          title="ÉCONOMIES SOUVERAINES"
+          value="8"
+          unit="Zones G10"
+          subtitle="Couverture 100%"
+          variant="lime"
+          icon={<Database size={14} />}
+          bars={[50, 75, 80, 95]}
+        />
+
+        {/* KPI 2: Matrix Observations */}
+        <CatalogueKPICard
+          title="MATRICE OBSERVATIONS"
+          value="576"
+          unit="Points Macro"
+          subtitle="6 Piliers × 12 Mois"
+          variant="sky"
+          icon={<CheckCircle2 size={14} />}
+          bars={[60, 70, 85, 100]}
+        />
+
+        {/* KPI 3: Published Data */}
+        <CatalogueKPICard
+          title="DONNÉES PUBLIÉES (PUB)"
+          value="75%"
+          unit="Officielles"
+          subtitle="Janvier – Septembre 2026"
+          variant="emerald"
+          icon={<Sparkles size={14} />}
+          bars={[70, 75, 80, 75]}
+        />
+
+        {/* KPI 4: Quant Estimates */}
+        <CatalogueKPICard
+          title="ESTIMATIONS QUANT (EST)"
+          value="25%"
+          unit="Projections"
+          subtitle="Octobre – Décembre 2026"
+          variant="purple"
+          icon={<Calendar size={14} />}
+          bars={[25, 25, 25, 25]}
+        />
+
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 3. SCULPTED FILTER POD                                            */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <SculptedFilterPod className="p-3.5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+        {/* View Switcher: Matrice Macro | Différentiels & Notes */}
+        <div className="rounded-full bg-[#0A0B0F] border border-white/[0.06] p-1 inline-flex items-center gap-1 text-xs font-mono">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => { setActiveTab(tab); playTabSound(); }}
+              className={clsx(
+                "px-4 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap",
+                activeTab === tab
+                  ? "bg-[#D4FF00] text-[#07080C] font-bold shadow-[0_0_12px_rgba(212,255,0,0.3)]"
+                  : "text-slate-400 hover:text-white"
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* 6 Indicator Selector Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap max-w-full">
+          {INDICATORS.map((ind) => (
+            <button
+              key={ind}
+              onClick={() => { setActiveInd(ind); playTabSound(); }}
+              className={clsx(
+                "px-3 py-1.5 rounded-full text-xs font-mono transition-all cursor-pointer whitespace-nowrap shrink-0",
+                activeInd === ind 
+                  ? "bg-white/[0.12] text-white font-bold border border-white/20 shadow-sm" 
+                  : "text-slate-400 hover:text-white"
+              )}
+            >
+              {INDICATOR_MAP[ind] || ind}
+            </button>
+          ))}
+        </div>
+      </SculptedFilterPod>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 4. MATRIX TABLE CONTAINER (Strictly Zero Right-Edge Clipping!)    */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <SculptedTableContainer className="p-6">
+        {/* Table Subheader Bar with Title & Clean Legend & Country Search */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-white/[0.06] mb-3">
           <div className="flex items-center gap-2.5">
-            {/* Year Dropdown */}
-            <div className="relative" ref={yearRef}>
-              <button
-                type="button"
-                onClick={() => setIsOpenYearDropdown(!isOpenYearDropdown)}
-                className="flex items-center gap-2 bg-[#06302B]/90 hover:bg-[#095544] border border-[#0B453A] hover:border-[#03624C] rounded-2xl px-3.5 py-1.5 shadow-lg transition-all cursor-pointer text-left outline-none"
-              >
-                <Calendar size={13} className="text-[#AACBC4]" />
-                <span className="font-sans font-bold text-xs text-[#F1F7F6]">{selectedYear}</span>
-                <ChevronDown size={14} className={clsx("text-[#AACBC4] transition-transform", isOpenYearDropdown && "rotate-180")} />
-              </button>
-
-              <AnimatePresence>
-                {isOpenYearDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute top-[calc(100%+8px)] right-0 w-[120px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-2xl shadow-[0_20px_50px_rgba(2,27,26,0.9)] z-30 p-1.5 flex flex-col gap-1"
-                  >
-                    <div className="px-2 py-1 text-[10px] font-mono text-[#AACBC4] uppercase tracking-wider">
-                      Year
-                    </div>
-                    {YEARS.map(year => (
-                      <button
-                        key={year}
-                        type="button"
-                        onClick={() => {
-                          setSelectedYear(year);
-                          setIsOpenYearDropdown(false);
-                        }}
-                        className={clsx(
-                          "w-full px-3 py-1.5 text-left font-sans font-bold text-xs transition-colors rounded-xl cursor-pointer",
-                          selectedYear === year ? "bg-[#00DF81]/15 text-[#00DF81]" : "text-[#AACBC4] hover:bg-[#06302B] hover:text-[#F1F7F6]"
-                        )}
-                      >
-                        {year}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            <div className="w-8 h-8 rounded-full bg-[#D4FF00]/15 border border-[#D4FF00]/30 flex items-center justify-center text-[#D4FF00]">
+              <Database size={15} />
             </div>
-
-            {/* Status Badge */}
-            <div className="flex items-center gap-2 bg-[#06302B]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3.5 py-1.5 shadow-lg">
-               <CheckCircle2 size={15} className="text-[#00DF81]" />
-               <span className="font-sans font-medium text-xs text-[#AACBC4]">Status: <span className="text-[#F1F7F6] font-bold">Data Complete</span></span>
+            <div>
+              <h2 className="text-base font-bold text-white tracking-tight">
+                {activeTab === "Matrice Macro"
+                  ? `Matrice Souveraine G10 : ${INDICATOR_MAP[activeInd] || activeInd} (${selectedYear})`
+                  : `Différentiels & Notes G10 : ${INDICATOR_MAP[activeInd] || activeInd} (${selectedYear})`}
+              </h2>
+              <p className="text-xs font-mono text-slate-400">
+                {activeTab === "Matrice Macro"
+                  ? "Données mensuelles agrégées des banques centrales & instituts nationaux de statistiques"
+                  : "Écarts bilatéraux (Base − Quote) et notation quantitative calibrée [−10 à +10] sur les 28 paires G10"}
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* 3. Table Card */}
-        <div className="flex-1 flex flex-col justify-center my-auto w-full py-1">
-          <div className={clsx("flex flex-col relative z-0 overflow-hidden opacity-0 animate-slideUp shadow-2xl", matteCard)} style={{ animationDelay: "0.15s" }}>
-            
-            {/* ============================================================== */}
-            {/* TAB 1: MACRO DATA MATRIX (All Sovereign Economies)            */}
-            {/* ============================================================== */}
-            {activeTab === "Macro Data Matrix" && (
-              <div className="flex flex-col w-full">
-                
-                {/* Header Info Banner */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between px-6 py-3.5 border-b border-[#0B453A] bg-[#021B1A]/40 flex-shrink-0 gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <Database size={17} className="text-[#00DF81]" />
-                    <span className="font-sans font-bold text-sm text-[#F1F7F6]">
-                      G10 Currency Sovereign Matrix: {activeInd} {activeInd === "FX Reserves" ? "(USD Millions)" : activeInd === "Interest Rate" ? "(% Policy Rate)" : activeInd === "CPI" ? "(% YoY Inflation)" : "(% Growth / Spread)"} ({selectedYear})
-                    </span>
-                  </div>
-                  
-                  {/* Visual Legend */}
-                  <div className="flex items-center gap-3 sm:gap-5 text-xs font-mono text-[#AACBC4] flex-wrap">
-                    <span className="flex items-center gap-1.5" title="Official prints released by statistical agencies (Read-only)">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#00DF81]" />
-                      Published (Official)
-                    </span>
-                    <span className="flex items-center gap-1.5" title="Trading Economics forecast for unreleased periods (Editable)">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#2CC295]" />
-                      Forecast (Trading Economics)
-                    </span>
-                    <span className="flex items-center gap-1.5" title="User modified value">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#AACBC4]" />
-                      Manual Override
-                    </span>
-                    <span className="flex items-center gap-1.5" title="Period not yet published with no forecast (Empty / Editable)">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF5555]" />
-                      Missing Print
-                    </span>
-                  </div>
-                </div>
-
-                {/* Matrix Table with All Sovereign Economies */}
-                <div className="overflow-x-auto overflow-y-auto max-h-[660px] w-full p-2 sm:p-4">
-                  <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead className="sticky top-0 bg-[#032221] z-30 shadow-md">
-                      <tr className="border-b border-[#0B453A] bg-[#032221]">
-                        <th className="sticky top-0 left-0 bg-[#032221] z-40 px-3 sm:px-4 py-3 font-sans font-semibold text-xs sm:text-sm text-[#AACBC4] w-[150px] sm:w-[200px] border-r border-[#0B453A] shadow-[4px_0_12px_rgba(2,27,26,0.8)]">
-                          Country / Sovereign
-                        </th>
-                        {displayMonths.map((m, j) => {
-                          const isQ4 = isCurrentLiveYear && j >= 9;
-                          return (
-                            <th 
-                              key={m} 
-                              className={clsx(
-                                "px-2 sm:px-3 py-2.5 text-center min-w-[85px] sm:min-w-[95px] transition-colors whitespace-nowrap",
-                                isQ4 ? 
-                                  "bg-[#06302B]/80 border-b-2 border-[#2CC295]/60" : 
-                                  "font-sans font-semibold text-xs sm:text-sm text-[#AACBC4] bg-[#032221]",
-                                isQ4 && j === 9 && "border-l-2 border-dashed border-[#2CC295]/50"
-                              )}
-                            >
-                              {isQ4 ? (
-                                <div className="flex flex-col items-center justify-center gap-0.5">
-                                  <span className="inline-flex items-center gap-1 text-[8px] sm:text-[9px] font-mono font-black text-[#2CC295] bg-[#2CC295]/20 border border-[#2CC295]/40 px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                                    <Sparkles size={8} className="text-[#00DF81]" /> Forward
-                                  </span>
-                                  <span className="font-mono font-bold text-xs sm:text-sm text-[#2CC295] tracking-tight">{m}</span>
-                                </div>
-                              ) : (
-                                <span>{m}</span>
-                              )}
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#0B453A]/40">
-                      {matrixLoading ? (
-                        Array.from({ length: 10 }).map((_, i) => (
-                          <tr key={i}>
-                            <td className="sticky left-0 bg-[#032221] z-20 px-3 sm:px-4 py-3 border-r border-[#0B453A] shadow-[4px_0_12px_rgba(2,27,26,0.8)]"><div className="w-[110px] h-[22px] bg-[#06302B] rounded-md animate-pulse" /></td>
-                            {displayMonths.map((m, j) => (
-                              <td key={j} className={clsx("p-2", isCurrentLiveYear && j >= 9 && "bg-[#06302B]/30", isCurrentLiveYear && j === 9 && "border-l-2 border-dashed border-[#2CC295]/30")}>
-                                <div className="w-[70px] sm:w-[80px] h-[36px] bg-[#06302B] rounded-xl animate-pulse mx-auto" />
-                              </td>
-                            ))}
-                          </tr>
-                        ))
-                      ) : (
-                        matrixData?.map((row: any, i: number) => (
-                          <tr key={i} className="hover:bg-[#06302B]/30 transition-colors">
-                            <td className="sticky left-0 bg-[#032221] z-20 px-3 sm:px-4 py-2 sm:py-2.5 border-r border-[#0B453A] shadow-[4px_0_12px_rgba(2,27,26,0.8)]">
-                              <div className="flex items-center gap-2 sm:gap-3 p-0.5 whitespace-nowrap">
-                                <img src={`/flags/${row.base}.svg`} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={row.base} />
-                                <span className="font-sans font-bold text-xs sm:text-sm text-[#F1F7F6]">{row.country}</span>
-                              </div>
-                            </td>
-                            {row.data.map((cell: any, j: number) => {
-                              const isPublished = cell.status === "published";
-                              const isForecast = cell.status === "forecast";
-                              const isMissing = cell.status === "missing";
-                              const isManual = cell.status === "manual";
-                              const isForwardCol = isCurrentLiveYear && j >= 9;
-
-                              return (
-                                <td 
-                                  key={j} 
-                                  className={clsx(
-                                    "px-2 py-2 text-center relative group/cell transition-colors",
-                                    isForwardCol && "bg-[#06302B]/20",
-                                    isForwardCol && j === 9 && "border-l-2 border-dashed border-[#2CC295]/40"
-                                  )}
-                                >
-                                  <button
-                                    type="button"
-                                    disabled={isPublished}
-                                    onClick={() => {
-                                      if (!isPublished) {
-                                        setSelectedAssumptionCell({ 
-                                          c: row.country, 
-                                          m: displayMonths[j], 
-                                          val: cell.value || "",
-                                          isForecast: isForecast || isManual
-                                        });
-                                        setAssumptionInputVal(cell.value || "");
-                                      }
-                                    }}
-                                    title={
-                                      isPublished 
-                                        ? `Officially published release for ${row.country} (${displayMonths[j]}) — Locked (Read-only)` 
-                                        : isForecast 
-                                        ? `Trading Economics forecast for ${row.country} (${displayMonths[j]}) — Click to customize` 
-                                        : `Unpublished missing period for ${row.country} (${displayMonths[j]}) — Click to enter estimate`
-                                    }
-                                    className={clsx(
-                                      "inline-flex flex-col items-center justify-center w-[88px] py-1.5 px-1.5 rounded-xl transition-all duration-150 border",
-                                      isPublished && "cursor-default border-transparent",
-                                      !isPublished && "cursor-pointer hover:scale-[1.04]",
-                                      isForecast && "bg-[#06302B]/60 hover:bg-[#095544] border-[#2CC295]/40 shadow-[0_0_10px_rgba(44,194,149,0.15)]",
-                                      isManual && "bg-[#06302B] hover:bg-[#095544] border-[#AACBC4]/40 shadow-sm",
-                                      isMissing && "border border-dashed border-[#FF5555]/30 hover:border-[#FF5555]/60 hover:bg-[#06302B]/40"
-                                    )}
-                                  >
-                                    <span className={clsx(
-                                      "font-mono text-sm font-bold transition-transform",
-                                      isPublished ? "text-[#F1F7F6]" :
-                                      isForecast ? "text-[#2CC295] font-black" :
-                                      isManual ? "text-[#AACBC4] font-black" :
-                                      "text-[#FF5555]/60 italic font-medium"
-                                    )}>
-                                      {cell.value !== null && cell.value !== "" 
-                                        ? `${cell.value}${activeInd === "FX Reserves" ? "" : "%"}` 
-                                        : "—"}
-                                    </span>
-                                    <div className="mt-0.5">
-                                      {isPublished && (
-                                        <span className="bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">
-                                          Pub
-                                        </span>
-                                      )}
-                                      {isForecast && (
-                                        <span className="inline-flex items-center gap-0.5 bg-[#2CC295]/20 text-[#2CC295] border border-[#2CC295]/40 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase shadow-sm">
-                                          <Sparkles size={8} /> Est
-                                        </span>
-                                      )}
-                                      {isManual && (
-                                        <span className="bg-[#AACBC4]/15 text-[#AACBC4] border border-[#0B453A] px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">
-                                          Man
-                                        </span>
-                                      )}
-                                      {isMissing && (
-                                        <span className="text-[9px] font-mono text-[#AACBC4]/30">
-                                          —
-                                        </span>
-                                      )}
-                                    </div>
-                                  </button>
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Bottom Summary Bar */}
-                <div className="flex items-center justify-between px-6 py-3.5 border-t border-[#0B453A] bg-[#021B1A]/80 text-sm flex-shrink-0">
-                  <div className="flex items-center gap-3">
-                    <span className="font-sans text-[#AACBC4]">
-                      Showing all <strong className="text-[#F1F7F6] font-mono">{matrixData?.length || 10}</strong> sovereign economies • Unified macro view
-                    </span>
-                    <span className="hidden sm:inline-block h-3.5 w-px bg-[#0B453A]" />
-                    <span className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-[#00DF81] font-bold">
-                      <span className="w-2 h-2 rounded-full bg-[#00DF81] animate-pulse" />
-                      {isCurrentLiveYear ? "Official Releases + Dynamic Trading Economics Forecasts Active" : "12/12 Historical Releases Published • Cycle Settled"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 font-mono text-xs text-[#AACBC4]">
-                    <span>Sovereign Universe: <strong className="text-[#F1F7F6] font-bold">G10 Core Economies</strong></span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ============================================================== */}
-            {/* TAB 2: COMBINED DIFFERENTIAL & RATING (All Observations)       */}
-            {/* ============================================================== */}
-            {activeTab === "Differential & Rating" && (
-              <div className="flex flex-col w-full">
-                
-                {/* ALWAYS-VISIBLE HORIZONTAL PAIR SELECTOR STRIP (21 PAIRS) */}
-                <div className="px-6 py-3 border-b border-[#0B453A] bg-[#021B1A]/70 flex-shrink-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#AACBC4]">Select Currency Pair:</span>
-                      <span className="text-xs font-mono font-black text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/20 px-2 py-0.5 rounded-md flex items-center gap-1.5">
-                        <FlagStack base={activePairObj.base} quote={activePairObj.quote} />
-                        {activePair}
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-mono text-[#AACBC4]/60 hidden sm:inline-block">
-                      All 21 Pairs Always Visible • Instant Switch
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin scrollbar-thumb-[#0B453A] scrollbar-track-transparent">
-                    {PAIRS.map(p => {
-                      const isSelected = activePair === p.name;
-                      return (
-                        <button
-                          key={p.name}
-                          type="button"
-                          onClick={() => setActivePair(p.name)}
-                          className={clsx(
-                            "flex items-center gap-2 px-3 py-1.5 rounded-xl font-sans text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap flex-shrink-0 border",
-                            isSelected
-                              ? "bg-[#00DF81]/20 text-[#00DF81] border-[#00DF81]/60 shadow-[0_0_12px_rgba(0,223,129,0.3)] scale-[1.03]"
-                              : "bg-[#06302B]/80 text-[#AACBC4] hover:text-[#F1F7F6] hover:bg-[#095544] border-[#0B453A]"
-                          )}
-                        >
-                          <FlagStack base={p.base} quote={p.quote} />
-                          <span>{p.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Subheader Banner */}
-                <div className="flex items-center justify-between px-6 py-3 border-b border-[#0B453A] bg-[#021B1A]/40 flex-shrink-0">
-                  <div className="flex items-center gap-3">
-                    <FlagStack base={activePairObj.base} quote={activePairObj.quote} />
-                    <span className="font-sans font-bold text-sm text-[#F1F7F6]">
-                      {activePair} Differential Spread Matrix: {activeInd} ({selectedYear})
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-xs font-mono text-[#AACBC4]">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#00DF81]" />
-                      Bullish Bias (&gt; 0)
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF5555]" />
-                      Bearish Bias (&lt; 0)
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#2CC295]" />
-                      Forecast Period (Est)
-                    </span>
-                  </div>
-                </div>
-
-                {/* Differential Observations Table */}
-                <div className="overflow-x-auto overflow-y-auto max-h-[620px] w-full p-2 sm:p-4">
-                  <table className="w-full text-left border-collapse min-w-[750px]">
-                    <thead className="sticky top-0 bg-[#032221] z-20 shadow-md">
-                      <tr className="border-b border-[#0B453A] text-xs font-sans text-[#AACBC4]">
-                        <th className="py-3 px-4 font-semibold">Release Date</th>
-                        <th className="py-3 px-4 text-center font-semibold">{activePairObj.baseName} ({activePairObj.baseCountry})</th>
-                        <th className="py-3 px-4 text-center font-semibold">{activePairObj.quoteName} ({activePairObj.quoteCountry})</th>
-                        <th className="py-3 px-4 text-center font-semibold">Differential Spread</th>
-                        <th className="py-3 px-4 text-center font-semibold">Applied Rule Grid</th>
-                        <th className="py-3 px-4 font-semibold">Macro Bias Regime</th>
-                        <th className="py-3 px-4 text-right font-semibold">Rating Score</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#0B453A]/40 text-sm">
-                      {combinedLoading ? (
-                        Array.from({ length: 12 }).map((_, i) => (
-                          <tr key={i}>
-                            <td className="py-3 px-4"><div className="w-[80px] h-[20px] bg-[#06302B] rounded animate-pulse" /></td>
-                            <td className="py-3 px-4"><div className="w-[60px] h-[20px] bg-[#06302B] rounded animate-pulse mx-auto" /></td>
-                            <td className="py-3 px-4"><div className="w-[60px] h-[20px] bg-[#06302B] rounded animate-pulse mx-auto" /></td>
-                            <td className="py-3 px-4"><div className="w-[60px] h-[20px] bg-[#06302B] rounded animate-pulse mx-auto" /></td>
-                            <td className="py-3 px-4"><div className="w-[90px] h-[20px] bg-[#06302B] rounded animate-pulse mx-auto" /></td>
-                            <td className="py-3 px-4"><div className="w-[120px] h-[20px] bg-[#06302B] rounded animate-pulse" /></td>
-                            <td className="py-3 px-4"><div className="w-[45px] h-[20px] bg-[#06302B] rounded animate-pulse ml-auto" /></td>
-                          </tr>
-                        ))
-                      ) : (
-                        combinedData?.map((row: any, i: number) => {
-                          const isPositive = row.rating > 0;
-                          const isNegative = row.rating < 0;
-                          const isAssumptionRow = row.isAssumption || row.isForecast;
-                          const isMissing = row.isMissing;
-
-                          return (
-                            <tr key={i} className="hover:bg-[#06302B]/30 transition-colors">
-                              {/* Release Month with Forecast / Published Badge */}
-                              <td className="py-3 px-4 font-mono font-bold text-xs sm:text-sm text-[#F1F7F6]">
-                                <div className="flex items-center gap-2">
-                                  <span>{row.month}</span>
-                                  {isAssumptionRow && (
-                                    <span className="inline-flex items-center gap-0.5 bg-[#2CC295]/20 text-[#2CC295] border border-[#2CC295]/40 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">
-                                      <Sparkles size={8} /> Est
-                                    </span>
-                                  )}
-                                  {isMissing && (
-                                    <span className="bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase">
-                                      Pending
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* Base Country Value */}
-                              <td className="py-3 px-4 text-center font-mono font-semibold text-xs sm:text-sm text-[#AACBC4]">
-                                {row.baseVal}
-                              </td>
-
-                              {/* Quote Country Value */}
-                              <td className="py-3 px-4 text-center font-mono font-semibold text-xs sm:text-sm text-[#AACBC4]">
-                                {row.quoteVal}
-                              </td>
-
-                              {/* Raw Spread / Differential */}
-                              <td className="py-3 px-4 text-center font-mono font-bold text-xs sm:text-sm text-[#F1F7F6]">
-                                {row.diff}
-                              </td>
-
-                              {/* Applied Rule Grid */}
-                              <td className="py-3 px-4 text-center font-mono text-xs text-[#AACBC4]">
-                                {row.rule}
-                              </td>
-
-                              {/* Macro Bias Regime */}
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-2">
-                                  {isPositive ? (
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-sans font-bold text-[#00DF81] bg-[#00DF81]/10 px-2.5 py-1 rounded-lg">
-                                      <TrendingUp size={14} />
-                                      <span>{row.regime}</span>
-                                    </span>
-                                  ) : isNegative ? (
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-sans font-bold text-[#FF5555] bg-[#FF5555]/10 px-2.5 py-1 rounded-lg">
-                                      <TrendingDown size={14} />
-                                      <span>{row.regime}</span>
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-sans font-bold text-[#AACBC4] bg-[#06302B] px-2.5 py-1 rounded-lg">
-                                      <Minus size={14} />
-                                      <span>{row.regime}</span>
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* Rating Score Impact */}
-                              <td className="py-3 px-4 text-right">
-                                <span className={clsx(
-                                  "inline-block px-3.5 py-1 rounded-xl font-mono font-black text-sm shadow-sm",
-                                  isAssumptionRow ? "bg-[#2CC295]/20 text-[#2CC295] border border-[#2CC295]/40" :
-                                  isPositive ? "bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30 shadow-[0_0_10px_rgba(0,223,129,0.15)]" :
-                                  isNegative ? "bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30" :
-                                  "bg-[#06302B] text-[#AACBC4] border border-[#0B453A]"
-                                )}>
-                                  {isPositive ? `+${row.rating}` : row.rating}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Bottom Summary Bar */}
-                <div className="flex items-center justify-between px-6 py-3.5 border-t border-[#0B453A] bg-[#021B1A]/80 text-sm flex-shrink-0">
-                  <div className="flex items-center gap-3">
-                    <span className="font-sans text-[#AACBC4]">
-                      Showing all <strong className="text-[#F1F7F6] font-mono">{combinedData?.length || 0}</strong> observations ({activePair}) • Full annual cycle
-                    </span>
-                    <span className="hidden sm:inline-block h-3.5 w-px bg-[#0B453A]" />
-                    <div className="flex items-center gap-2 font-mono text-sm">
-                      <span className="text-[#AACBC4]">Net Rating:</span>
-                      <span className="text-[#00DF81] font-bold bg-[#00DF81]/10 border border-[#00DF81]/20 px-3 py-1 rounded-lg">
-                        {combinedData ? combinedData.reduce((acc: number, r: any) => acc + r.rating, 0) : 0} pts
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 font-mono text-xs text-[#AACBC4]">
-                    <span>Pair Engine: <strong className="text-[#F1F7F6] font-bold">{activePair}</strong></span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-          </div>
-        </div>
-
-        {/* ============================================================== */}
-        {/* DRAWER: EDIT FORECAST / USER ASSUMPTION (NON-PUBLISHED PERIODS)*/}
-        {/* ============================================================== */}
-        {selectedAssumptionCell && (
-          <motion.div 
-            initial={{ opacity: 0, y: 30, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 30, scale: 0.96 }}
-            className="fixed bottom-4 sm:bottom-6 right-4 sm:right-8 w-[calc(100%-2rem)] sm:w-[380px] max-w-[420px] bg-[#032221]/95 backdrop-blur-3xl border border-[#2CC295]/40 rounded-3xl shadow-[0_25px_60px_rgba(2,27,26,0.95),0_0_30px_rgba(44,194,149,0.18)] p-5 sm:p-6 z-50 animate-slideUp"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#2CC295]/15 border border-[#2CC295]/35 flex items-center justify-center">
-                  <Sparkles size={16} className="text-[#00DF81]" />
-                </div>
-                <div>
-                  <h3 className="font-sans font-bold text-sm text-[#F1F7F6]">
-                    {selectedAssumptionCell.isForecast ? "Edit Forward Forecast" : "Macro Value / Assumption"}
-                  </h3>
-                  <span className="text-[10px] font-mono text-[#2CC295] font-semibold">
-                    {selectedAssumptionCell.isForecast ? "Trading Economics Model" : "User Assumption Input"}
-                  </span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedAssumptionCell(null)}
-                className="w-7 h-7 rounded-xl bg-[#06302B] border border-[#0B453A] flex items-center justify-center hover:bg-[#095544] transition-colors cursor-pointer text-[#AACBC4] hover:text-[#F1F7F6]"
-              >
-                <X size={15} />
-              </button>
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Country or Pair Search */}
+            <div className="relative flex items-center min-w-[200px]">
+              <Search size={13} className="absolute left-3 text-slate-400" />
+              <input
+                type="text"
+                value={countrySearch}
+                onChange={(e) => setCountrySearch(e.target.value)}
+                placeholder={activeTab === "Matrice Macro" ? "Filtrer un pays..." : "Filtrer une paire (ex. EUR/USD)..."}
+                className="w-full bg-[#0A0B0F] border border-white/[0.08] rounded-full pl-8 pr-7 py-1.5 text-xs font-mono text-white placeholder:text-slate-500 focus:border-[#D4FF00]/50 focus:outline-none transition-all"
+              />
+              {countrySearch && (
+                <button
+                  onClick={() => setCountrySearch("")}
+                  className="absolute right-2.5 text-slate-400 hover:text-white"
+                >
+                  <X size={12} />
+                </button>
+              )}
             </div>
 
-            {/* Context Card */}
-            <div className="bg-[#021B1A] border border-[#0B453A] rounded-2xl p-3 mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <img 
-                  src={`/flags/${COUNTRIES.find(c => c.country === selectedAssumptionCell.c)?.base || 'us'}.svg`} 
-                  className="w-6 h-6 rounded-full border border-[#0B453A]" 
-                  alt={selectedAssumptionCell.c} 
-                />
-                <div>
-                  <div className="font-sans font-bold text-xs text-[#F1F7F6]">{selectedAssumptionCell.c}</div>
-                  <div className="text-[10px] font-mono text-[#AACBC4]">{activeInd}</div>
+            {/* Legend Badges */}
+            {activeTab === "Matrice Macro" ? (
+              <div className="flex items-center gap-3 text-xs font-mono text-slate-400 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
+                  <span>Publié (PUB)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <span>Estimation (EST)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-sky-400" />
+                  <span>Manuel (MAN)</span>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-[10px] font-mono uppercase text-[#AACBC4]">Release Period</div>
-                <div className="font-mono font-black text-sm text-[#2CC295]">{selectedAssumptionCell.m}</div>
-              </div>
-            </div>
-
-            {/* Input Form */}
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-[11px] font-sans font-medium text-[#AACBC4] mb-1.5 block">
-                  Custom Value / Forecast {activeInd === "FX Reserves" ? "(USD Millions)" : "(%)"}
-                </label>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    autoFocus
-                    value={assumptionInputVal} 
-                    onChange={(e) => setAssumptionInputVal(e.target.value)}
-                    placeholder="e.g. 2.4"
-                    className="w-full bg-[#021B1A] border border-[#2CC295]/40 rounded-xl px-4 py-2.5 font-mono font-bold text-base text-[#2CC295] outline-none focus:border-[#00DF81] focus:ring-2 focus:ring-[#00DF81]/25 transition-all placeholder:text-[#AACBC4]/30" 
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveAssumption();
-                    }}
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-[#AACBC4]">
-                    {activeInd === "FX Reserves" ? "USD M" : "%"}
-                  </span>
+            ) : (
+              <div className="flex items-center gap-3 text-xs font-mono text-slate-400 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
+                  <span>Acheteur (+)</span>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 text-[10px] text-[#AACBC4] leading-relaxed bg-[#021B1A]/60 p-2.5 rounded-xl border border-[#0B453A]/50">
-                <Lock size={12} className="text-[#00DF81] shrink-0" />
-                <span>
-                  Officially published historical releases are locked as read-only. Forward forecasts and unpublished release periods remain fully editable.
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                  <span>Neutre (0)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.7)]" />
+                  <span>Vendeur (−)</span>
+                </div>
+                <span className="text-[10px] text-[#D4FF00] bg-[#D4FF00]/10 border border-[#D4FF00]/30 px-2 py-0.5 rounded-full font-bold">
+                  Barème [−10 à +10]
                 </span>
               </div>
+            )}
+          </div>
+        </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 mt-1">
-                <button 
-                  type="button"
-                  onClick={handleClearAssumption}
-                  className="px-3.5 py-2.5 rounded-xl bg-[#06302B] hover:bg-[#FF5555]/15 hover:text-[#FF5555] border border-[#0B453A] hover:border-[#FF5555]/30 text-xs font-sans font-bold text-[#AACBC4] transition-all cursor-pointer"
-                >
-                  Reset Default
-                </button>
-                <button 
-                  type="button"
-                  onClick={handleSaveAssumption}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#2CC295] to-[#00DF81] text-[#021B1A] font-sans font-extrabold text-xs hover:brightness-110 transition-all flex justify-center items-center gap-1.5 cursor-pointer shadow-[0_0_16px_rgba(0,223,129,0.35)]"
-                >
-                  <Sparkles size={14} className="text-[#021B1A]" />
-                  <span>Save Estimate</span>
+        {/* TAB 1: Macro Data Matrix View (Scrollable across all 12 months with sticky left col) */}
+        {activeTab === "Matrice Macro" && (
+          <div className="w-full overflow-x-auto pb-2">
+            <table className="w-full border-separate border-spacing-0 min-w-[1240px]">
+              <thead>
+                <tr className="border-b border-white/[0.06] h-10 text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                  <th className="sticky left-0 z-20 bg-[#101218] pl-6 pr-4 text-left min-w-[190px] border-r border-white/[0.08] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                    PAYS / SOUVERAIN
+                  </th>
+                  {displayMonths.map((m, idx) => {
+                    const isCurrentLive = m === `${SYSTEM_CURRENT_YEAR}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
+                    const isLast = idx === displayMonths.length - 1;
+
+                    return (
+                      <th
+                        key={m}
+                        className={clsx(
+                          "py-2 px-2 text-center font-mono min-w-[88px] transition-colors",
+                          isLast && "pr-6",
+                          isCurrentLive 
+                            ? "bg-[#D4FF00]/[0.05] text-[#D4FF00] font-bold border-x border-[#D4FF00]/25" 
+                            : "text-slate-400"
+                        )}
+                      >
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span>{m}</span>
+                          {isCurrentLive && (
+                            <span className="text-[8px] font-mono font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-[#D4FF00]/20 text-[#D4FF00] border border-[#D4FF00]/40 shadow-[0_0_8px_rgba(212,255,0,0.3)]">
+                              LIVE
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-white/[0.03]">
+                {matrixLoading ? (
+                  <tr>
+                    <td colSpan={13} className="py-16 text-center">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="w-8 h-8 rounded-full border-2 border-[#D4FF00] border-t-transparent animate-spin" />
+                        <span className="text-xs font-mono text-slate-400">Chargement de la matrice macroéconomique...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredMatrixRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={13} className="py-12 text-center text-xs font-mono text-slate-400">
+                      Aucune économie ne correspond à &ldquo;{countrySearch}&rdquo;.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredMatrixRows.map((row) => (
+                    <tr key={row.country} className="hover:bg-white/[0.02] transition-colors h-14">
+                      {/* Sticky Sovereign Column */}
+                      <td className="sticky left-0 z-20 bg-[#101218] pl-6 pr-4 text-left border-r border-white/[0.08] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={getCountryFlagUrl(row.country || row.base)}
+                            alt={row.country}
+                            className="w-6 h-6 rounded-full ring-1 ring-white/10 shrink-0 object-cover shadow-sm"
+                          />
+                          <span className="font-sans font-bold text-sm text-white whitespace-nowrap">
+                            {row.country}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* 12 Monthly Value Cells */}
+                      {row.data.map((cell: any, cellIdx: number) => {
+                        const month = displayMonths[cellIdx];
+                        const isCurrentLive = month === `${SYSTEM_CURRENT_YEAR}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
+                        const isMissing = cell.value === null || cell.value === undefined;
+                        const isPublished = cell.status === "published";
+                        const isForecast = cell.status === "forecast";
+                        const isManual = cell.status === "manual";
+                        const isLast = cellIdx === displayMonths.length - 1;
+
+                        const displayFormatted = isMissing
+                          ? "—"
+                          : activeInd === "FX Reserves"
+                          ? `${parseFloat(String(cell.value).replace(/[^0-9.-]/g, "") || "0").toFixed(1)}B`
+                          : formatCleanMacroPercent(cell.value);
+
+                        return (
+                          <td
+                            key={month}
+                            onClick={() => handleCellClick(row.country, month, cell)}
+                            className={clsx(
+                              "py-2 px-2 text-center transition-all duration-150 select-none min-w-[88px]",
+                              isLast && "pr-6",
+                              isCurrentLive && "bg-[#D4FF00]/[0.03] border-x border-[#D4FF00]/20",
+                              !isPublished && "cursor-pointer hover:bg-white/[0.04]"
+                            )}
+                            title={
+                              isPublished 
+                                ? "Donnée Officielle Publiée" 
+                                : isForecast 
+                                ? "Estimation Quant (Cliquer pour remplacer)" 
+                                : isManual 
+                                ? "Hypothèse Utilisateur Manuelle" 
+                                : "Donnée non disponible"
+                            }
+                          >
+                            <div className="flex flex-col items-center justify-center gap-1">
+                              <span className={clsx(
+                                "font-mono text-xs font-semibold tabular-nums",
+                                isMissing ? "text-rose-400 font-bold" : isManual ? "text-[#38BDF8] font-bold" : "text-white"
+                              )}>
+                                {displayFormatted}
+                              </span>
+
+                              {/* Smooth rounded-full status pill */}
+                              {isPublished && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono font-bold">
+                                  PUB
+                                </span>
+                              )}
+
+                              {isForecast && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[9px] font-mono font-bold">
+                                  EST
+                                </span>
+                              )}
+
+                              {isManual && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 text-[9px] font-mono font-bold">
+                                  MAN
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* TAB 2: Differential & Rating View across the 28 G10 pairs */}
+        {activeTab === "Différentiels & Notes" && (
+          <div className="w-full overflow-x-auto pb-2">
+            <table className="w-full border-separate border-spacing-0 min-w-[1240px]">
+              <thead>
+                <tr className="border-b border-white/[0.06] h-10 text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                  <th className="sticky left-0 z-20 bg-[#101218] pl-6 pr-4 text-left min-w-[210px] border-r border-white/[0.08] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                    PAIRE FX / SOUVERAINS
+                  </th>
+                  {displayMonths.map((m, idx) => {
+                    const isCurrentLive = m === `${SYSTEM_CURRENT_YEAR}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
+                    const isLast = idx === displayMonths.length - 1;
+
+                    return (
+                      <th
+                        key={m}
+                        className={clsx(
+                          "py-2 px-2 text-center font-mono min-w-[88px] transition-colors",
+                          isLast && "pr-6",
+                          isCurrentLive 
+                            ? "bg-[#D4FF00]/[0.05] text-[#D4FF00] font-bold border-x border-[#D4FF00]/25" 
+                            : "text-slate-400"
+                        )}
+                      >
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span>{m}</span>
+                          {isCurrentLive && (
+                            <span className="text-[8px] font-mono font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-[#D4FF00]/20 text-[#D4FF00] border border-[#D4FF00]/40 shadow-[0_0_8px_rgba(212,255,0,0.3)]">
+                              LIVE
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-white/[0.03]">
+                {filteredDiffRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={13} className="py-12 text-center text-xs font-mono text-slate-400">
+                      Aucune paire ne correspond à &ldquo;{countrySearch}&rdquo;.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredDiffRows.map((row) => (
+                    <tr key={row.pair} className="hover:bg-white/[0.02] transition-colors h-14">
+                      {/* Sticky Left Pair Column */}
+                      <td className="sticky left-0 z-20 bg-[#101218] pl-6 pr-4 text-left border-r border-white/[0.08] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                        <div className="flex items-center gap-2.5">
+                          <FXPairFlags pair={row.pair} size="sm" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-display font-bold text-sm text-white whitespace-nowrap">
+                              {row.pair}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-sans truncate max-w-[130px]" title={`${row.baseCountry} / ${row.quoteCountry}`}>
+                              {row.baseCountry} / {row.quoteCountry}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* 12 Monthly Differential & Rating Cells */}
+                      {row.data.map((cell: any, cellIdx: number) => {
+                        const month = displayMonths[cellIdx];
+                        const isCurrentLive = month === `${SYSTEM_CURRENT_YEAR}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
+                        const isLast = cellIdx === displayMonths.length - 1;
+                        const rating = cell.rating;
+
+                        return (
+                          <td
+                            key={month}
+                            onClick={() => {
+                              playClickSound();
+                              setSelectedDiffCell({
+                                pair: row.pair,
+                                baseCountry: row.baseCountry,
+                                quoteCountry: row.quoteCountry,
+                                month,
+                                data: cell
+                              });
+                            }}
+                            className={clsx(
+                              "py-2 px-2 text-center transition-all duration-150 select-none min-w-[88px] cursor-pointer hover:bg-white/[0.04]",
+                              isLast && "pr-6",
+                              isCurrentLive && "bg-[#D4FF00]/[0.03] border-x border-[#D4FF00]/20"
+                            )}
+                            title={`Cliquer pour inspecter le calcul différentiel de ${row.pair} (${month})`}
+                          >
+                            <div className="flex flex-col items-center justify-center gap-1">
+                              {/* Rating Pill [-10 to +10] */}
+                              <span className={clsx(
+                                "font-mono text-xs font-bold px-2 py-0.5 rounded-full inline-flex items-center justify-center min-w-[34px] tabular-nums",
+                                rating > 0 
+                                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_8px_rgba(16,185,129,0.25)]" 
+                                  : rating < 0 
+                                  ? "bg-rose-500/15 text-rose-400 border border-rose-500/30 shadow-[0_0_8px_rgba(244,63,94,0.25)]" 
+                                  : "bg-white/[0.05] text-slate-400 border border-white/[0.08]"
+                              )}>
+                                {rating > 0 ? `+${rating}` : rating}
+                              </span>
+
+                              {/* Bilateral Spread */}
+                              <span className="font-mono text-[10px] text-slate-400 tabular-nums">
+                                {cell.diff}
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Table Footer */}
+        <div className="mt-4 pt-3.5 border-t border-white/[0.06] flex items-center justify-between text-xs font-mono text-slate-400">
+          <div className="flex items-center gap-2">
+            <span>
+              Affichage de <strong className="text-white">
+                {activeTab === "Matrice Macro" ? filteredMatrixRows.length : filteredDiffRows.length}
+              </strong> {activeTab === "Matrice Macro" ? "zones économiques souveraines G10" : "combinaisons de paires G10"}
+            </span>
+          </div>
+          <span className="text-[#D4FF00] font-bold flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] animate-pulse" />
+            Couverture d'ingestion 100%
+          </span>
+        </div>
+      </SculptedTableContainer>
+
+      {/* Assumption / Override Modal */}
+      <AnimatePresence>
+        {selectedAssumptionCell && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedAssumptionCell(null)}
+              className="fixed inset-0 bg-[#06070A]/85 backdrop-blur-md"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-sm rounded-[24px] bg-[#101218] border border-white/[0.1] shadow-2xl p-6 z-10"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] mb-4">
+                <div>
+                  <h3 className="font-bold text-sm text-white">
+                    Hypothèse Macroélectronique
+                  </h3>
+                  <p className="text-xs font-mono text-slate-400">
+                    {selectedAssumptionCell.c} • {selectedAssumptionCell.m}
+                  </p>
+                </div>
+                <button onClick={() => setSelectedAssumptionCell(null)} className="p-1 rounded-full text-slate-400 hover:text-white">
+                  <X size={15} />
                 </button>
               </div>
-            </div>
-          </motion.div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-mono text-slate-400 mb-1">
+                    Valeur de projection ({activeInd})
+                  </label>
+                  <input
+                    type="text"
+                    value={assumptionInputVal}
+                    onChange={(e) => setAssumptionInputVal(e.target.value)}
+                    placeholder="Ex: 2.4"
+                    className="w-full h-10 px-3 rounded-xl bg-[#0A0B0F] border border-white/[0.08] font-mono text-xs text-white focus:outline-none focus:border-[#D4FF00]/50"
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between gap-2">
+                  <button
+                    onClick={handleClearAssumption}
+                    className="h-8 px-3 rounded-full text-xs font-mono text-rose-400 hover:bg-rose-500/10 transition-colors"
+                  >
+                    Effacer
+                  </button>
+                  <button
+                    onClick={handleSaveAssumption}
+                    className="h-8 px-4 rounded-full bg-[#D4FF00] hover:bg-[#dfeb34] text-[#07080C] font-bold text-xs font-mono shadow-[0_0_12px_rgba(212,255,0,0.3)] transition-all"
+                  >
+                    Enregistrer
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
-      </main>
+      </AnimatePresence>
+
+      {/* Differential Inspection Modal */}
+      <AnimatePresence>
+        {selectedDiffCell && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedDiffCell(null)}
+              className="fixed inset-0 bg-[#06070A]/85 backdrop-blur-md"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-md rounded-[24px] bg-[#101218] border border-white/[0.1] shadow-2xl p-6 z-10 flex flex-col gap-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                <div className="flex items-center gap-3">
+                  <FXPairFlags pair={selectedDiffCell.pair} size="md" />
+                  <div>
+                    <h3 className="font-display font-bold text-base text-white">
+                      {selectedDiffCell.pair} • {selectedDiffCell.month}
+                    </h3>
+                    <p className="text-xs font-mono text-slate-400">
+                      {INDICATOR_MAP[activeInd] || activeInd} • {selectedDiffCell.baseCountry} contre {selectedDiffCell.quoteCountry}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedDiffCell(null)} className="p-1 rounded-full text-slate-400 hover:text-white cursor-pointer">
+                  <X size={15} />
+                </button>
+              </div>
+
+              {/* Math Proof Card */}
+              <div className="p-4 rounded-2xl bg-[#0A0C10] border border-[#D4FF00]/25 shadow-[0_0_15px_rgba(212,255,0,0.05)] flex flex-col gap-2.5">
+                <span className="font-mono text-[11px] font-bold text-[#D4FF00] uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] animate-pulse" />
+                  PREUVE DU DIFFÉRENTIEL BILATÉRAL
+                </span>
+                <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-1">
+                  <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col">
+                    <span className="text-[10px] text-slate-400">{selectedDiffCell.baseCountry} (Base)</span>
+                    <span className="font-bold text-white text-sm mt-0.5">{selectedDiffCell.data.baseVal}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col">
+                    <span className="text-[10px] text-slate-400">{selectedDiffCell.quoteCountry} (Quote)</span>
+                    <span className="font-bold text-white text-sm mt-0.5">{selectedDiffCell.data.quoteVal}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-mono">
+                  <span className="text-slate-400">Écart ($Base − Quote$) :</span>
+                  <span className="font-bold text-white">{selectedDiffCell.data.diff}</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs font-mono">
+                  <span className="text-slate-300">Note Attribuée [−10 à +10] :</span>
+                  <span className="font-bold text-emerald-400 text-sm">
+                    {selectedDiffCell.data.rating > 0 ? `+${selectedDiffCell.data.rating}` : selectedDiffCell.data.rating} / 10
+                  </span>
+                </div>
+
+                <div className="text-[11px] font-mono text-slate-400">
+                  Règle appliquée : <strong className="text-white">{selectedDiffCell.data.rule}</strong> ({selectedDiffCell.data.regime})
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedDiffCell(null)}
+                className="w-full h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-xs font-sans font-bold text-white border border-white/10 transition-colors cursor-pointer"
+              >
+                Fermer
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

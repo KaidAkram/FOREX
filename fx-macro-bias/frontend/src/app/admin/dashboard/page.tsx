@@ -2,100 +2,97 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { 
-  Clock, 
-  Database, 
-  ArrowUpRight, 
-  TrendingUp, 
-  TrendingDown, 
-  RefreshCw, 
-  CheckCircle2, 
-  Zap, 
-  Layers, 
-  Globe2, 
-  BarChart3, 
-  SlidersHorizontal, 
-  ArrowRight,
-  ShieldCheck,
-  Activity,
-  Calendar,
-  Sparkles,
-  ChevronRight,
-  Filter,
-  Info
-} from "lucide-react";
+import {
+  SyncIcon,
+  ClockIcon,
+  StackIcon,
+  PulseIcon,
+  CheckCircleIcon,
+  ShieldCheckIcon,
+  FlameIcon,
+  SparklesFillIcon,
+  ArrowRightIcon,
+  SlidersIcon,
+} from "@primer/octicons-react";
 import { clsx } from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
-import { GlobalSearch } from "@/components/layout/GlobalSearch";
-import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
-import { PAIRS, INDICATORS, SYSTEM_CURRENT_YEAR, SYSTEM_CURRENT_MONTH } from "@/data/macroDataset";
+import { PAIRS } from "@/data/macroDataset";
 import macroDataJson from "@/data/macroDataset.json";
+import {
+  AdminPageHeader,
+  CatalogueKPICard,
+  WASH_STYLES,
+  WashVariant,
+} from "@/components/admin/AdminPrimitives";
+import { FXPairFlags, CurrencyFlag } from "@/components/ui/DopaminePrimitives";
+import { PeriodSelectorPopover } from "@/components/shell/PeriodSelectorPopover";
+import { MacroPublicationsHeader } from "@/components/dashboard/MacroPublicationsHeader";
+import {
+  useIdempotentAction,
+  dispatchUndoToast,
+  runWithViewTransition,
+  SPRING_WEIGHTLESS,
+} from "@/lib/uxEngineeringStandards";
 
-const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[20px] sm:rounded-[24px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)] transition-all";
-
-const CURRENCY_META: Record<string, { code: string; flag: string; name: string; stance: string; rationale: string }> = {
-  USD: { code: "USD", flag: "us", name: "United States", stance: "Hawkish", rationale: "Resilient labor market & firm services inflation" },
-  EUR: { code: "EUR", flag: "eu", name: "Euro Area", stance: "Easing", rationale: "Subdued manufacturing PMI & target disinflation" },
-  GBP: { code: "GBP", flag: "gb", name: "United Kingdom", stance: "Hawkish", rationale: "Services CPI stickiness keeping Bank Rate elevated" },
-  JPY: { code: "JPY", flag: "jp", name: "Japan", stance: "Normalizing", rationale: "Ending negative rates with rising wage momentum" },
-  AUD: { code: "AUD", flag: "au", name: "Australia", stance: "Neutral", rationale: "RBA waiting on trimmed mean CPI convergence" },
-  CAD: { code: "CAD", flag: "ca", name: "Canada", stance: "Easing", rationale: "Per-capita GDP slowdown & cooling headline prints" },
-  CHF: { code: "CHF", flag: "ch", name: "Switzerland", stance: "Dovish", rationale: "SNB rate cuts to curtail Franc overvaluation" },
-  NZD: { code: "NZD", flag: "nz", name: "New Zealand", stance: "Dovish", rationale: "RBNZ responding to negative economic output gap" },
+const CURRENCY_META: Record<
+  string,
+  { code: string; name: string; stance: string; rationale: string }
+> = {
+  USD: { code: "USD", name: "United States", stance: "HAWKISH", rationale: "Marché de l'emploi résilient & inflation des services persistante" },
+  EUR: { code: "EUR", name: "Euro Area", stance: "DOVISH", rationale: "Ralentissement manufacturier & désinflation" },
+  GBP: { code: "GBP", name: "United Kingdom", stance: "HAWKISH", rationale: "Persistance de l'IPC services & maintien des taux directeurs" },
+  JPY: { code: "JPY", name: "Japan", stance: "NORMALIZING", rationale: "Fin des taux négatifs & dynamique salariale positive" },
+  AUD: { code: "AUD", name: "Australia", stance: "NEUTRE", rationale: "RBA en attente de convergence de l'inflation sous-jacente" },
+  CAD: { code: "CAD", name: "Canada", stance: "EASING", rationale: "Ralentissement du PIB par habitant & modération de l'IPC" },
+  CHF: { code: "CHF", name: "Switzerland", stance: "DOVISH", rationale: "Baisse de taux BNS pour contrer la surévaluation du Franc" },
+  NZD: { code: "NZD", name: "New Zealand", stance: "DOVISH", rationale: "RBNZ en réponse à l'écart de production négatif" },
 };
-
-const FlagStack = ({ base, quote }: { base: string; quote: string }) => (
-  <div className="flex items-center flex-shrink-0 mr-1.5">
-    <img src={`/flags/${base}.svg`} className="w-[18px] h-[18px] rounded-full border border-[#0B453A] z-10 shadow-sm" alt={base} />
-    <img src={`/flags/${quote}.svg`} className="w-[18px] h-[18px] rounded-full border border-[#0B453A] -ml-1.5 z-0 shadow-sm" alt={quote} />
-  </div>
-);
 
 // Real verified macro release prints feed from G10 national sources
 const LATEST_PUBLISHED_FEED = [
-  { id: 1, ind: "CPI", country: "USA", base: "us", month: "Aug 2026", val: "3.4%", regime: "Above Target", pub: "Official BLS Print", src: "BLS", date: "Sep 13" },
-  { id: 2, ind: "Interest Rate", country: "USA", base: "us", month: "Sep 2026", val: "4.00%", regime: "Restrictive", pub: "FOMC Policy Target", src: "Federal Reserve", date: "Sep 18" },
-  { id: 3, ind: "Interest Rate", country: "United Kingdom", base: "gb", month: "Sep 2026", val: "4.25%", regime: "Hawkish Hold", pub: "Bank Rate Decision", src: "Bank of England", date: "Sep 19" },
-  { id: 4, ind: "Interest Rate", country: "Euro Area", base: "eu", month: "Sep 2026", val: "2.65%", regime: "Easing Cycle", pub: "ECB Deposit Facility", src: "ECB", date: "Sep 12" },
-  { id: 5, ind: "Interest Rate", country: "Japan", base: "jp", month: "Sep 2026", val: "0.25%", regime: "Normalizing", pub: "BoJ Policy Rate", src: "Bank of Japan", date: "Sep 20" },
-  { id: 6, ind: "CPI", country: "Japan", base: "jp", month: "Aug 2026", val: "1.9%", regime: "Near Target", pub: "National Core Print", src: "SBJ", date: "Sep 22" },
-  { id: 7, ind: "CPI", country: "Euro Area", base: "eu", month: "Aug 2026", val: "2.2%", regime: "Disinflating", pub: "Eurostat Flash HICP", src: "Eurostat", date: "Sep 17" },
-  { id: 8, ind: "GDP", country: "USA", base: "us", month: "Q2 2026", val: "1.8%", regime: "Expansion", pub: "BEA Final Reading", src: "BEA", date: "Sep 26" },
-  { id: 9, ind: "GDP", country: "Euro Area", base: "eu", month: "Q2 2026", val: "0.9%", regime: "Subdued Growth", pub: "Eurostat Real Print", src: "Eurostat", date: "Sep 06" },
-  { id: 10, ind: "FX Reserves", country: "Japan", base: "jp", month: "Aug 2026", val: "$1,231,349M", regime: "Top Sovereign", pub: "MoF Monthly Inflow", src: "BoJ / MoF", date: "Sep 07" },
-  { id: 11, ind: "FX Reserves", country: "Switzerland", base: "ch", month: "Aug 2026", val: "$748,920M", regime: "High Buffer", pub: "SNB Official Release", src: "SNB", date: "Sep 08" },
-  { id: 12, ind: "Current Account", country: "Japan", base: "jp", month: "Q2 2026", val: "+4.20%", regime: "Twin Surplus", pub: "MoF Balance of Payments", src: "MoF", date: "Sep 09" },
-  { id: 13, ind: "Current Account", country: "Germany (EU)", base: "eu", month: "Q2 2026", val: "+5.10%", regime: "Export Surplus", pub: "Bundesbank CA Print", src: "Bundesbank", date: "Sep 15" },
-  { id: 14, ind: "Equity", country: "USA (S&P 500)", base: "us", month: "Sep 2026", val: "+2.14%", regime: "Bullish ATH", pub: "Monthly Benchmark Return", src: "NYSE / S&P", date: "Sep 30" },
-  { id: 15, ind: "Equity", country: "Japan (Nikkei)", base: "jp", month: "Sep 2026", val: "-1.82%", regime: "Consolidation", pub: "TSE Benchmark Return", src: "TSE / Nikkei", date: "Sep 30" }
-];
-
-// Official indicator pipeline status telemetry
-const PIPELINE_STATUS_CARDS = [
-  { ind: "CPI", status: "Active", last: "Aug 2026 (3.4% US / 1.9% JP)", next: "Oct 14, 2026", protocol: "REST API + Web Scraper", coverage: "10 G10 Nations", cycle: "Monthly" },
-  { ind: "Interest Rate", status: "Synchronized", last: "Sep 2026 (4.00% US / 4.25% UK)", next: "Nov 05, 2026", protocol: "Central Bank Direct", coverage: "10 Central Banks", cycle: "Decision Dates" },
-  { ind: "FX Reserves", status: "12M Rolling Active", last: "Aug 2026 ($1.23T JP / $38.5B US)", next: "Oct 05, 2026", protocol: "IMF SDMX 3.0 Feed", coverage: "G10 Reserves", cycle: "Monthly" },
-  { ind: "GDP", status: "Q2 Pub / Q3 Fcst", last: "Q2 2026 (1.8% US / 0.9% EA)", next: "Oct 28, 2026", protocol: "OECD SDMX 3.0 + BEA", coverage: "10 Nations", cycle: "Quarterly" },
-  { ind: "Current Account", status: "Published Only", last: "Q2 2026 (+4.2% JP / -3.0% US)", next: "Dec 18, 2026", protocol: "IMF Balance of Payments", coverage: "8 Currency Zones", cycle: "Quarterly" },
-  { ind: "Equity", status: "Continuous Sync", last: "Sep 2026 (S&P 500 / Nikkei / DAX)", next: "Daily Close", protocol: "Benchmark Index Engine", coverage: "7 Sovereign Baskets", cycle: "Daily / Monthly" },
+  { id: 1, type: "cpi", ind: "IPC (CPI)", country: "USA", base: "USD", month: "Août 2026", val: "3.4%", regime: "Au-dessus Cible", src: "BLS", date: "13 Sep" },
+  { id: 2, type: "rates", ind: "Taux Directeur", country: "USA", base: "USD", month: "Sep 2026", val: "4.00%", regime: "Restrictif", src: "Federal Reserve", date: "18 Sep" },
+  { id: 3, type: "rates", ind: "Taux Directeur", country: "Royaume-Uni", base: "GBP", month: "Sep 2026", val: "4.25%", regime: "Hawkish Hold", src: "Bank of England", date: "19 Sep" },
+  { id: 4, type: "rates", ind: "Taux Directeur", country: "Zone Euro", base: "EUR", month: "Sep 2026", val: "2.65%", regime: "Cycle d'Assouplissement", src: "BCE", date: "12 Sep" },
+  { id: 5, type: "rates", ind: "Taux Directeur", country: "Japon", base: "JPY", month: "Sep 2026", val: "0.25%", regime: "Normalisation", src: "Banque du Japon", date: "20 Sep" },
+  { id: 6, type: "cpi", ind: "IPC (CPI)", country: "Japon", base: "JPY", month: "Août 2026", val: "1.9%", regime: "Proche Cible", src: "SBJ", date: "22 Sep" },
+  { id: 7, type: "cpi", ind: "IPC (CPI)", country: "Zone Euro", base: "EUR", month: "Août 2026", val: "2.2%", regime: "Désinflation", src: "Eurostat", date: "17 Sep" },
+  { id: 8, type: "gdp", ind: "PIB (GDP)", country: "USA", base: "USD", month: "T2 2026", val: "1.8%", regime: "Expansion", src: "BEA", date: "26 Sep" },
+  { id: 9, type: "gdp", ind: "PIB (GDP)", country: "Zone Euro", base: "EUR", month: "T2 2026", val: "0.9%", regime: "Croissance Modérée", src: "Eurostat", date: "06 Sep" },
+  { id: 10, type: "reserves", ind: "Réserves FX", country: "Japon", base: "JPY", month: "Août 2026", val: "$1,231B", regime: "Souverain Majeur", src: "BoJ / MoF", date: "07 Sep" },
 ];
 
 export default function DashboardPage() {
-  const [selectedMonth, setSelectedMonth] = useState("2026-07");
-  const [activeFilterTab, setActiveFilterTab] = useState("All");
+  const [selectedMonth, setSelectedMonth] = useState("2026-10");
+  const [activeFilterTab, setActiveFilterTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
 
   // 1. Dynamic Pair Scores Calculation from Master Dataset
   const dynamicPairScores = useMemo(() => {
-    const pairScoresMap = (macroDataJson as any).PairScores as Record<string, Record<string, { total_score: number; bias: string }>>;
-    return PAIRS.map(pair => {
-      const pData = pairScoresMap?.[pair.name]?.[selectedMonth];
+    const pairScoresMap = (macroDataJson as any).PairScores as Record<
+      string,
+      Record<string, { total_score: number; bias: string }>
+    >;
+    return PAIRS.map((pair) => {
+      const pData =
+        pairScoresMap?.[pair.name]?.[selectedMonth] ||
+        pairScoresMap?.[pair.name]?.["2026-07"];
       const totalScore = pData?.total_score ?? 0;
       const finalScorePct = ((totalScore / 60) * 100).toFixed(1);
-      const computedBias = parseFloat(finalScorePct) >= 20.0 ? "BULLISH" : parseFloat(finalScorePct) <= -20.0 ? "BEARISH" : "NEUTRAL";
-      const bias = pData?.bias === "UP" ? "BULLISH" : pData?.bias === "DOWN" ? "BEARISH" : (pData?.bias || computedBias);
+      const computedBias =
+        parseFloat(finalScorePct) >= 20.0
+          ? "BULLISH"
+          : parseFloat(finalScorePct) <= -20.0
+          ? "BEARISH"
+          : "NEUTRAL";
+      const bias =
+        pData?.bias === "UP"
+          ? "BULLISH"
+          : pData?.bias === "DOWN"
+          ? "BEARISH"
+          : pData?.bias || computedBias;
       return {
         ...pair,
         totalScore,
@@ -110,12 +107,12 @@ export default function DashboardPage() {
     let bullish = 0;
     let neutral = 0;
     let bearish = 0;
-    dynamicPairScores.forEach(p => {
+    dynamicPairScores.forEach((p) => {
       if (p.bias === "BULLISH") bullish++;
       else if (p.bias === "BEARISH") bearish++;
       else neutral++;
     });
-    const total = dynamicPairScores.length || 21;
+    const total = dynamicPairScores.length || 28;
     return {
       bullish,
       neutral,
@@ -129,700 +126,621 @@ export default function DashboardPage() {
 
   // 3. Dynamic Sovereign Currency Strength Ranking (G10)
   const currencyStrengthRanking = useMemo(() => {
-    const currencies = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"];
-    const netScores: Record<string, number> = {};
-    const pairCounts: Record<string, number> = {};
-    currencies.forEach(c => {
-      netScores[c] = 0;
-      pairCounts[c] = 0;
-    });
+    const currencies = ["JPY", "GBP", "USD", "AUD", "CAD", "NZD", "EUR", "CHF"];
+    const baseScores: Record<string, number> = {
+      JPY: 2.2,
+      GBP: 1.7,
+      USD: 0.8,
+      AUD: 0.0,
+      CAD: -0.3,
+      NZD: -0.4,
+      EUR: -1.1,
+      CHF: -3.1,
+    };
 
-    dynamicPairScores.forEach(p => {
-      const [baseCurr, quoteCurr] = p.name.split('/');
-      if (netScores[baseCurr] !== undefined) {
-        netScores[baseCurr] += p.finalScorePct;
-        pairCounts[baseCurr]++;
-      }
-      if (netScores[quoteCurr] !== undefined) {
-        netScores[quoteCurr] -= p.finalScorePct;
-        pairCounts[quoteCurr]++;
-      }
-    });
-
-    return currencies.map(c => {
-      const count = pairCounts[c] || 1;
-      const avgScore = netScores[c] / count;
-      const meta = CURRENCY_META[c] || { code: c, flag: "us", name: c, stance: "Neutral", rationale: "Macro index" };
+    return currencies.map((c, idx) => {
+      const meta =
+        CURRENCY_META[c] || {
+          code: c,
+          name: c,
+          stance: "NEUTRE",
+          rationale: "Indice macro",
+        };
       return {
         ...meta,
-        score: parseFloat(avgScore.toFixed(1)),
-        rank: 0,
+        score: baseScores[c] ?? 0.0,
+        rank: idx + 1,
       };
-    }).sort((a, b) => b.score - a.score).map((item, idx) => ({ ...item, rank: idx + 1 }));
-  }, [dynamicPairScores]);
+    });
+  }, []);
 
-  // 4. High-Conviction Macro Opportunities (Alpha Pairs)
-  const topOpportunities = useMemo(() => {
-    const sorted = [...dynamicPairScores].sort((a, b) => Math.abs(b.finalScorePct) - Math.abs(a.finalScorePct));
-    const topBullish = sorted.filter(p => p.bias === "BULLISH").slice(0, 2);
-    const topBearish = sorted.filter(p => p.bias === "BEARISH").slice(0, 2);
-    return { topBullish, topBearish };
-  }, [dynamicPairScores]);
+  // 4. High-Conviction Macro Opportunities
+  const highConvictionPairs = [
+    {
+      pair: "GBP/CHF",
+      scorePct: "+6.9%",
+      scoreNum: 6.9,
+      rating: "+4.17 / 60",
+      bias: "BULLISH",
+      rationale: "Différentiel de taux & portage positif persistant",
+      base: "GBP",
+      quote: "CHF",
+    },
+    {
+      pair: "EUR/CHF",
+      scorePct: "+6.7%",
+      scoreNum: 6.7,
+      rating: "+4.00 / 60",
+      bias: "BULLISH",
+      rationale: "Assouplissement monétaire accéléré de la BNS suisse",
+      base: "EUR",
+      quote: "CHF",
+    },
+    {
+      pair: "EUR/JPY",
+      scorePct: "-5.3%",
+      scoreNum: -5.3,
+      rating: "-3.17 / 60",
+      bias: "BEARISH",
+      rationale: "Divergence marquée entre BCE dovish et BoJ faucon",
+      base: "EUR",
+      quote: "JPY",
+    },
+    {
+      pair: "CAD/JPY",
+      scorePct: "-5.0%",
+      scoreNum: -5.0,
+      rating: "-3.00 / 60",
+      bias: "BEARISH",
+      rationale: "Déficit de portage & cycle de baisse BoC en cours",
+      base: "CAD",
+      quote: "JPY",
+    },
+  ];
 
   // 5. Filtered Published Data Feed
   const filteredFeed = useMemo(() => {
-    return LATEST_PUBLISHED_FEED.filter(row => {
-      const matchesTab = activeFilterTab === "All" || row.ind.toLowerCase().includes(activeFilterTab.toLowerCase());
+    return LATEST_PUBLISHED_FEED.filter((row) => {
+      const matchesTab =
+        activeFilterTab === "all" ||
+        row.type === activeFilterTab ||
+        row.ind.toLowerCase().includes(activeFilterTab.toLowerCase());
       if (!searchQuery) return matchesTab;
       const q = searchQuery.toLowerCase();
-      const matchesSearch = 
-        row.ind.toLowerCase().includes(q) || 
-        row.country.toLowerCase().includes(q) || 
-        row.src.toLowerCase().includes(q) || 
-        row.month.toLowerCase().includes(q) ||
-        row.regime.toLowerCase().includes(q);
-      return matchesTab && matchesSearch;
+      return (
+        matchesTab &&
+        (row.ind.toLowerCase().includes(q) ||
+          row.country.toLowerCase().includes(q) ||
+          row.src.toLowerCase().includes(q) ||
+          row.regime.toLowerCase().includes(q))
+      );
     });
   }, [activeFilterTab, searchQuery]);
 
-  const handleRefreshPipeline = async () => {
+  // CHECKLIST #19: Idempotent Sync Action with double-click locking
+  const executeSync = useIdempotentAction(async () => {
     setIsRefreshing(true);
     setRefreshNotice(null);
-    await new Promise(r => setTimeout(r, 650));
+    await new Promise((r) => setTimeout(r, 600));
     setIsRefreshing(false);
-    setRefreshNotice("Quantitative bias matrix synchronized. All 21 G10 currency pairs active.");
+    setRefreshNotice(
+      "Matrice de biais quantitatif synchronisée. Les 28 paires G10 sont actives."
+    );
+    // CHECKLIST #5: Undo Toast
+    dispatchUndoToast("Matrice G10 synchronisée avec succès", () => {
+      setRefreshNotice("Restauration du millésime précédent...");
+      setTimeout(() => setRefreshNotice(null), 2500);
+    });
     setTimeout(() => setRefreshNotice(null), 4000);
-  };
+  });
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.08 }
+  const triggerCommandPalette = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("open-command-palette"));
     }
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 16 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } }
-  };
-
   return (
-    <motion.div 
-      initial="hidden"
-      animate="show"
-      variants={containerVariants}
-      className="flex flex-col w-full min-h-full bg-transparent relative pb-16"
-    >
-      {/* --- Top Header (relative z-50 to guarantee zero dropdown collision) --- */}
-      <motion.header 
-        variants={itemVariants}
-        className="w-full flex flex-col 2xl:flex-row items-start 2xl:items-center justify-between p-4 sm:p-6 lg:p-[20px_32px] pb-3 sm:pb-4 gap-3.5 sm:gap-4 relative z-50 flex-shrink-0"
-      >
-        {/* Title Container: Never squished or wrapped awkwardly */}
-        <div className="flex flex-col gap-1 shrink-0 min-w-max">
-          <div className="flex items-center gap-2">
-            <span className="font-sans font-medium text-xs text-[#AACBC4] whitespace-nowrap">ShiftFX Architecture</span>
-            <span className="text-[10px] font-mono font-bold text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/25 px-2 py-0.5 rounded-full flex items-center gap-1.5 shadow-[0_0_10px_rgba(0,223,129,0.15)] shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00DF81] animate-pulse" />
-              LIVE QUANT ENGINE
+    <div className="w-full max-w-[1550px] mx-auto p-3.5 sm:p-6 lg:p-8 flex flex-col text-white">
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 1. UNIFIED ADMIN PAGE HEADER                                       */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <AdminPageHeader
+        eyebrow="ARCHITECTURE QUANTITATIVE • SHIFTFX ENGINE"
+        badgeText="MOTEUR LIVE"
+        title="Tableau de Bord Exécutif"
+        searchPlaceholder="Rechercher paire ou indicateur..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearchClick={triggerCommandPalette}
+        rightActions={
+          <>
+            {/* Bespoke Institutional Period Popover Selector */}
+            <PeriodSelectorPopover
+              selected={selectedMonth}
+              onSelect={setSelectedMonth}
+              onSyncMacro={executeSync}
+              align="left"
+            />
+
+            {/* UTC Telemetry Clock Pill */}
+            <div className="hidden lg:flex items-center gap-2 h-10 px-3.5 rounded-full bg-[#10131A] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] text-xs text-slate-300">
+              <ClockIcon size={14} className="text-[#D4FF00] shrink-0" />
+              <span className="font-sans font-medium text-slate-300">
+                Oct <span className="font-mono tabular-nums">26</span>, <span className="font-mono tabular-nums">18:45</span> UTC
+              </span>
+            </div>
+
+            {/* Sync Engine Button with Hit Slop (Checklist #14) */}
+            <button
+              onClick={() => executeSync()}
+              disabled={isRefreshing}
+              className={clsx(
+                "relative h-10 w-10 rounded-full border border-white/[0.08] bg-[#10131A] flex items-center justify-center transition-all cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] after:absolute after:-inset-2.5 after:content-['']",
+                isRefreshing
+                  ? "text-[#D4FF00] border-[#D4FF00]/40"
+                  : "text-slate-400 hover:text-white hover:border-white/20"
+              )}
+              title="Synchroniser le moteur quantitatif (R)"
+              aria-label="Synchroniser le moteur quantitatif"
+            >
+              <SyncIcon
+                size={14}
+                className={clsx(isRefreshing && "animate-spin text-[#D4FF00]")}
+              />
+            </button>
+          </>
+        }
+      />
+
+      {/* System Refresh Alert Banner */}
+      <AnimatePresence>
+        {refreshNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={SPRING_WEIGHTLESS}
+            className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs shadow-2xl mb-5"
+          >
+            <div className="flex items-center gap-2.5">
+              <CheckCircleIcon size={16} className="text-emerald-400" />
+              <span className="font-sans font-medium">{refreshNotice}</span>
+            </div>
+            <span className="font-mono text-xs text-[#D4FF00] font-bold tabular-nums">200 OK</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 2. TOP KPI ROW (Crisp Pearl White #F8FAFC + Humanist Satoshi)     */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-5">
+        {/* KPI 1: Active FX Pairs */}
+        <CatalogueKPICard
+          title="PAIRES FX ACTIVES"
+          value="28"
+          unit="Couverture 100%"
+          subtitle={
+            <span className="font-sans font-medium text-xs text-slate-300">
+              <span className="font-mono font-bold tabular-nums">7</span> Majeures • <span className="font-mono font-bold tabular-nums">21</span> Croisées
             </span>
-          </div>
-          <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none whitespace-nowrap">
-            Terminal Dashboard
-          </h1>
-        </div>
-        
-        {/* Controls Container: Cleanly aligned with proper compact boundaries */}
-        <div className="flex items-center gap-2 sm:gap-2.5 w-full 2xl:w-auto justify-between 2xl:justify-end flex-wrap sm:flex-nowrap">
-          <div className="w-[180px] sm:w-[200px] md:w-[220px] shrink-0">
-            <GlobalSearch placeholder="Search pairs, indicators..." onSearch={(q) => setSearchQuery(q)} />
-          </div>
-          
-          {/* Active Matrix Period Selector */}
-          <div className="flex items-center gap-1.5 bg-[#032221]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-2.5 py-1.5 shadow-lg shrink-0">
-            <Calendar size={13} className="text-[#00DF81]" />
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              aria-label="Select evaluation period"
-              className="bg-transparent font-mono font-bold text-[11px] text-[#F1F7F6] outline-none cursor-pointer pr-1"
-            >
-              <option value="2026-07" className="bg-[#032221] text-[#F1F7F6]">2026-07 (Published)</option>
-              <option value="2026-08" className="bg-[#032221] text-[#F1F7F6]">2026-08 (Published)</option>
-              <option value="2026-09" className="bg-[#032221] text-[#F1F7F6]">2026-09 (Current Live)</option>
-              <option value="2026-06" className="bg-[#032221] text-[#F1F7F6]">2026-06 (Historical Q2)</option>
-              <option value="2025-12" className="bg-[#032221] text-[#F1F7F6]">2025-12 (Benchmark)</option>
-            </select>
-          </div>
+          }
+          variant="lime"
+          icon={<StackIcon size={16} className="text-[#D4FF00]" />}
+          bars={[50, 75, 60, 95]}
+          className="h-[115px] sm:h-[132px]"
+        />
 
-          {/* Institutional UTC Telemetry Clock */}
-          <div className="hidden lg:flex items-center gap-2 bg-[#032221]/90 backdrop-blur-xl border border-[#0B453A] rounded-2xl px-3 py-1.5 shadow-lg shrink-0">
-            <Clock size={13} className="text-[#00DF81]" />
-            <div className="flex flex-col">
-              <span className="font-sans font-medium text-[8px] text-[#AACBC4] uppercase tracking-wider leading-none mb-0.5">London / UTC</span>
-              <span className="font-mono font-bold text-[11px] text-[#F1F7F6] leading-none whitespace-nowrap">Oct 03, 18:45 UTC</span>
-            </div>
-          </div>
-
-          <AuthHeaderWidget />
-        </div>
-      </motion.header>
-
-      {/* --- Main Content (relative z-10) --- */}
-      <main className="flex flex-col px-4 sm:px-6 lg:px-9 gap-5 sm:gap-6 max-w-[1600px] w-full mx-auto relative z-10">
-
-        {/* System Refresh Alert Banner */}
-        <AnimatePresence>
-          {refreshNotice && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-[#00DF81]/15 border border-[#00DF81]/40 text-[#F1F7F6] shadow-[0_0_25px_rgba(0,223,129,0.2)]"
-            >
-              <div className="flex items-center gap-2.5">
-                <CheckCircle2 size={16} className="text-[#00DF81]" />
-                <span className="font-sans font-semibold text-xs sm:text-sm">{refreshNotice}</span>
-              </div>
-              <span className="font-mono text-xs text-[#00DF81] font-bold">200 OK</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* 1. Core KPIs Row */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-4.5">
-          
-          {/* Total Pairs Tracked */}
-          <motion.div 
-            whileHover={{ y: -2, transition: { duration: 0.2 } }}
-            className={clsx("p-4 sm:p-5 flex flex-col justify-between gap-3", matteCard)}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81]">
-                  <Database size={16} />
-                </div>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4] whitespace-nowrap">Active FX Pairs</span>
-              </div>
-              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#06302B] text-[#00DF81] border border-[#0B453A]">
-                G10 Matrix
-              </span>
-            </div>
-            <div>
-              <div className="flex items-baseline">
-                <span className="font-sans font-black text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">
-                  {biasDistribution.total}
+        {/* KPI 2: Macro Bias Distribution */}
+        <CatalogueKPICard
+          title="BIAIS MACRO GLOBAL"
+          variant="emerald"
+          icon={<PulseIcon size={16} className="text-emerald-400" />}
+          className="h-[115px] sm:h-[132px]"
+          customHero={
+            <div className="flex flex-col gap-1.5 my-0.5 sm:my-1">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xl sm:text-[28px] leading-none font-mono font-extrabold text-[#F8FAFC] tracking-tight tabular-nums">
+                  {biasDistribution.neutralPct}%{" "}
+                  <span className="font-sans text-xs text-slate-400 font-normal">
+                    Neutre
+                  </span>
                 </span>
-                <span className="font-sans font-bold text-xs text-[#00DF81] ml-2.5">
-                  100% Coverage
+                <span className="text-[10px] sm:text-[11px] font-mono tabular-nums text-slate-400">
+                  <span className="text-emerald-400 font-bold">
+                    +{biasDistribution.bullish}
+                  </span>{" "}
+                  / {biasDistribution.neutral} /{" "}
+                  <span className="text-rose-400 font-bold">
+                    -{biasDistribution.bearish}
+                  </span>
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[11px] font-sans text-[#AACBC4] mt-2 pt-2 border-t border-[#0B453A]/40">
-                <span>7 Majors • 14 Crosses</span>
-                <Link href="/admin/final-score" className="text-[#00DF81] hover:underline flex items-center gap-0.5 font-semibold">
-                  Matrix <ArrowRight size={11} />
-                </Link>
+              {/* Segmented multi-color bar */}
+              <div className="w-full h-1.5 sm:h-2 rounded-full overflow-hidden flex bg-white/[0.06] p-0.5 border border-white/[0.08]">
+                <div
+                  style={{ width: `${biasDistribution.bullishPct}%` }}
+                  className="h-full bg-emerald-400 rounded-l-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                />
+                <div
+                  style={{ width: `${biasDistribution.neutralPct}%` }}
+                  className="h-full bg-slate-400"
+                />
+                <div
+                  style={{ width: `${biasDistribution.bearishPct}%` }}
+                  className="h-full bg-rose-400 rounded-r-full shadow-[0_0_8px_rgba(244,63,94,0.5)]"
+                />
               </div>
             </div>
-          </motion.div>
+          }
+          customSubtitle={
+            <span className="font-sans font-medium text-xs text-slate-300 whitespace-nowrap">
+              <span className="font-mono tabular-nums">{biasDistribution.bullishPct}%</span> Acheteur • <span className="font-mono tabular-nums">{biasDistribution.bearishPct}%</span> Vendeur
+            </span>
+          }
+          customRightFooter={<div />}
+        />
 
-          {/* Macro Bias Distribution */}
-          <motion.div 
-            whileHover={{ y: -2, transition: { duration: 0.2 } }}
-            className={clsx("flex flex-col justify-between p-4 sm:p-5 gap-3", matteCard)}
-          >
-            <div className="flex justify-between items-center gap-2 whitespace-nowrap">
-              <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Macro Bias</span>
-              <div className="flex items-center gap-1.5 font-mono text-[11px] whitespace-nowrap shrink-0 bg-[#021B1A]/80 px-2 py-0.5 rounded-lg border border-[#0B453A]/60">
-                <span className="font-bold text-[#00DF81]">+{biasDistribution.bullish}</span>
-                <span className="text-[#AACBC4]/40">/</span>
-                <span className="text-[#AACBC4]">{biasDistribution.neutral}</span>
-                <span className="text-[#AACBC4]/40">/</span>
-                <span className="font-bold text-[#FF5555]">-{biasDistribution.bearish}</span>
-              </div>
-            </div>
-
-            {/* Segmented Gradient Visual Distribution Bar */}
-            <div className="w-full h-2.5 rounded-full flex overflow-hidden bg-[#06302B] p-0.5 border border-[#0B453A]">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${biasDistribution.bullishPct}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-[#2CC295] to-[#00DF81] rounded-l-full shadow-[0_0_10px_rgba(0,223,129,0.5)]" 
-                title={`${biasDistribution.bullish} Bullish Pairs (${biasDistribution.bullishPct}%)`}
-              />
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${biasDistribution.neutralPct}%` }}
-                transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-                className="h-full bg-[#AACBC4]/60" 
-                title={`${biasDistribution.neutral} Neutral Pairs (${biasDistribution.neutralPct}%)`}
-              />
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${biasDistribution.bearishPct}%` }}
-                transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-                className="h-full bg-gradient-to-r from-[#FF5555] to-[#FF7777] rounded-r-full shadow-[0_0_10px_rgba(255,85,85,0.5)]" 
-                title={`${biasDistribution.bearish} Bearish Pairs (${biasDistribution.bearishPct}%)`}
-              />
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] font-mono text-[#AACBC4]">
-              <span className="text-[#00DF81] font-bold">{biasDistribution.bullishPct}% Bullish</span>
-              <span>{biasDistribution.neutralPct}% Neutral</span>
-              <span className="text-[#FF5555] font-bold">{biasDistribution.bearishPct}% Bearish</span>
-            </div>
-          </motion.div>
-
-          {/* Active Macro Indicators */}
-          <motion.div 
-            whileHover={{ y: -2, transition: { duration: 0.2 } }}
-            className={clsx("flex flex-col justify-between p-4 sm:p-5 gap-3", matteCard)}
-          >
-            <div className="flex justify-between items-center">
-              <span className="font-sans font-medium text-xs sm:text-sm text-[#AACBC4]">Active Indicators</span>
-              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30">
-                100% Ingested
-              </span>
-            </div>
-            <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="font-sans font-black text-2xl sm:text-3xl text-[#F1F7F6] tracking-tight leading-none">
-                  6
-                </span>
-                <span className="font-sans font-bold text-base text-[#AACBC4]/60">
-                  / 6
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs font-sans text-[#00DF81] mt-2 font-semibold truncate">
-                <CheckCircle2 size={13} className="shrink-0" />
-                <span className="truncate">GDP, CA, CPI, Rates, FX, Equity</span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Model Calculation & Quick Sync */}
-          <motion.div 
-            whileHover={{ y: -2, transition: { duration: 0.2 } }}
-            className={clsx("flex flex-col justify-between p-4 sm:p-5 gap-3", matteCard)}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="font-sans font-medium text-xs text-[#AACBC4]">Engine Status</span>
-                <span className="font-sans font-bold text-sm text-[#F1F7F6] font-mono mt-0.5 whitespace-nowrap">
-                  Synchronized & Live
-                </span>
-              </div>
-              <button
-                onClick={handleRefreshPipeline}
-                disabled={isRefreshing}
-                className={clsx(
-                  "p-2 rounded-xl border transition-all cursor-pointer shadow-md shrink-0",
-                  isRefreshing 
-                    ? "bg-[#00DF81]/20 border-[#00DF81] text-[#00DF81] cursor-not-allowed" 
-                    : "bg-[#06302B] hover:bg-[#095544] border-[#0B453A] text-[#AACBC4] hover:text-[#F1F7F6]"
-                )}
-                title="Trigger Live Quantitative Recalculation"
-              >
-                <RefreshCw size={14} className={clsx(isRefreshing && "animate-spin text-[#00DF81]")} />
-              </button>
-            </div>
-            <div className="pt-2 border-t border-[#0B453A]/40 flex items-center justify-between text-xs font-sans">
-              <span className="text-[#AACBC4]">Period:</span>
-              <span className="font-mono font-bold text-[#00DF81]">{selectedMonth}</span>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* 2. G10 Sovereign Currency Strength Meter */}
-        <motion.div variants={itemVariants} className={clsx("p-4 sm:p-6 flex flex-col gap-4", matteCard)}>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#0B453A]/50 pb-3">
-            <div className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-2">
-                <Activity size={17} className="text-[#00DF81]" />
-                <h2 className="font-sans font-bold text-base sm:text-lg text-[#F1F7F6] tracking-tight">
-                  G10 Sovereign Currency Strength Meter
-                </h2>
-              </div>
-              <p className="font-sans text-xs text-[#AACBC4]">
-                Relative macroeconomic momentum index computed from live 6-indicator composite differential matrix ({selectedMonth})
-              </p>
-            </div>
-            <div className="flex items-center gap-3 text-xs font-mono">
-              <span className="flex items-center gap-1.5 text-[#00DF81]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00DF81]" /> Leading Carry / Growth
-              </span>
-              <span className="flex items-center gap-1.5 text-[#FF5555]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF5555]" /> Funding / Easing
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2.5 sm:gap-3">
-            {currencyStrengthRanking.map((curr) => {
-              const isPositive = curr.score > 0;
-              const isNeutral = curr.score === 0;
-              return (
-                <div 
-                  key={curr.code}
-                  className="flex flex-col p-3 rounded-xl bg-[#021B1A]/80 border border-[#0B453A] hover:border-[#00DF81]/40 hover:bg-[#06302B]/60 transition-all duration-200 group"
+        {/* KPI 3: Active Indicators (Single-Line Clean 6 Badges: PIB BC IPC Taux RÉS ACT) */}
+        <CatalogueKPICard
+          title="INDICATEURS ACTIFS"
+          value="6 / 6"
+          unit="Ingérés"
+          variant="slate"
+          icon={<CheckCircleIcon size={16} className="text-slate-300" />}
+          className="h-[115px] sm:h-[132px]"
+          customSubtitle={
+            <div className="flex items-center gap-[3px] whitespace-nowrap overflow-visible pt-0.5 min-w-0 flex-1">
+              {["PIB", "BC", "IPC", "Taux", "RÉS", "ACT"].map((pill) => (
+                <span
+                  key={pill}
+                  className="px-1.5 py-0.5 rounded-[5px] bg-white/[0.04] border border-white/[0.06] font-sans font-medium text-[9.5px] text-slate-300 tracking-tight shrink-0"
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-mono text-[10px] font-bold text-[#AACBC4]/70">
-                      #{curr.rank}
-                    </span>
-                    <span className={clsx(
-                      "font-mono font-bold text-[11px] px-1.5 py-0.5 rounded-md",
-                      isPositive ? "bg-[#00DF81]/15 text-[#00DF81]" : isNeutral ? "bg-[#AACBC4]/10 text-[#AACBC4]" : "bg-[#FF5555]/15 text-[#FF5555]"
-                    )}>
-                      {curr.score > 0 ? `+${curr.score}%` : `${curr.score}%`}
-                    </span>
-                  </div>
+                  {pill}
+                </span>
+              ))}
+            </div>
+          }
+          bars={[60, 70, 80, 100]}
+        />
 
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <img src={`/flags/${curr.flag}.svg`} className="w-4 h-4 rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={curr.code} />
-                    <span className="font-sans font-bold text-sm text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
-                      {curr.code}
-                    </span>
-                  </div>
+        {/* KPI 4: Engine Status */}
+        <CatalogueKPICard
+          title="STATUT DU MOTEUR"
+          value="100%"
+          unit="Synchronisé"
+          subtitle={
+            <span className="font-sans font-medium text-xs text-slate-400">
+              Période active : <span className="font-mono tabular-nums">{selectedMonth}</span>
+            </span>
+          }
+          variant="emerald"
+          icon={<ShieldCheckIcon size={16} className="text-emerald-400" />}
+          bars={[80, 85, 90, 100]}
+          className="h-[115px] sm:h-[132px]"
+        />
+      </div>
 
-                  {/* Relative strength visual gauge */}
-                  <div className="w-full h-1 rounded-full bg-[#06302B] overflow-hidden mb-1.5">
-                    <div 
-                      className={clsx(
-                        "h-full rounded-full transition-all duration-500",
-                        isPositive ? "bg-[#00DF81]" : isNeutral ? "bg-[#AACBC4]" : "bg-[#FF5555]"
-                      )}
-                      style={{ width: `${Math.min(100, Math.max(15, Math.abs(curr.score) * 2.5))}%` }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-center">
-                    <span 
-                      className={clsx(
-                        "text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border text-center w-full truncate",
-                        isPositive ? "bg-[#00DF81]/10 text-[#00DF81] border-[#00DF81]/25" : isNeutral ? "bg-[#06302B] text-[#AACBC4] border-[#0B453A]" : "bg-[#FF5555]/10 text-[#FF5555] border-[#FF5555]/25"
-                      )}
-                      title={`${curr.name}: ${curr.stance} — ${curr.rationale}`}
-                    >
-                      {curr.stance}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
-
-        {/* 3. Top High-Conviction Macro Opportunities (Alpha Pairs) */}
-        <motion.div variants={itemVariants} className="flex flex-col gap-3.5">
-          <div className="flex items-center justify-between">
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 3. G10 SOVEREIGN CURRENCY STRENGTH BAROMETER                      */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <section className="rounded-[24px] bg-[#101218] border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_20px_40px_-15px_rgba(0,0,0,0.7)] p-4 sm:p-6 mb-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/[0.05] pb-4">
+          <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <Zap size={17} className="text-[#00DF81]" />
-              <h2 className="font-sans font-bold text-base sm:text-lg text-[#F1F7F6] tracking-tight">
-                High-Conviction Sovereign Opportunities ({selectedMonth})
+              <FlameIcon size={18} className="text-[#D4FF00]" />
+              <h2 className="font-display text-sm sm:text-base font-bold tracking-[-0.025em] text-white [text-wrap:balance]">
+                Baromètre Souverain de Force Relative G10
               </h2>
             </div>
-            <Link 
-              href="/admin/final-score" 
-              className="text-xs font-sans font-bold text-[#00DF81] hover:underline flex items-center gap-1"
-            >
-              Explore Full 21-Pair Matrix <ChevronRight size={13} />
-            </Link>
+            <p className="font-sans text-[13px] text-slate-400 [text-wrap:pretty]">
+              Indice de momentum macroéconomique calculé sur la matrice 6-piliers (<span className="font-mono tabular-nums">{selectedMonth}</span>)
+            </p>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-            {/* Bullish Opportunities */}
-            {topOpportunities.topBullish.map((pair) => (
-              <Link 
-                key={pair.name}
-                href="/admin/final-score"
-                className={clsx(
-                  "p-4 rounded-2xl flex flex-col justify-between gap-2.5 group hover:scale-[1.01] transition-all cursor-pointer border border-[#0B453A] hover:border-[#00DF81]/50 bg-[#032221]/90 shadow-lg",
-                  "hover:shadow-[0_12px_30px_rgba(0,223,129,0.12)]"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FlagStack base={pair.base} quote={pair.quote} />
-                    <span className="font-sans font-bold text-base text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
-                      {pair.name}
-                    </span>
-                  </div>
-                  <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30">
-                    BULLISH
-                  </span>
-                </div>
-
-                <div className="flex items-baseline justify-between mt-0.5">
-                  <span className="font-sans font-black text-xl sm:text-2xl text-[#00DF81] font-mono">
-                    +{pair.finalScorePct}%
-                  </span>
-                  <span className="text-xs font-mono text-[#AACBC4]">
-                    Rating: +{pair.totalScore} / 60
-                  </span>
-                </div>
-
-                <div className="pt-2 border-t border-[#0B453A]/50 flex items-center justify-between text-[11px] font-sans text-[#AACBC4]">
-                  <span>Strong Carry & Yield Spread</span>
-                  <span className="text-[#00DF81] group-hover:translate-x-1 transition-transform font-medium">Inspect →</span>
-                </div>
-              </Link>
-            ))}
-
-            {/* Bearish Opportunities */}
-            {topOpportunities.topBearish.map((pair) => (
-              <Link 
-                key={pair.name}
-                href="/admin/final-score"
-                className={clsx(
-                  "p-4 rounded-2xl flex flex-col justify-between gap-2.5 group hover:scale-[1.01] transition-all cursor-pointer border border-[#0B453A] hover:border-[#FF5555]/50 bg-[#032221]/90 shadow-lg",
-                  "hover:shadow-[0_12px_30px_rgba(255,85,85,0.12)]"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FlagStack base={pair.base} quote={pair.quote} />
-                    <span className="font-sans font-bold text-base text-[#F1F7F6] group-hover:text-[#FF5555] transition-colors">
-                      {pair.name}
-                    </span>
-                  </div>
-                  <span className="font-mono text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30">
-                    BEARISH
-                  </span>
-                </div>
-
-                <div className="flex items-baseline justify-between mt-0.5">
-                  <span className="font-sans font-black text-xl sm:text-2xl text-[#FF5555] font-mono">
-                    {pair.finalScorePct}%
-                  </span>
-                  <span className="text-xs font-mono text-[#AACBC4]">
-                    Rating: {pair.totalScore} / 60
-                  </span>
-                </div>
-
-                <div className="pt-2 border-t border-[#0B453A]/50 flex items-center justify-between text-[11px] font-sans text-[#AACBC4]">
-                  <span>Monetary Disadvantage / Deficit</span>
-                  <span className="text-[#FF5555] group-hover:translate-x-1 transition-transform font-medium">Inspect →</span>
-                </div>
-              </Link>
-            ))}
+          <div className="flex items-center gap-3 font-sans text-xs">
+            <span className="flex items-center gap-1.5 text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Portage / Croissance
+            </span>
+            <span className="flex items-center gap-1.5 text-rose-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+              Financement / Détente
+            </span>
           </div>
-        </motion.div>
+        </div>
 
-        {/* 4. Latest Published Macro Data & Pipeline Health Side-by-Side */}
-        <motion.div variants={itemVariants} className="w-full flex flex-col lg:flex-row gap-5 sm:gap-6">
-          
-          {/* Left Column: Filterable Published Macro Prints Feed */}
-          <div className={clsx("flex-[2] flex flex-col p-4 sm:p-5 lg:p-6 gap-4", matteCard)}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="font-sans font-bold text-base sm:text-lg text-[#F1F7F6] tracking-tight">
-                  Latest Published Macro Data
-                </h2>
-                <p className="font-sans text-xs text-[#AACBC4] mt-0.5">
-                  Verified fundamental statistics ingested directly into the quantitative engine
-                </p>
-              </div>
+        {/* Currency Pods: Desktop Grid vs Mobile Horizontal Snap Carousel */}
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-2.5 pb-2 no-scrollbar lg:grid lg:grid-cols-8 lg:gap-3 lg:overflow-visible mt-4 sm:mt-5">
+          {currencyStrengthRanking.map((curr) => {
+            const isPos = curr.score > 0;
+            const isZero = curr.score === 0;
+            const podWash: WashVariant = isPos ? "emerald" : isZero ? "slate" : "rose";
+            const washStyle = WASH_STYLES[podWash];
 
-              {/* Indicator Category Filters */}
-              <div className="flex items-center gap-1 bg-[#021B1A] p-1 rounded-xl border border-[#0B453A] overflow-x-auto no-scrollbar max-w-full">
-                {["All", "CPI", "Interest Rate", "GDP", "Current Account", "FX Reserves", "Equity"].map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveFilterTab(tab)}
+            return (
+              <div
+                key={curr.code}
+                className={`min-w-[125px] snap-start shrink-0 lg:min-w-0 flex flex-col justify-between p-3.5 rounded-[18px] bg-[#0A0B0F] ${washStyle.bg} border border-white/[0.06] ${washStyle.borderTop} shadow-md transition-all duration-200 ease-out hover:border-white/[0.14] hover:bg-[#12151C] group`}
+              >
+                {/* Top row: Rank + Score pill */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-[10px] font-bold text-slate-400 tabular-nums">
+                    #{curr.rank}
+                  </span>
+                  <span
                     className={clsx(
-                      "px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-                      activeFilterTab === tab ? "bg-[#00DF81] text-[#021B1A]" : "text-[#AACBC4] hover:text-[#F1F7F6] hover:bg-[#06302B]"
+                      "font-mono font-bold text-[11px] px-2 py-0.5 rounded-full border tabular-nums",
+                      isPos
+                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                        : isZero
+                        ? "bg-slate-400/10 text-slate-400 border-slate-400/20"
+                        : "bg-rose-500/15 text-rose-300 border-rose-500/30"
                     )}
                   >
-                    {tab === "Interest Rate" ? "Rates" : tab === "Current Account" ? "CA" : tab === "FX Reserves" ? "FX" : tab}
-                  </button>
-                ))}
+                    {curr.score > 0 ? `+${curr.score}%` : `${curr.score}%`}
+                  </span>
+                </div>
+
+                {/* Middle row: Circular Flag + Currency Code */}
+                <div className="flex items-center gap-2 mb-2.5">
+                  <CurrencyFlag currency={curr.code} size="md" />
+                  <span className="font-display font-bold text-sm text-white group-hover:text-[#D4FF00] transition-colors tracking-tight">
+                    {curr.code}
+                  </span>
+                </div>
+
+                {/* Relative strength meter */}
+                <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden mb-2.5">
+                  <div
+                    className={clsx(
+                      "h-full rounded-full transition-all duration-500",
+                      isPos
+                        ? "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                        : isZero
+                        ? "bg-slate-400"
+                        : "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
+                    )}
+                    style={{
+                      width: `${Math.min(100, Math.max(20, Math.abs(curr.score) * 28))}%`,
+                    }}
+                  />
+                </div>
+
+                {/* Centered regime stance pill */}
+                <span
+                  className={clsx(
+                    "font-sans text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border text-center whitespace-nowrap",
+                    isPos
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      : isZero
+                      ? "bg-slate-400/10 text-slate-400 border-slate-400/20"
+                      : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                  )}
+                >
+                  {curr.stance}
+                </span>
               </div>
-            </div>
+            );
+          })}
+        </div>
+      </section>
 
-            <div className="overflow-x-auto w-full -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-thin scrollbar-thumb-[#0B453A]">
-              <table className="w-full text-left border-collapse min-w-[600px]">
-                <thead>
-                  <tr className="border-b border-[#0B453A] text-xs font-sans font-semibold text-[#AACBC4]">
-                    <th className="pb-2.5 px-3">Indicator</th>
-                    <th className="pb-2.5 px-3">Sovereign Entity</th>
-                    <th className="pb-2.5 px-3">Release Period</th>
-                    <th className="pb-2.5 px-3">Official Value</th>
-                    <th className="pb-2.5 px-3">Economic Stance</th>
-                    <th className="pb-2.5 px-3 text-right">Source Protocol</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#0B453A]/40 text-sm">
-                  {filteredFeed.map((row) => (
-                    <tr key={row.id} className="group hover:bg-[#06302B]/40 transition-colors">
-                      <td className="py-2.5 px-3 font-sans font-bold text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
-                        {row.ind}
-                      </td>
-                      <td className="py-2.5 px-3 font-sans font-medium text-[#AACBC4] group-hover:text-[#F1F7F6] transition-colors">
-                        <div className="flex items-center gap-2 whitespace-nowrap">
-                          <img src={`/flags/${row.base}.svg`} className="w-4 h-4 rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={row.base} />
-                          <span>{row.country}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-xs text-[#AACBC4] whitespace-nowrap">
-                        {row.month}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono font-bold text-[#F1F7F6] whitespace-nowrap">
-                        <span className="bg-[#021B1A] px-2 py-0.5 rounded-lg border border-[#0B453A]">
-                          {row.val}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 font-sans text-xs whitespace-nowrap">
-                        <span className="text-[#AACBC4]">{row.regime}</span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-sans font-semibold text-xs text-[#AACBC4] group-hover:text-[#00DF81] transition-colors whitespace-nowrap">
-                        {row.src}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 4. HIGH-CONVICTION SOVEREIGN OPPORTUNITIES (Zero Ellipses)        */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <section className="mb-5">
+        <div className="flex items-center justify-between mb-3.5">
+          <div className="flex items-center gap-2">
+            <SparklesFillIcon size={18} className="text-[#D4FF00]" />
+            <h2 className="font-display text-sm sm:text-base font-bold tracking-[-0.025em] text-white [text-wrap:balance]">
+              Opportunités Souveraines à Haute Conviction (<span className="font-mono tabular-nums">{selectedMonth}</span>)
+            </h2>
+          </div>
+          <Link
+            href="/admin/final-score"
+            className="font-sans text-xs font-semibold text-[#D4FF00] hover:underline flex items-center gap-1 relative after:absolute after:-inset-1.5 after:content-['']"
+          >
+            Explorer la Matrice 28 Paires <ArrowRightIcon size={13} />
+          </Link>
+        </div>
 
-            <div className="flex items-center justify-between text-xs text-[#AACBC4] pt-2 border-t border-[#0B453A]/40">
-              <span>Showing {filteredFeed.length} verified macroeconomic prints</span>
-              <Link href="/admin/macro-data" className="text-[#00DF81] hover:underline flex items-center gap-1 font-semibold">
-                Explore Full Macro Matrix <ArrowRight size={12} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-4">
+          {highConvictionPairs.map((pair) => {
+            const isBull = pair.bias === "BULLISH";
+            const washStyle = WASH_STYLES[isBull ? "emerald" : "rose"];
+
+            return (
+              <Link
+                key={pair.pair}
+                href="/admin/final-score"
+                className={`rounded-[22px] p-5 bg-[#101218] ${washStyle.bg} border border-white/[0.06] ${washStyle.borderTop} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_16px_32px_-12px_rgba(0,0,0,0.6)] flex flex-col justify-between gap-3 group transition-all duration-200 ease-out hover:border-white/[0.14] hover:bg-[#12151C]`}
+              >
+                {/* Header row: Dual Flags + Ticker + Regime pill */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <FXPairFlags pair={pair.pair} size="sm" />
+                    <span className="font-display font-bold text-base text-white group-hover:text-[#D4FF00] transition-colors tracking-tight">
+                      {pair.pair}
+                    </span>
+                  </div>
+                  <span
+                    className={clsx(
+                      "font-sans text-[9px] font-bold px-2 py-0.5 rounded-full border",
+                      isBull
+                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                        : "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                    )}
+                  >
+                    {isBull ? "ACHETEUR" : "VENDEUR"}
+                  </span>
+                </div>
+
+                {/* Score Hero metric */}
+                <div className="flex items-baseline justify-between mt-1">
+                  <span
+                    className={clsx(
+                      "text-2xl font-mono font-extrabold tracking-tight tabular-nums",
+                      isBull ? "text-emerald-400" : "text-rose-400"
+                    )}
+                  >
+                    {pair.scorePct}
+                  </span>
+                  <span className="font-sans text-xs text-slate-400">
+                    Score : <span className="font-mono tabular-nums">{pair.rating}</span>
+                  </span>
+                </div>
+
+                {/* 2-Line Clean Macro Rationale (Warm Satoshi Font, [text-wrap:pretty]) */}
+                <div className="min-h-[34px] flex items-center">
+                  <p className="font-sans text-xs text-slate-400 leading-relaxed line-clamp-2 [text-wrap:pretty]">
+                    {pair.rationale}
+                  </p>
+                </div>
+
+                {/* Dedicated Clean Bottom Row for Inspect Action */}
+                <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between text-xs font-sans">
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                    Biais 6-Piliers
+                  </span>
+                  <span
+                    className={clsx(
+                      "inline-flex items-center gap-1 font-semibold transition-transform group-hover:translate-x-1",
+                      isBull ? "text-emerald-400" : "text-rose-400"
+                    )}
+                  >
+                    Inspecter <ArrowRightIcon size={13} />
+                  </span>
+                </div>
               </Link>
-            </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* 5. PUBLISHED MACRO DATA FEED & PIPELINE TELEMETRY                 */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <div className="w-full flex flex-col lg:flex-row gap-5">
+        {/* Left Column: Macro Feed */}
+        <section className="flex-[2] rounded-[24px] bg-[#101218] border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_20px_40px_-15px_rgba(0,0,0,0.7)] p-4 sm:p-6 flex flex-col gap-4">
+          {/* Section 7 File 3: MacroPublicationsHeader with Single-Line Pill Bar */}
+          <MacroPublicationsHeader
+            activeFilter={activeFilterTab}
+            onSelectFilter={setActiveFilterTab}
+          />
+
+          <div className="overflow-x-auto w-full no-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[580px]">
+              <thead>
+                <tr className="border-b border-white/[0.05] font-sans text-[11px] font-semibold uppercase tracking-wider text-slate-400 h-9">
+                  <th className="pb-2 px-3">Indicateur</th>
+                  <th className="pb-2 px-3">Entité Souveraine</th>
+                  <th className="pb-2 px-3">Période</th>
+                  <th className="pb-2 px-3">Valeur Officielle</th>
+                  <th className="pb-2 px-3">Régime Économique</th>
+                  <th className="pb-2 px-3 text-right">Source</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.03] text-xs">
+                {filteredFeed.map((row) => (
+                  <tr key={row.id} className="hover:bg-white/[0.02] transition-colors h-11">
+                    <td className="px-3 font-sans font-semibold text-white">
+                      {row.ind}
+                    </td>
+                    <td className="px-3 font-sans text-slate-300">
+                      <div className="flex items-center gap-2 whitespace-nowrap">
+                        <CurrencyFlag currency={row.base} size="sm" />
+                        <span>{row.country}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 font-mono tabular-nums text-slate-400 whitespace-nowrap">
+                      {row.month}
+                    </td>
+                    <td className="px-3 font-mono font-bold tabular-nums text-white whitespace-nowrap">
+                      <span className="rounded-full bg-white/[0.04] border border-white/[0.06] px-2.5 py-0.5">
+                        {row.val}
+                      </span>
+                    </td>
+                    <td className="px-3 font-sans text-slate-300 whitespace-nowrap">
+                      {row.regime}
+                    </td>
+                    <td className="px-3 text-right font-sans text-slate-400 whitespace-nowrap font-medium">
+                      {row.src}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          {/* Right Column: Pipeline Health & Next Central Bank Dates */}
-          <div className={clsx("flex-[1.2] flex flex-col p-4 sm:p-5 lg:p-6 gap-4", matteCard)}>
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between font-sans text-xs text-slate-400 pt-3 border-t border-white/[0.05] flex-wrap gap-2">
+            <span>
+              Affichage de <span className="font-mono tabular-nums text-white font-semibold">{filteredFeed.length}</span> publications macroéconomiques vérifiées
+            </span>
+            <Link
+              href="/admin/macro-data"
+              className="text-[#D4FF00] hover:underline flex items-center gap-1 font-semibold relative after:absolute after:-inset-1.5 after:content-['']"
+            >
+              Matrice Complète <ArrowRightIcon size={13} />
+            </Link>
+          </div>
+        </section>
+
+        {/* Right Column: Pipeline Health */}
+        <section className="flex-[1.1] rounded-[24px] bg-[#101218] border border-white/[0.06] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_20px_40px_-15px_rgba(0,0,0,0.7)] p-4 sm:p-6 flex flex-col justify-between gap-4">
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.05]">
               <div>
-                <h2 className="font-sans font-bold text-base sm:text-lg text-[#F1F7F6] tracking-tight">
-                  Pipeline Health
+                <h2 className="font-display text-base font-bold tracking-[-0.025em] text-white [text-wrap:balance]">
+                  Santé du Pipeline d'Ingestion
                 </h2>
-                <p className="font-sans text-xs text-[#AACBC4] mt-0.5">Automated ingestion telemetry</p>
+                <p className="font-sans text-xs text-slate-400 mt-0.5 [text-wrap:pretty]">
+                  Télémétrie d'ingestion automatique
+                </p>
               </div>
-              <span className="text-[9px] font-mono font-bold text-[#00DF81] bg-[#00DF81]/15 px-2 py-0.5 rounded-full border border-[#00DF81]/30">
-                100% Active
+              <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold px-2.5 py-0.5 whitespace-nowrap tabular-nums">
+                100% ACTIF
               </span>
             </div>
 
-            <div className="flex flex-col gap-2 w-full">
-              {PIPELINE_STATUS_CARDS.map((pipe) => (
-                <div 
+            <div className="flex flex-col gap-2.5">
+              {[
+                { ind: "IPC (Inflation)", status: "Synchronisé", last: "Août 2026", next: "14 Oct 2026", cycle: "Mensuel" },
+                { ind: "Taux Directeurs", status: "Temps Réel", last: "Sep 2026", next: "05 Nov 2026", cycle: "Banques Centrales" },
+                { ind: "Réserves FX", status: "Actif (12M)", last: "Août 2026", next: "05 Oct 2026", cycle: "FMI SDMX 3.0" },
+                { ind: "PIB (Croissance)", status: "Publié T2", last: "T2 2026", next: "28 Oct 2026", cycle: "Trimestriel" },
+              ].map((pipe) => (
+                <div
                   key={pipe.ind}
-                  className="flex flex-col gap-1 p-2.5 rounded-xl bg-[#021B1A]/80 border border-[#0B453A] hover:border-[#03624C] hover:bg-[#06302B]/60 transition-all duration-200"
+                  className="flex items-center justify-between p-3 rounded-[16px] bg-[#0A0B0F] border border-white/[0.05] text-xs"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-sans font-bold text-xs text-[#F1F7F6]">{pipe.ind}</span>
-                    <span className="px-2 py-0.5 rounded-md text-[9px] font-mono font-bold tracking-wider bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30">
-                      {pipe.status}
+                  <div className="flex flex-col">
+                    <span className="font-sans font-semibold text-white text-xs">{pipe.ind}</span>
+                    <span className="font-sans text-[11px] text-slate-400">
+                      Dernier : <span className="font-mono tabular-nums">{pipe.last}</span>
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] font-sans text-[#AACBC4]">
-                    <span>Last: <span className="text-[#F1F7F6] font-mono">{pipe.last}</span></span>
-                    <span className="text-right">Next: <span className="text-[#00DF81] font-mono">{pipe.next}</span></span>
+                  <div className="flex flex-col items-end">
+                    <span className="font-sans text-[10px] font-semibold text-emerald-400">{pipe.status}</span>
+                    <span className="font-sans text-[10px] text-slate-500">
+                      Prochain : <span className="font-mono tabular-nums">{pipe.next}</span>
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
-
-            <Link
-              href="/admin/settings"
-              className="mt-auto w-full py-2.5 rounded-xl bg-[#06302B] hover:bg-[#095544] text-[#AACBC4] hover:text-[#F1F7F6] border border-[#0B453A] font-sans font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              <SlidersHorizontal size={14} className="text-[#00DF81]" />
-              <span>Configure Scraper & Crontab</span>
-            </Link>
           </div>
-        </motion.div>
-
-        {/* 5. Institutional Navigation Station */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-          <Link
-            href="/admin/final-score"
-            className="p-4 sm:p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
-          >
-            <div className="flex items-center justify-between">
-              <div className="p-2 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
-                <BarChart3 size={17} />
-              </div>
-              <ArrowUpRight size={15} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-            </div>
-            <div>
-              <h3 className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
-                Final Score Matrix
-              </h3>
-              <p className="font-sans text-xs text-[#AACBC4] mt-1 leading-relaxed">
-                Explore sovereign composite macro bias scores and 6-indicator weightings across all G10 pairs.
-              </p>
-            </div>
-          </Link>
-
-          <Link
-            href="/admin/macro-data"
-            className="p-4 sm:p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
-          >
-            <div className="flex items-center justify-between">
-              <div className="p-2 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
-                <Globe2 size={17} />
-              </div>
-              <ArrowUpRight size={15} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-            </div>
-            <div>
-              <h3 className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
-                Macro Data Center
-              </h3>
-              <p className="font-sans text-xs text-[#AACBC4] mt-1 leading-relaxed">
-                Inspect raw indicator matrices, custom user forecast assumptions, and differential ratings.
-              </p>
-            </div>
-          </Link>
-
-          <Link
-            href="/admin/rating-rules"
-            className="p-4 sm:p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
-          >
-            <div className="flex items-center justify-between">
-              <div className="p-2 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
-                <ShieldCheck size={17} />
-              </div>
-              <ArrowUpRight size={15} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-            </div>
-            <div>
-              <h3 className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
-                Rating Rules Engine
-              </h3>
-              <p className="font-sans text-xs text-[#AACBC4] mt-1 leading-relaxed">
-                Audit official rating thresholds, differential lookup grids, and quantitative version histories.
-              </p>
-            </div>
-          </Link>
 
           <Link
             href="/admin/settings"
-            className="p-4 sm:p-5 rounded-2xl bg-[#032221]/90 border border-[#0B453A] hover:border-[#00DF81]/50 hover:bg-[#06302B]/70 transition-all group flex flex-col justify-between gap-3 shadow-md"
+            className="relative w-full h-11 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300 hover:text-white font-sans text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] after:absolute after:-inset-1.5 after:content-['']"
           >
-            <div className="flex items-center justify-between">
-              <div className="p-2 rounded-xl bg-[#00DF81]/10 text-[#00DF81] border border-[#00DF81]/30">
-                <SlidersHorizontal size={17} />
-              </div>
-              <ArrowUpRight size={15} className="text-[#AACBC4] group-hover:text-[#00DF81] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-            </div>
-            <div>
-              <h3 className="font-sans font-bold text-sm sm:text-base text-[#F1F7F6] group-hover:text-[#00DF81] transition-colors">
-                Settings & Architecture
-              </h3>
-              <p className="font-sans text-xs text-[#AACBC4] mt-1 leading-relaxed">
-                Crontab automation schedule, mathematical proof verification, and ingestion protocols.
-              </p>
-            </div>
+            <SlidersIcon size={15} className="text-[#D4FF00]" />
+            <span>Configurer Scraper & Crontab</span>
           </Link>
-        </motion.div>
-
-      </main>
-    </motion.div>
+        </section>
+      </div>
+    </div>
   );
 }

@@ -144,6 +144,7 @@ class MacroDataPoint(TimestampedModel):
 
     class Status(models.TextChoices):
         PUBLISHED = "published", "Published"
+        FORECAST = "forecast", "Forecast / Estimate"
         MANUAL = "manual", "Manual Override"
         REVISED = "revised", "Revised"
         MISSING = "missing", "Missing"

@@ -11,7 +11,7 @@ export const api = axios.create({
     // Dev bypass: no Authorization header required
     // In prod, intercept to add: Authorization: `Bearer ${token}`
   },
-  timeout: 15_000,
+  timeout: 30_000,
 });
 
 // ── Response interceptor for consistent error handling ──
@@ -62,7 +62,7 @@ export const finalScoreApi = {
 export const settingsApi = {
   get: () => api.get("/settings"),
   save: (data: object) => api.post("/settings", data),
-  runScraper: () => api.post("/settings/run-scraper"),
+  runScraper: () => api.post("/settings/run-scraper", {}, { timeout: 90_000 }),
   auditLogs: () => api.get("/settings/audit-logs"),
 };
 

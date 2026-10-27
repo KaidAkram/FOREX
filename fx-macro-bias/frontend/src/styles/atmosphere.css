@@ -1,0 +1,129 @@
+/* ============================================================================
+   SHIFTFX — ATMOSPHERIC SUBSURFACE GLASS ARCHITECTURE
+   Smoked Obsidian + Subsurface Glow + Top-Lit Specular Rim Borders
+   ============================================================================ */
+
+/* ── Smoked Obsidian Glass Surface with Top Specular Rim Light ──────────── */
+.glass-bento {
+  background: linear-gradient(145deg, rgba(22, 26, 36, 0.78) 0%, rgba(11, 13, 19, 0.94) 100%);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 24px 48px -12px rgba(0, 0, 0, 0.75);
+}
+
+/* ── Subsurface Mood Bleeds (Aura Bank / Amber Bento Art Direction) ─────── */
+.bleed-bullish {
+  background-image:
+    radial-gradient(110% 90% at 0% 0%, rgba(16, 185, 129, 0.16) 0%, rgba(212, 255, 0, 0.04) 45%, transparent 75%),
+    linear-gradient(145deg, rgba(22, 26, 36, 0.8) 0%, rgba(11, 13, 19, 0.95) 100%);
+}
+
+.bleed-bearish {
+  background-image:
+    radial-gradient(110% 90% at 0% 0%, rgba(244, 63, 94, 0.16) 0%, rgba(251, 146, 60, 0.04) 45%, transparent 75%),
+    linear-gradient(145deg, rgba(22, 26, 36, 0.8) 0%, rgba(11, 13, 19, 0.95) 100%);
+}
+
+.bleed-neutral {
+  background-image:
+    radial-gradient(110% 90% at 0% 0%, rgba(148, 163, 184, 0.11) 0%, transparent 70%),
+    linear-gradient(145deg, rgba(22, 26, 36, 0.8) 0%, rgba(11, 13, 19, 0.95) 100%);
+}
+
+.bleed-lime-hero {
+  background-image:
+    radial-gradient(120% 100% at 100% 0%, rgba(212, 255, 0, 0.2) 0%, rgba(16, 185, 129, 0.08) 50%, transparent 80%),
+    linear-gradient(145deg, rgba(24, 30, 28, 0.9) 0%, rgba(11, 13, 19, 0.96) 100%);
+}
+
+.bleed-pro {
+  background-image:
+    radial-gradient(120% 100% at 50% 0%, rgba(168, 85, 247, 0.16) 0%, rgba(59, 130, 246, 0.05) 45%, transparent 80%),
+    linear-gradient(145deg, rgba(22, 26, 36, 0.8) 0%, rgba(11, 13, 19, 0.95) 100%);
+}
+
+/* ── Acid Lime Dopamine CTA Button ─────────────────────────────────────── */
+.btn-dopamine-lime {
+  background: linear-gradient(180deg, #E2FF44 0%, #C8F500 100%);
+  color: #07080B;
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.65),
+    0 0 25px -4px rgba(212, 255, 0, 0.45),
+    0 8px 16px -4px rgba(0, 0, 0, 0.5);
+}
+.btn-dopamine-lime:hover {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.65),
+    0 0 35px -4px rgba(212, 255, 0, 0.55),
+    0 12px 20px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Tactile Icon Orb Wrapper ──────────────────────────────────────────── */
+.icon-orb {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+/* ── Shimmer Wave for Loading Skeletons ─────────────────────────────────── */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.animate-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 45%,
+    rgba(212, 255, 0, 0.08) 50%,
+    rgba(255, 255, 255, 0.05) 55%,
+    transparent 100%
+  );
+  animation: shimmer-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ── Topographic SVG Grid Overlay (for Hero Cards) ─────────────────────── */
+.topo-grid-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 55%;
+  height: 55%;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cdefs%3E%3ClinearGradient id='a' gradientTransform='rotate(45)'%3E%3Cstop offset='0%25' stop-color='%23D4FF00'/%3E%3Cstop offset='100%25' stop-color='%2310B981'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='100' cy='100' r='90' fill='none' stroke='url(%23a)' stroke-width='0.5'/%3E%3Ccircle cx='100' cy='100' r='70' fill='none' stroke='url(%23a)' stroke-width='0.5'/%3E%3Ccircle cx='100' cy='100' r='50' fill='none' stroke='url(%23a)' stroke-width='0.5'/%3E%3Ccircle cx='100' cy='100' r='30' fill='none' stroke='url(%23a)' stroke-width='0.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  background-size: contain;
+}
+
+/* ── SVG Noise Texture Overlay (eliminates dark gradient banding) ──────── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.025;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}

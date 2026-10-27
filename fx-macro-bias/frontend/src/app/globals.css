@@ -1,32 +1,33 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800&f[]=satoshi@400,500,600,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fragment+Mono:ital@0;1&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Import Atmospheric Glass Architecture */
+@import '../styles/atmosphere.css';
+
 :root {
-  /* Brand Typography Stack */
-  --font-jakarta: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-sans: 'Axiforma', 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-hero: 'Axiforma', 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* Bespoke 3-Tier Humanist Typography Stack */
+  --font-display: 'Cabinet Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Fragment Mono', monospace;
+  --font-hero: 'Cabinet Grotesk', sans-serif;
 
-  /* Primary Palette Tokens */
-  --color-rich-black: #021B1A;
-  --color-dark-green: #032221;
-  --color-bangladesh: #03624C;
-  --color-meadow: #2CC295;
-  --color-caribbean: #00DF81;
-  --color-anti-flash: #F1F7F6;
+  /* Deep Space Canvas Palette (No Pure Black, No Muddy Greys) */
+  --color-canvas: #06070A;
+  --color-surface: #0F1117;
+  --color-secondary: #161922;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-active: rgba(255, 255, 255, 0.16);
 
-  /* Secondary Palette Tokens */
-  --color-pine: #06302B;
-  --color-basil: #0B453A;
-  --color-forest: #095544;
-  --color-frog: #17876D;
-  --color-mint: #2FA98C;
-  --color-stone: #707D7D;
-  --color-pistachio: #AACBC4;
+  /* Semantic Discipline */
+  --color-primary: #D4FF00;   /* Acid Lime */
+  --color-bullish: #10B981;   /* Emerald-500 */
+  --color-bearish: #F43F5E;   /* Rose-500 */
+  --color-neutral: #94A3B8;   /* Slate-400 */
+  --color-pro: #A855F7;       /* Purple-500 */
 }
 
 @layer base {
@@ -34,95 +35,115 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) #06070A;
   }
 
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    background-color: var(--color-rich-black);
-    color: var(--color-anti-flash);
+    background-color: #06070A;
+    color: #F8FAFC;
   }
 
   body {
-    background-color: var(--color-rich-black);
-    color: var(--color-anti-flash);
+    background-color: #06070A;
+    color: #F8FAFC;
     font-family: var(--font-sans);
     min-height: 100vh;
     overflow-x: hidden;
   }
 
-  /* Custom Emerald Scrollbar */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-basil) var(--color-rich-black);
+  /* Ultra-thin Minimalist Dark Scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
   ::-webkit-scrollbar-track {
-    background: var(--color-rich-black);
+    background: #06070A;
   }
+
   ::-webkit-scrollbar-thumb {
-    background: var(--color-basil);
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 4px;
   }
+
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-bangladesh);
+    background: rgba(255, 255, 255, 0.2);
   }
 }
 
-@layer components {
-  /* Ultra-sleek Glass Card with Basil borders and Dark Green fill */
-  .glass-card {
-    @apply bg-dark-green/90 border border-basil/70 rounded-card backdrop-blur-2xl shadow-card;
-  }
+/* Utility: Tabular numeric rendering */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
 
-  .matte-panel {
-    @apply bg-dark-green/95 border border-basil/80 rounded-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6)];
-  }
+/* Utility: No visible scrollbar on filter tracks */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@layer components {
 
   /* Typography shortcuts */
   .kpi-title {
-    @apply font-sans text-kpi-xl text-anti-flash font-extrabold tracking-tight;
+    @apply font-sans text-kpi-xl text-white font-extrabold tracking-tight;
   }
+
   .data-cell {
-    @apply font-mono text-data font-semibold text-anti-flash;
+    @apply font-mono text-data font-semibold text-white;
   }
+
   .table-header {
-    @apply font-sans text-th uppercase tracking-wider text-pistachio;
+    @apply font-sans text-th uppercase tracking-wider text-[#A0A5B1];
   }
 
-  /* Badges matching Senior Graphic Designer spec */
+  /* Semantic Badges (Rounded-full pills, not rectangles) */
   .badge {
-    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-pill text-xs font-bold font-mono tracking-wide;
-  }
-  .badge-bullish {
-    @apply badge bg-caribbean/15 text-caribbean border border-caribbean/35 shadow-[0_0_12px_rgba(0,223,129,0.25)];
-  }
-  .badge-bearish {
-    @apply badge bg-coral-bg text-coral border border-coral-border shadow-glow-coral;
-  }
-  .badge-neutral {
-    @apply badge bg-pine text-pistachio border border-basil;
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wide;
   }
 
-  /* Buttons */
+  .badge-bullish {
+    @apply badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/25;
+  }
+
+  .badge-bearish {
+    @apply badge bg-rose-500/10 text-rose-400 border border-rose-500/25;
+  }
+
+  .badge-neutral {
+    @apply badge bg-slate-400/10 text-slate-400 border border-slate-400/20;
+  }
+
+  /* Buttons: Rounded-full Pills */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-panel text-xs font-bold font-sans
-           bg-caribbean text-rich-black transition-all duration-200
-           hover:brightness-110 hover:shadow-glow-caribbean active:scale-95 cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold font-sans transition-all duration-200 active:scale-95 cursor-pointer;
+    background: linear-gradient(180deg, #E2FF44 0%, #C8F500 100%);
+    color: #07080B;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.65),
+      0 0 20px -4px rgba(212, 255, 0, 0.35),
+      0 6px 14px -4px rgba(0, 0, 0, 0.4);
   }
+  .btn-primary:hover {
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.65),
+      0 0 30px -4px rgba(212, 255, 0, 0.5),
+      0 10px 20px -4px rgba(0, 0, 0, 0.5);
+  }
+
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-panel text-xs font-bold font-sans
-           bg-pine text-anti-flash border border-basil transition-all duration-200
-           hover:bg-forest hover:border-bangladesh active:scale-95 cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold font-sans bg-white/[0.04] text-white border border-white/[0.08] transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.16] active:scale-95 cursor-pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
+
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-panel text-xs font-medium font-sans
-           text-pistachio border border-basil/50 transition-all duration-200
-           hover:text-anti-flash hover:border-bangladesh hover:bg-pine/50 active:scale-95 cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-xs font-medium font-sans text-slate-400 transition-all duration-200 hover:text-white hover:bg-white/[0.04] active:scale-95 cursor-pointer;
   }
 }

@@ -25,5 +25,6 @@ urlpatterns = [
     # Settings & Orchestrator
     path("settings", settings.settings_config),
     path("settings/run-scraper", settings.trigger_scraper_pipeline),
+    path("settings/scraper-status", settings.scraper_status),
     path("settings/audit-logs", settings.scraper_audit_logs),
 ]

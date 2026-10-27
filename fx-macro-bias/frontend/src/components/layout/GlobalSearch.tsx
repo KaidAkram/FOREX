@@ -387,18 +387,18 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
         type="button"
         onClick={() => setIsOpen(true)}
         className={clsx(
-          "flex items-center gap-2 sm:gap-3 bg-[#032221]/90 hover:bg-[#06302B] backdrop-blur-xl border border-[#0B453A] hover:border-[#03624C] rounded-2xl p-2.5 sm:px-3.5 sm:py-2 md:py-2.5 transition-all duration-200 text-left group shadow-[0_8px_32px_rgba(2,27,26,0.4)] focus:outline-none focus:ring-2 focus:ring-[#00DF81]/40 shrink-0",
+          "flex items-center gap-2 sm:gap-3 bg-[#14151b] hover:bg-[#1a1c24] backdrop-blur-xl border border-white/10 hover:border-white/20 rounded-2xl p-2.5 sm:px-3.5 sm:py-2 md:py-2.5 transition-all duration-200 text-left group shadow-[0_8px_32px_rgba(0,0,0,0.4)] focus:outline-none focus:ring-2 focus:ring-[#D2F646]/40 shrink-0",
           className || "w-auto sm:w-[200px] md:w-[240px] xl:w-[280px]"
         )}
         aria-label="Open search dialog"
       >
-        <Search size={17} className="text-[#AACBC4] group-hover:text-[#00DF81] transition-colors flex-shrink-0" />
-        <span className="hidden sm:inline font-sans font-medium text-xs md:text-sm text-[#AACBC4] group-hover:text-[#F1F7F6] transition-colors flex-1 truncate">
+        <Search size={17} className="text-[#A0A5B1] group-hover:text-[#D2F646] transition-colors flex-shrink-0" />
+        <span className="hidden sm:inline font-sans font-medium text-xs md:text-sm text-[#A0A5B1] group-hover:text-white transition-colors flex-1 truncate">
           {placeholder || "Search indicators, pairs, pages..."}
         </span>
-        <div className="hidden md:flex items-center gap-[3px] bg-[#06302B] group-hover:bg-[#095544] px-1.5 py-0.5 rounded-md border border-[#0B453A] transition-colors">
-          <Command size={10} className="text-[#AACBC4]" />
-          <span className="font-mono font-bold text-[9px] text-[#AACBC4]">K</span>
+        <div className="hidden md:flex items-center gap-[3px] bg-white/5 group-hover:bg-white/10 px-1.5 py-0.5 rounded-md border border-white/10 transition-colors">
+          <Command size={10} className="text-[#A0A5B1]" />
+          <span className="font-mono font-bold text-[9px] text-[#A0A5B1]">K</span>
         </div>
       </button>
 
@@ -407,23 +407,23 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
         <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[6vh] sm:pt-[10vh] px-3 sm:px-4 overflow-hidden">
           {/* Glass Backdrop */}
           <div
-            className="fixed inset-0 bg-[#021B1A]/85 backdrop-blur-2xl transition-all duration-300 animate-fadeIn"
+            className="fixed inset-0 bg-black/85 backdrop-blur-2xl transition-all duration-300 animate-fadeIn"
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
           />
 
           {/* Ambient Lighting Orbs */}
-          <div className="fixed top-[5%] w-[600px] h-[320px] bg-[#00DF81]/10 blur-[130px] pointer-events-none rounded-full" />
-          <div className="fixed top-[20%] w-[500px] h-[350px] bg-[#03624C]/15 blur-[150px] pointer-events-none rounded-full" />
+          <div className="fixed top-[5%] w-[600px] h-[320px] bg-[#D2F646]/10 blur-[130px] pointer-events-none rounded-full" />
+          <div className="fixed top-[20%] w-[500px] h-[350px] bg-white/[0.03] blur-[150px] pointer-events-none rounded-full" />
 
           {/* Modal Container */}
           <div 
-            className="relative w-full max-w-[94vw] sm:max-w-[640px] md:max-w-[680px] bg-[#032221]/95 backdrop-blur-3xl border border-[#0B453A] rounded-[24px] sm:rounded-[28px] shadow-[0_32px_90px_rgba(2,27,26,0.9),0_0_40px_rgba(0,223,129,0.08)] overflow-hidden flex flex-col z-10 animate-slideUp max-h-[85vh]"
+            className="relative w-full max-w-[94vw] sm:max-w-[640px] md:max-w-[680px] bg-[#121418]/95 backdrop-blur-3xl border border-white/10 rounded-[24px] sm:rounded-[28px] shadow-[0_32px_90px_rgba(0,0,0,0.9),0_0_40px_rgba(210,246,70,0.08)] overflow-hidden flex flex-col z-10 animate-slideUp max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Input Row */}
-            <div className="flex items-center px-4 sm:px-6 py-4 sm:py-5 border-b border-[#0B453A] gap-3 sm:gap-4 bg-[#06302B]/40">
-              <div className="p-2 rounded-xl bg-[#00DF81]/10 border border-[#00DF81]/25 text-[#00DF81] flex items-center justify-center flex-shrink-0">
+            <div className="flex items-center px-4 sm:px-6 py-4 sm:py-5 border-b border-white/10 gap-3 sm:gap-4 bg-white/[0.02]">
+              <div className="p-2 rounded-xl bg-[#D2F646]/10 border border-[#D2F646]/25 text-[#D2F646] flex items-center justify-center flex-shrink-0">
                 <Search size={18} />
               </div>
               <input
@@ -436,7 +436,7 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Search indicators, pairs, countries, pages..."
-                className="flex-1 bg-transparent border-none outline-none text-[#F1F7F6] font-sans text-[17px] placeholder:text-[#AACBC4]/60 leading-none"
+                className="flex-1 bg-transparent border-none outline-none text-white font-sans text-[17px] placeholder:text-[#A0A5B1]/60 leading-none"
               />
               {query && (
                 <button
@@ -444,21 +444,21 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
                     setQuery("");
                     inputRef.current?.focus();
                   }}
-                  className="p-[6px] rounded-full hover:bg-[#06302B] text-[#AACBC4] hover:text-[#F1F7F6] transition-colors"
+                  className="p-[6px] rounded-full hover:bg-white/10 text-[#A0A5B1] hover:text-white transition-colors"
                 >
                   <X size={16} />
                 </button>
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-[11px] font-mono font-bold text-[#AACBC4] hover:text-[#F1F7F6] bg-[#06302B] hover:bg-[#095544] border border-[#0B453A] px-[10px] py-[6px] rounded-[8px] transition-colors"
+                className="text-[11px] font-mono font-bold text-[#A0A5B1] hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-[10px] py-[6px] rounded-[8px] transition-colors"
               >
                 ESC
               </button>
             </div>
 
             {/* Filter Tabs / Quick Categories */}
-            <div className="flex items-center gap-[8px] px-[24px] py-[12px] border-b border-[#0B453A] bg-[#021B1A]/60 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-[8px] px-[24px] py-[12px] border-b border-white/10 bg-black/40 overflow-x-auto no-scrollbar">
               {["All", "Pages", "Indicators", "FX Pairs", "Countries"].map((tab) => (
                 <button
                   key={tab}
@@ -469,15 +469,15 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
                   className={clsx(
                     "px-[12px] py-[6px] rounded-[10px] text-[12px] font-sans font-bold transition-all whitespace-nowrap cursor-pointer",
                     activeCategory === tab
-                      ? "bg-[#00DF81] text-[#021B1A] shadow-[0_0_12px_rgba(0,223,129,0.35)]"
-                      : "text-[#AACBC4] hover:text-[#F1F7F6] hover:bg-[#06302B]"
+                      ? "bg-[#D2F646] text-[#0C0D12] shadow-[0_0_12px_rgba(210,246,70,0.35)]"
+                      : "text-[#A0A5B1] hover:text-white hover:bg-white/5"
                   )}
                 >
                   {tab}
                 </button>
               ))}
               {query && (
-                <span className="text-[12px] font-sans text-[#AACBC4] ml-auto whitespace-nowrap">
+                <span className="text-[12px] font-sans text-[#A0A5B1] ml-auto whitespace-nowrap">
                   {filteredItems.length} result{filteredItems.length === 1 ? "" : "s"}
                 </span>
               )}
@@ -499,25 +499,25 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
                       className={clsx(
                         "flex items-center justify-between w-full p-[12px] rounded-[14px] transition-all group text-left cursor-pointer",
                         isSelected
-                          ? "bg-[#06302B] border border-[#03624C] shadow-[0_4px_16px_rgba(2,27,26,0.6)]"
-                          : "hover:bg-[#06302B]/50 border border-transparent"
+                          ? "bg-[#181a20] border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.5)]"
+                          : "hover:bg-white/[0.03] border border-transparent"
                       )}
                     >
                       <div className="flex items-center gap-[14px] min-w-0">
                         {/* Icon or Flags */}
                         {item.flags ? (
                           <div className="flex items-center flex-shrink-0 mr-[4px]">
-                            <img src={`/flags/${item.flags[0]}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#0B453A] z-10 shadow-sm" alt={item.flags[0]} />
-                            <img src={`/flags/${item.flags[1]}.svg`} className="w-[20px] h-[20px] rounded-full border border-[#0B453A] -ml-[8px] z-0 shadow-sm" alt={item.flags[1]} />
+                            <img src={`/flags/${item.flags[0]}.svg`} className="w-[20px] h-[20px] rounded-full border border-white/10 z-10 shadow-sm" alt={item.flags[0]} />
+                            <img src={`/flags/${item.flags[1]}.svg`} className="w-[20px] h-[20px] rounded-full border border-white/10 -ml-[8px] z-0 shadow-sm" alt={item.flags[1]} />
                           </div>
                         ) : item.flag ? (
-                          <img src={`/flags/${item.flag}.svg`} className="w-[22px] h-[22px] rounded-full border border-[#0B453A] shadow-sm flex-shrink-0" alt={item.title} />
+                          <img src={`/flags/${item.flag}.svg`} className="w-[22px] h-[22px] rounded-full border border-white/10 shadow-sm flex-shrink-0" alt={item.title} />
                         ) : (
                           <div className={clsx(
                             "p-[9px] rounded-[10px] transition-colors flex-shrink-0",
                             isSelected
-                              ? "bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30"
-                              : "bg-[#06302B] border border-[#0B453A] text-[#AACBC4] group-hover:text-[#F1F7F6] group-hover:bg-[#095544]"
+                              ? "bg-[#D2F646]/15 text-[#D2F646] border border-[#D2F646]/30"
+                              : "bg-white/5 border border-white/5 text-[#A0A5B1] group-hover:text-white group-hover:bg-white/10"
                           )}>
                             <item.icon size={16} />
                           </div>
@@ -528,7 +528,7 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
                           <div className="flex items-center gap-[8px]">
                             <span className={clsx(
                               "font-sans font-bold text-[15px] transition-colors truncate",
-                              isSelected ? "text-[#F1F7F6]" : "text-[#F1F7F6]/90 group-hover:text-[#F1F7F6]"
+                              isSelected ? "text-white" : "text-white/90 group-hover:text-white"
                             )}>
                               {item.title}
                             </span>
@@ -536,14 +536,14 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
                               <span className={clsx(
                                 "px-[6px] py-[2px] rounded-[6px] text-[10px] font-sans font-bold uppercase tracking-wider",
                                 isSelected
-                                  ? "bg-[#00DF81]/20 text-[#00DF81] border border-[#00DF81]/30"
-                                  : "bg-[#06302B] text-[#AACBC4] border border-[#0B453A]"
+                                  ? "bg-[#D2F646]/20 text-[#D2F646] border border-[#D2F646]/30"
+                                  : "bg-white/5 text-[#A0A5B1] border border-white/5"
                               )}>
                                 {item.badge}
                               </span>
                             )}
                           </div>
-                          <span className="font-sans font-medium text-[12px] text-[#AACBC4] truncate max-w-[440px]">
+                          <span className="font-sans font-medium text-[12px] text-[#A0A5B1] truncate max-w-[440px]">
                             {item.description}
                           </span>
                         </div>
@@ -556,8 +556,8 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
                           className={clsx(
                             "transition-all duration-200",
                             isSelected
-                              ? "text-[#00DF81] opacity-100 translate-x-0"
-                              : "text-[#AACBC4] opacity-0 -translate-x-2 group-hover:opacity-60 group-hover:translate-x-0"
+                              ? "text-[#D2F646] opacity-100 translate-x-0"
+                              : "text-[#A0A5B1] opacity-0 -translate-x-2 group-hover:opacity-60 group-hover:translate-x-0"
                           )}
                         />
                       </div>
@@ -566,12 +566,12 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
                 })
               ) : (
                 <div className="py-[48px] text-center flex flex-col items-center justify-center gap-[12px]">
-                  <div className="p-[14px] rounded-full bg-[#06302B] border border-[#0B453A] text-[#AACBC4]">
+                  <div className="p-[14px] rounded-full bg-white/5 border border-white/5 text-[#A0A5B1]">
                     <Search size={28} />
                   </div>
                   <div className="flex flex-col gap-[4px]">
-                    <span className="font-sans font-bold text-[16px] text-[#F1F7F6]">No matches found</span>
-                    <span className="font-sans font-normal text-[13px] text-[#AACBC4]">
+                    <span className="font-sans font-bold text-[16px] text-white">No matches found</span>
+                    <span className="font-sans font-normal text-[13px] text-[#A0A5B1]">
                       No suggestions or indicators matching &quot;{query}&quot;
                     </span>
                   </div>
@@ -580,25 +580,25 @@ export function GlobalSearch({ className, placeholder, onSearch }: GlobalSearchP
             </div>
 
             {/* Footer Navigation Hints */}
-            <div className="flex items-center justify-between px-[24px] py-[14px] border-t border-[#0B453A] bg-[#021B1A]/80 text-[12px] font-sans text-[#AACBC4]">
+            <div className="flex items-center justify-between px-[24px] py-[14px] border-t border-white/10 bg-[#0e0f14] text-[12px] font-sans text-[#A0A5B1]">
               <div className="flex items-center gap-[16px]">
                 <span className="flex items-center gap-[6px]">
-                  <kbd className="bg-[#06302B] border border-[#0B453A] px-[6px] py-[2px] rounded-[4px] text-[10px] font-mono text-[#F1F7F6]">↑</kbd>
-                  <kbd className="bg-[#06302B] border border-[#0B453A] px-[6px] py-[2px] rounded-[4px] text-[10px] font-mono text-[#F1F7F6]">↓</kbd>
+                  <kbd className="bg-white/5 border border-white/10 px-[6px] py-[2px] rounded-[4px] text-[10px] font-mono text-white">↑</kbd>
+                  <kbd className="bg-white/5 border border-white/10 px-[6px] py-[2px] rounded-[4px] text-[10px] font-mono text-white">↓</kbd>
                   Navigate
                 </span>
                 <span className="flex items-center gap-[6px]">
-                  <kbd className="bg-[#06302B] border border-[#0B453A] px-[6px] py-[2px] rounded-[4px] text-[10px] font-mono text-[#F1F7F6]">↵</kbd>
+                  <kbd className="bg-white/5 border border-white/10 px-[6px] py-[2px] rounded-[4px] text-[10px] font-mono text-white">↵</kbd>
                   Select
                 </span>
                 <span className="flex items-center gap-[6px]">
-                  <kbd className="bg-[#06302B] border border-[#0B453A] px-[6px] py-[2px] rounded-[4px] text-[10px] font-mono text-[#F1F7F6]">ESC</kbd>
+                  <kbd className="bg-white/5 border border-white/10 px-[6px] py-[2px] rounded-[4px] text-[10px] font-mono text-white">ESC</kbd>
                   Close
                 </span>
               </div>
               <div className="flex items-center gap-[8px]">
-                <div className="w-[6px] h-[6px] rounded-full bg-[#00DF81] shadow-[0_0_6px_rgba(0,223,129,0.8)]" />
-                <span className="font-semibold text-[11px] uppercase tracking-wider text-[#AACBC4]">ShiftFX Global Search</span>
+                <div className="w-[6px] h-[6px] rounded-full bg-[#D2F646] shadow-[0_0_6px_rgba(210,246,70,0.8)]" />
+                <span className="font-semibold text-[11px] uppercase tracking-wider text-[#A0A5B1]">ShiftFX Global Search</span>
               </div>
             </div>
           </div>

@@ -15,4 +15,7 @@ __pycache__/
 *.zip
 *.mov
 *.tsbuildinfo
-
+*.docx
+*.pdf
+scratch/
+references/

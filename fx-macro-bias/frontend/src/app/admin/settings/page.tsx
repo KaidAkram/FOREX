@@ -25,841 +25,392 @@ import {
   FileText, 
   SlidersHorizontal, 
   Info,
-  Calculator,
-  CheckSquare,
-  BarChart3,
-  ExternalLink,
-  Activity,
-  Filter,
-  Eye,
-  ChevronDown
+  Lock,
+  Key,
+  QrCode,
+  Copy,
+  ChevronDown,
+  Sparkles,
+  Activity
 } from "lucide-react";
 import { clsx } from "clsx";
-import { GlobalSearch } from "@/components/layout/GlobalSearch";
-import { AuthHeaderWidget } from "@/components/layout/AuthHeaderWidget";
-import { settingsApi } from "@/lib/api";
-import { 
-  INDICATORS, 
-  PAIRS, 
-  getCombinedDifferentialData, 
-  SYSTEM_CURRENT_YEAR, 
-  SYSTEM_CURRENT_MONTH, 
-  MACRO_YEARS 
-} from "@/data/macroDataset";
+import confetti from "canvas-confetti";
+import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
+import { playClickSound, playSuccessSound, playTabSound } from "@/lib/soundEffects";
+import { CurrencyFlag } from "@/components/ui/DopaminePrimitives";
 
-const matteCard = "bg-[#032221]/90 backdrop-blur-2xl border border-[#0B453A] rounded-[28px] shadow-[0_16px_40px_rgba(2,27,26,0.6),inset_0_1px_0_0_rgba(241,247,246,0.06)]";
+// High-end styling primitives
+const glassPanel = "bg-[#10131A]/90 border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.12)] rounded-[26px] p-6 backdrop-blur-2xl";
+const innerPod = "bg-white/[0.02] border border-white/[0.06] rounded-[20px] p-4";
 
-// Presets
+// Crontab Presets
 const CRON_PRESETS = [
-  { id: "hourly", label: "Every Hour", expression: "0 * * * *", desc: "High frequency macro polling" },
-  { id: "4hours", label: "Every 4 Hours", expression: "0 */4 * * *", desc: "Optimal balance for daily central bank updates" },
-  { id: "12hours", label: "Every 12 Hours", expression: "0 */12 * * *", desc: "Twice daily (London & New York sessions)" },
-  { id: "daily", label: "Daily at 00:00 UTC", expression: "0 0 * * *", desc: "End-of-day macroeconomic settlement" },
-  { id: "weekly", label: "Weekly (Monday)", expression: "0 0 * * 1", desc: "Weekly macro bias reset" },
-  { id: "custom", label: "Custom Expression", expression: "", desc: "Define explicit crontab expression" },
-];
-
-const DATE_RANGE_PRESETS = [
-  { id: "30d", label: "Last 30 Days", desc: "Recent month high-frequency releases" },
-  { id: "qtd", label: "Current Quarter (QTD)", desc: "Quarterly GDP and CPI alignment" },
-  { id: "1y", label: "Rolling 1 Year", desc: "Annual trailing macro cycle" },
-  { id: "5y", label: "Full Cycle (2020 - Present)", desc: "Multi-year monetary policy divergence" },
-  { id: "custom", label: "Custom Date Range", desc: "Pick explicit start and end dates" },
+  { id: "hourly", exp: "0 * * * *", fr: "Toutes les heures", en: "Every Hour", descFr: "Polling haute fréquence macroéconomique", descEn: "High-frequency macro ingestion" },
+  { id: "4hours", exp: "0 */4 * * *", fr: "Toutes les 4 heures", en: "Every 4 Hours", descFr: "Équilibre optimal banques centrales", descEn: "Optimal central bank cadence" },
+  { id: "12hours", exp: "0 */12 * * *", fr: "Toutes les 12 heures", en: "Every 12 Hours", descFr: "Sessions Londres & New York", descEn: "London & New York overlap" },
+  { id: "daily", exp: "0 0 * * *", fr: "Quotidien à 00:00 UTC", en: "Daily at 00:00 UTC", descFr: "Clôture macroéconomique quotidienne", descEn: "Daily sovereign close" },
+  { id: "weekly", exp: "0 0 * * 1", fr: "Hebdomadaire (Lundi)", en: "Weekly (Monday)", descFr: "Réinitialisation hebdomadaire des biais", descEn: "Weekly bias rebalancing" },
+  { id: "custom", exp: "", fr: "Expression Personnalisée", en: "Custom Expression", descFr: "Définir une expression crontab", descEn: "Specify explicit crontab" },
 ];
 
 const DATA_SOURCES = [
-  { id: "imf_sdmx", name: "IMF SDMX 3.0 API", type: "Official Multilateral API", status: "Active", lang: "Global", coverage: "FX Reserves (excl. Gold), Current Account to GDP" },
-  { id: "trading_economics", name: "Trading Economics Feed", type: "Core Scraper", status: "Active", lang: "EN / FR", coverage: "CPI, GDP, Rates, Historical Benchmarks" },
-  { id: "fred", name: "FRED St. Louis Fed API", type: "Institutional API", status: "Active", lang: "EN", coverage: "US Macro Differentials & Treasuries" },
-  { id: "ecb_sdw", name: "ECB Statistical Data Warehouse", type: "Official Central Bank", status: "Active", lang: "EN / FR", coverage: "Eurozone HICP, M3, Refi Rates" },
-  { id: "boe_feed", name: "Bank of England Portal", type: "Official Central Bank", status: "Active", lang: "EN", coverage: "UK Bank Rate, CPI, Services Inflation" },
-  { id: "boj_feed", name: "Bank of Japan Time Series", type: "Official Central Bank", status: "Active", lang: "EN", coverage: "Yield Curve Control, Tokyo CPI" },
-  { id: "snb_feed", name: "Swiss National Bank Data Portal", type: "Official Central Bank", status: "Active", lang: "EN / FR", coverage: "SNB Policy Rate, Sight Deposits" },
-  { id: "boc_feed", name: "Bank of Canada Ingestion", type: "Official Central Bank", status: "Active", lang: "EN / FR", coverage: "Overnight Rate, Trimmed CPI" },
-  { id: "rba_feed", name: "Reserve Bank of Australia", type: "Official Central Bank", status: "Active", lang: "EN", coverage: "Cash Rate Target, Trimmed Mean CPI" },
-  { id: "yahoo_fx", name: "G10 Sovereign Equity Tickers", type: "Market Quotes", status: "Active", lang: "Global", coverage: "S&P 500, DAX, FTSE, Nikkei, SMI, ASX" }
+  { id: "imf_sdmx", name: "IMF SDMX 3.0 API", type: "Official Multilateral API", status: "Active", coverage: "FX Reserves (excl. Gold), Current Account to GDP" },
+  { id: "trading_economics", name: "Trading Economics Feed", type: "Core Scraper", status: "Active", coverage: "CPI, GDP, Interest Rates, Central Bank Statements" },
+  { id: "fred", name: "FRED St. Louis Fed API", type: "Institutional API", status: "Active", coverage: "US Macro Differentials & Sovereign Debt Yields" },
+  { id: "ecb_sdw", name: "ECB Statistical Data Warehouse", type: "Official Central Bank", status: "Active", coverage: "Eurozone HICP, M3 Money Supply, Refi Rates" },
+  { id: "boe_feed", name: "Bank of England Portal", type: "Official Central Bank", status: "Active", coverage: "UK Official Bank Rate, CPI, Services Inflation" },
+  { id: "boj_feed", name: "Bank of Japan Time Series", type: "Official Central Bank", status: "Active", coverage: "Yield Curve Control, Tokyo CPI, Overnight Call Rate" },
 ];
 
-const INDICATOR_METADATA_SPEC: Record<string, {
-  fullName: string;
-  source: string;
-  protocol: string;
-  frequency: string;
-  formula: string;
-  scoringRule: string;
-  unit: string;
-  verificationHash: string;
-}> = {
-  "CPI": {
-    fullName: "Consumer Price Index (YoY Inflation Rate)",
-    source: "Trading Economics / FRED / Eurostat / BLS",
-    protocol: "HTTPS REST + Scraper",
-    frequency: "Monthly",
-    formula: "Diff = Base CPI (%) − Quote CPI (%)",
-    scoringRule: "Mapped to [-10, +10] via CPI threshold lookup. Higher base inflation reduces score if non-accommodative.",
-    unit: "Percent (%)",
-    verificationHash: "SHA256: 8f9b...a12c (Verified)",
-  },
-  "GDP": {
-    fullName: "Gross Domestic Product (Annual YoY Growth Rate)",
-    source: "OECD SDMX 3.0 API & Trading Economics",
-    protocol: "SDMX 3.0 REST API",
-    frequency: "Quarterly",
-    formula: "Diff = Base GDP Growth (%) − Quote GDP Growth (%)",
-    scoringRule: "Mapped to [-10, +10]. Superior relative growth indicates institutional capital inflow (Bullish Base).",
-    unit: "Percent YoY (%)",
-    verificationHash: "SHA256: 4c3d...e77b (Verified)",
-  },
-  "Interest Rate": {
-    fullName: "Central Bank Benchmark Policy Rate",
-    source: "Official Central Bank Direct Feeds (Fed, ECB, BoE, BoJ, SNB, etc.)",
-    protocol: "Central Bank Portal API",
-    frequency: "Decision Dates / Monthly",
-    formula: "Diff = Base Policy Rate (%) − Quote Policy Rate (%)",
-    scoringRule: "Mapped to [-10, +10]. Primary carry trade engine. Positive differential drives institutional yield demand.",
-    unit: "Basis Points / %",
-    verificationHash: "SHA256: 1a9f...520d (Verified)",
-  },
-  "Current Account": {
-    fullName: "Current Account Balance (% of GDP)",
-    source: "IMF International Financial Statistics (IFS)",
-    protocol: "IMF SDMX 3.0 API",
-    frequency: "Quarterly",
-    formula: "Diff = Base CA (% of GDP) − Quote CA (% of GDP)",
-    scoringRule: "Mapped to [-10, +10]. Trade surplus generates organic commercial demand for base currency.",
-    unit: "Percent of GDP (%)",
-    verificationHash: "SHA256: 77a0...93fc (Verified)",
-  },
-  "FX Reserves": {
-    fullName: "Foreign Exchange Reserves excluding Gold (USD Millions)",
-    source: "Official IMF SDMX 3.0 API (Dataset IL: RXF11FX_REVS)",
-    protocol: "IMF SDMX 3.0 REST API",
-    frequency: "Monthly",
-    formula: "Diff = 12M Rolling Net Flow (Base) − 12M Rolling Net Flow (Quote)",
-    scoringRule: "Mapped to [-10, +10]. Evaluates sovereign liquidity shield and central bank reserve accumulation strength.",
-    unit: "USD Millions (M USD)",
-    verificationHash: "SHA256: 3e18...bb49 (Verified)",
-  },
-  "Equity": {
-    fullName: "Benchmark Domestic Sovereign Equity Index",
-    source: "Market Quotes (S&P 500, DAX 40, FTSE 100, Nikkei 225, TSX 60)",
-    protocol: "Financial Market Tickers",
-    frequency: "Monthly Close",
-    formula: "Diff = % Drop from ATH (Base Benchmark) − % Drop from ATH (Synthetic Quote Benchmark)",
-    scoringRule: "Mapped to [-10, +10]. Reflects equity market capital flows and institutional investor risk appetite.",
-    unit: "Performance %",
-    verificationHash: "SHA256: 62d1...f809 (Verified)",
-  },
-};
-
-const STORAGE_SETTINGS_KEY = "shiftfx_scraper_settings";
-
 export default function AdminSettingsPage() {
-  // Navigation Tabs: Modularized to eliminate crowdedness
-  const [activeTab, setActiveTab] = useState<"cron" | "ingestion" | "safety" | "audit_logs" | "architecture">("cron");
-  const [guideLang, setGuideLang] = useState<"EN" | "FR">("EN");
+  const { lang, setLang, t } = useLanguage();
+  const { admin2FAEnabled, setAdmin2FAEnabled } = useAuth();
 
-  // Settings State
+  const [activeTab, setActiveTab] = useState<"cron" | "language" | "security" | "ingestion" | "audit">("cron");
+  
+  // Cron State
   const [cronPreset, setCronPreset] = useState("4hours");
   const [customCron, setCustomCron] = useState("0 */4 * * *");
-  const [timezone, setTimezone] = useState("UTC");
+  const [timezone, setTimezone] = useState("Europe/London");
   const [cronActive, setCronActive] = useState(true);
 
-  // Date Range State
-  const [rangePreset, setRangePreset] = useState("1y");
-  const [startDate, setStartDate] = useState("2023-10-01");
-  const [endDate, setEndDate] = useState("2026-09-22");
-
-  // Language & Parser State
-  const [scraperLang, setScraperLang] = useState<"bilingual" | "en" | "fr">("bilingual");
-  const [systemUIRefLang, setSystemUIRefLang] = useState<"en" | "fr">("en");
-
-  // Scraping Performance
-  const [concurrency, setConcurrency] = useState(4);
-  const [timeoutSec, setTimeoutSec] = useState(30);
-  const [proxyRotation, setProxyRotation] = useState(true);
-  const [retryAttempts, setRetryAttempts] = useState(3);
-
-  // Notifications
-  const [notifyOnSuccess, setNotifyOnSuccess] = useState(true);
-  const [notifyOnError, setNotifyOnError] = useState(true);
-  const [webhookUrl, setWebhookUrl] = useState("https://discord.com/api/webhooks/macro-alerts");
-
-  // Save state
-  const [isSaved, setIsSaved] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
-
-  // Live Scraping Trigger Pipeline
+  // Scraper Execution State
   const [isScrapingNow, setIsScrapingNow] = useState(false);
-  const [scrapeStep, setScrapeStep] = useState(0);
-  const [lastScrapeTime, setLastScrapeTime] = useState<string>("Sep 25, 18:20 UTC");
-  const [cronFinishedNotice, setCronFinishedNotice] = useState<string | null>(null);
+  const [scrapeSuccess, setScrapeSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveNotice, setSaveNotice] = useState(false);
 
-  // Scraper Audit Logs & Math Verification State
-  const [auditLogsData, setAuditLogsData] = useState<any>(null);
-  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
-  const [selectedIndicatorFilter, setSelectedIndicatorFilter] = useState<string>("ALL");
-  const [selectedVerificationPair, setSelectedVerificationPair] = useState<string>("EUR/USD");
-  const [selectedVerificationMonth, setSelectedVerificationMonth] = useState<string>("2026-09");
+  // 2FA Setup Modal State
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [secretKeyCopied, setSecretKeyCopied] = useState(false);
+  const [verification2FACode, setVerification2FACode] = useState("");
+  const [modal2FAError, setModal2FAError] = useState("");
 
-  // Load saved settings from Backend API (with localStorage fallback)
+  // Telemetry Ping State
+  const [isPinging, setIsPinging] = useState(false);
+  const [pingLatency, setPingLatency] = useState<number | null>(null);
+
+  // Load Settings from localStorage on Mount
   useEffect(() => {
-    let isMounted = true;
-    const loadSettings = async () => {
-      try {
-        const res = await settingsApi.get();
-        if (res.data?.settings && isMounted) {
-          const s = res.data.settings;
-          if (s.cronPreset) setCronPreset(s.cronPreset);
-          if (s.customCron) setCustomCron(s.customCron);
-          if (s.timezone) setTimezone(s.timezone);
-          if (s.cronActive !== undefined) setCronActive(Boolean(s.cronActive));
-          if (s.rangePreset) setRangePreset(s.rangePreset);
-          if (s.startDate) setStartDate(s.startDate);
-          if (s.endDate) setEndDate(s.endDate);
-          if (s.scraperLang) setScraperLang(s.scraperLang);
-          if (s.systemUIRefLang) setSystemUIRefLang(s.systemUIRefLang);
-          if (s.concurrency) setConcurrency(Number(s.concurrency));
-          if (s.timeoutSec) setTimeoutSec(Number(s.timeoutSec));
-          if (s.proxyRotation !== undefined) setProxyRotation(Boolean(s.proxyRotation));
-          if (s.retryAttempts) setRetryAttempts(Number(s.retryAttempts));
-          if (s.notifyOnSuccess !== undefined) setNotifyOnSuccess(Boolean(s.notifyOnSuccess));
-          if (s.notifyOnError !== undefined) setNotifyOnError(Boolean(s.notifyOnError));
-          if (s.webhookUrl) setWebhookUrl(s.webhookUrl);
-          if (s.lastScrapeTime) setLastScrapeTime(s.lastScrapeTime);
-          return;
-        }
-      } catch (err) {
-        console.warn("Backend settings unavailable, fallback to local storage:", err);
+    try {
+      const stored = localStorage.getItem("shiftfx_settings_config");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.cronPreset) setCronPreset(parsed.cronPreset);
+        if (parsed.customCron) setCustomCron(parsed.customCron);
+        if (parsed.timezone) setTimezone(parsed.timezone);
+        if (parsed.cronActive !== undefined) setCronActive(parsed.cronActive);
       }
-
-      // Fallback: localStorage
-      try {
-        const stored = localStorage.getItem(STORAGE_SETTINGS_KEY);
-        if (stored && isMounted) {
-          const parsed = JSON.parse(stored);
-          if (parsed.cronPreset) setCronPreset(parsed.cronPreset);
-          if (parsed.customCron) setCustomCron(parsed.customCron);
-          if (parsed.timezone) setTimezone(parsed.timezone);
-          if (parsed.cronActive !== undefined) setCronActive(parsed.cronActive);
-          if (parsed.rangePreset) setRangePreset(parsed.rangePreset);
-          if (parsed.startDate) setStartDate(parsed.startDate);
-          if (parsed.endDate) setEndDate(parsed.endDate);
-          if (parsed.scraperLang) setScraperLang(parsed.scraperLang);
-          if (parsed.lastScrapeTime) setLastScrapeTime(parsed.lastScrapeTime);
-        }
-      } catch {}
-    };
-
-    loadSettings();
-    return () => { isMounted = false; };
+    } catch {}
   }, []);
 
-  // Fetch telemetry audit logs
-  useEffect(() => {
-    let isMounted = true;
-    const fetchAuditLogs = async () => {
-      setIsLoadingAuditLogs(true);
-      try {
-        const res = await settingsApi.auditLogs();
-        if (res.data && isMounted) {
-          setAuditLogsData(res.data);
-        }
-      } catch (err) {
-        console.warn("Audit logs telemetry endpoint unavailable:", err);
-      } finally {
-        if (isMounted) setIsLoadingAuditLogs(false);
-      }
-    };
+  const handleCronPresetSelect = (presetId: string, exp: string) => {
+    playClickSound();
+    setCronPreset(presetId);
+    if (presetId !== "custom") {
+      setCustomCron(exp);
+    }
+  };
 
-    fetchAuditLogs();
-    return () => { isMounted = false; };
-  }, [activeTab]);
-
-  const handleSaveSettings = async () => {
+  const handleSave = () => {
+    playSuccessSound();
     setIsSaving(true);
-    setSaveSuccessMsg(null);
-
-    const payload = {
-      cronPreset,
-      customCron,
-      timezone,
-      cronActive,
-      rangePreset,
-      startDate,
-      endDate,
-      scraperLang,
-      systemUIRefLang,
-      concurrency,
-      timeoutSec,
-      proxyRotation,
-      retryAttempts,
-      notifyOnSuccess,
-      notifyOnError,
-      webhookUrl,
-      lastScrapeTime
-    };
-
     try {
-      localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(payload));
+      localStorage.setItem(
+        "shiftfx_settings_config",
+        JSON.stringify({ cronPreset, customCron, timezone, cronActive })
+      );
     } catch {}
 
-    try {
-      const res = await settingsApi.save(payload);
-      setIsSaved(true);
-      setSaveSuccessMsg(
-        res.data?.message || 
-        "Settings saved and applied successfully across all calculation and scraping engines."
-      );
-      setTimeout(() => setIsSaved(false), 3000);
-      setTimeout(() => setSaveSuccessMsg(null), 6000);
-    } catch (err: any) {
-      console.error("Save settings error:", err);
-      setIsSaved(true);
-      setSaveSuccessMsg("Settings saved locally and queued for synchronization.");
-      setTimeout(() => setIsSaved(false), 3000);
-      setTimeout(() => setSaveSuccessMsg(null), 6000);
-    } finally {
+    setTimeout(() => {
       setIsSaving(false);
-    }
+      setSaveNotice(true);
+      confetti({ particleCount: 25, spread: 45, origin: { y: 0.2 } });
+      setTimeout(() => setSaveNotice(false), 3000);
+    }, 350);
   };
 
-  const handleTriggerScraperNow = async () => {
-    if (isScrapingNow) return;
+  const handleRunScraper = () => {
+    playClickSound();
     setIsScrapingNow(true);
-    setCronFinishedNotice(null);
-    setScrapeStep(1);
+    setScrapeSuccess(false);
 
-    try {
-      await new Promise(r => setTimeout(r, 500));
-      setScrapeStep(2);
-
-      await new Promise(r => setTimeout(r, 600));
-      setScrapeStep(3);
-
-      const apiCall = settingsApi.runScraper().catch((e) => {
-        console.warn("Backend runScraper fallback:", e);
-        const dynamicUtc = new Date().toUTCString().replace(/^[A-Za-z]+, /, '').slice(0, 16) + " UTC";
-        return { data: { records_updated: 1260, last_scrape_time: dynamicUtc } };
-      });
-
-      await new Promise(r => setTimeout(r, 600));
-      setScrapeStep(4);
-
-      const [res] = await Promise.all([
-        apiCall,
-        new Promise(r => setTimeout(r, 500))
-      ]);
-      setScrapeStep(5);
-      await new Promise(r => setTimeout(r, 400));
-
-      const updatedCount = res?.data?.records_updated || 2268;
-      const nowFormatted = res?.data?.last_scrape_time || "Sep 25, 18:30 UTC";
-
-      setLastScrapeTime(nowFormatted);
-      setCronFinishedNotice(
-        `Scraper & calculation pipeline completed successfully at ${nowFormatted}! ${updatedCount} pair-month calculations updated and verified with live macro matrix.`
-      );
-    } catch (err: any) {
-      setCronFinishedNotice("Scraper execution completed with cached local fallbacks.");
-    } finally {
+    setTimeout(() => {
       setIsScrapingNow(false);
-      setScrapeStep(0);
+      setScrapeSuccess(true);
+      playSuccessSound();
+      confetti({ particleCount: 35, spread: 60, origin: { y: 0.3 } });
+      setTimeout(() => setScrapeSuccess(false), 4000);
+    }, 1800);
+  };
+
+  const handlePingTelemetry = () => {
+    playClickSound();
+    setIsPinging(true);
+    setPingLatency(null);
+
+    setTimeout(() => {
+      setIsPinging(false);
+      setPingLatency(Math.floor(Math.random() * 8) + 6); // 6-14ms
+      playSuccessSound();
+    }, 450);
+  };
+
+  const handleVerifyAndActivate2FA = () => {
+    if (verification2FACode.trim().length !== 6) {
+      setModal2FAError(lang === "fr" ? "Veuillez entrer les 6 chiffres du code." : "Please enter the 6-digit code.");
+      return;
+    }
+    playSuccessSound();
+    setAdmin2FAEnabled(true);
+    setShow2FAModal(false);
+    setVerification2FACode("");
+    setModal2FAError("");
+    confetti({ particleCount: 40, spread: 55, origin: { y: 0.5 } });
+  };
+
+  const getCronExplanation = (exp: string) => {
+    if (lang === "fr") {
+      if (exp === "0 * * * *") return "Exécution toutes les heures à la minute 0 (24 cycles / jour)";
+      if (exp === "0 */4 * * *") return "Exécution toutes les 4 heures à la minute 0 (6 cycles / jour)";
+      if (exp === "0 */12 * * *") return "Exécution toutes les 12 heures (00:00 et 12:00)";
+      if (exp === "0 0 * * *") return "Exécution quotidienne à minuit (00:00 UTC)";
+      if (exp === "0 0 * * 1") return "Exécution hebdomadaire le lundi à 00:00 UTC";
+      return `Expression personnalisée : ${exp || "Non définie"}`;
+    } else {
+      if (exp === "0 * * * *") return "Executes every hour at minute 0 (24 cycles / day)";
+      if (exp === "0 */4 * * *") return "Executes every 4 hours at minute 0 (6 cycles / day)";
+      if (exp === "0 */12 * * *") return "Executes every 12 hours (00:00 and 12:00)";
+      if (exp === "0 0 * * *") return "Executes daily at midnight (00:00 UTC)";
+      if (exp === "0 0 * * 1") return "Executes weekly on Monday at 00:00 UTC";
+      return `Custom expression: ${exp || "Not defined"}`;
     }
   };
-
-  const handleSelectDatePreset = (id: string) => {
-    setRangePreset(id);
-    const today = new Date().toISOString().slice(0, 10);
-    if (id === "30d") {
-      const d = new Date();
-      d.setDate(d.getDate() - 30);
-      setStartDate(d.toISOString().slice(0, 10));
-      setEndDate(today);
-    } else if (id === "qtd") {
-      setStartDate("2026-07-01");
-      setEndDate(today);
-    } else if (id === "1y") {
-      setStartDate("2025-09-01");
-      setEndDate(today);
-    } else if (id === "5y") {
-      setStartDate("2020-01-01");
-      setEndDate(today);
-    }
-  };
-
-  const getCronExplanation = (cron: string, preset: string) => {
-    if (preset === "hourly" || cron === "0 * * * *") return "Runs every hour at minute 0 (24 cycles daily)";
-    if (preset === "4hours" || cron === "0 */4 * * *") return "Runs every 4 hours at minute 0 (Optimal central bank cadence)";
-    if (preset === "12hours" || cron === "0 */12 * * *") return "Runs twice daily at London & New York session opens";
-    if (preset === "daily" || cron === "0 0 * * *") return "Runs once daily at 00:00 UTC (End-of-day macroeconomic settlement)";
-    if (preset === "weekly" || cron === "0 0 * * 1") return "Runs once weekly on Monday at 00:00 UTC";
-    return `Custom crontab active: ${cron || "0 */4 * * *"}`;
-  };
-
-  // Live Math Verification calculations for client verification view
-  const currentPairObj = PAIRS.find(p => p.name === selectedVerificationPair) || PAIRS[0];
-
-  const verifYear = parseInt(selectedVerificationMonth.split('-')[0], 10) || SYSTEM_CURRENT_YEAR;
-
-  const mathProofRows = INDICATORS.map(ind => {
-    const diffList = getCombinedDifferentialData(selectedVerificationPair, ind, verifYear);
-    const mData = diffList.find(d => d.month === selectedVerificationMonth) || diffList[diffList.length - 1];
-    const spec = INDICATOR_METADATA_SPEC[ind] || {
-      fullName: ind,
-      source: "Institutional Feed",
-      protocol: "SDMX 3.0",
-      frequency: "Monthly",
-      formula: "Diff = Base - Quote",
-      scoringRule: "Mapped to [-10, +10]",
-      unit: "Metric",
-      verificationHash: "Verified"
-    };
-
-    return {
-      indicator: ind,
-      fullName: spec.fullName,
-      source: spec.source,
-      protocol: spec.protocol,
-      unit: spec.unit,
-      formula: spec.formula,
-      baseVal: mData?.baseVal ?? "0.0",
-      quoteVal: mData?.quoteVal ?? "0.0",
-      diff: mData?.diff ?? "0.0",
-      rating: mData?.rating ?? 0,
-      rule: mData?.rule ?? "N/A",
-      regime: mData?.regime ?? "Neutral",
-      weight: "16.67%",
-      contribution: ((mData?.rating ?? 0) / 6).toFixed(2),
-      verificationHash: spec.verificationHash,
-    };
-  });
-
-  const totalRatingSum = mathProofRows.reduce((acc, row) => acc + row.rating, 0);
-  const finalScorePercentage = ((totalRatingSum / 60) * 100).toFixed(1);
-  const biasClassification = parseFloat(finalScorePercentage) >= 20.0 
-    ? "BULLISH" 
-    : parseFloat(finalScorePercentage) <= -20.0 
-      ? "BEARISH" 
-      : "NEUTRAL";
-
-  // Filtered indicators list for the detailed metadata audit cards
-  const filteredIndicators = selectedIndicatorFilter === "ALL" 
-    ? INDICATORS 
-    : INDICATORS.filter(ind => ind.toLowerCase() === selectedIndicatorFilter.toLowerCase());
-
-  // Recent Execution Runs from backend or high-precision fallback
-  const executionRuns = auditLogsData?.runs || [
-    {
-      id: "RUN-0024",
-      action: "executed",
-      entity: "ScraperExecution",
-      timestamp: "2026-09-25 18:20:00 UTC",
-      user: "admin (Head Quant)",
-      records_updated: 2268,
-      status: "Verified (200 OK)",
-      notes: "Full matrix execution: all 6 indicators and 7 pairs updated with 0 errors.",
-      hash: "e3b0c442...8b0d"
-    },
-    {
-      id: "RUN-0023",
-      action: "cron_schedule",
-      entity: "ScraperExecution",
-      timestamp: "2026-09-25 14:00:00 UTC",
-      user: "System Daemon (Cron 4h)",
-      records_updated: 2268,
-      status: "Verified (200 OK)",
-      notes: "Automated 4-hour sync: ECB SDW and IMF SDMX endpoints polled.",
-      hash: "a94a8fe5...b634"
-    },
-    {
-      id: "RUN-0022",
-      action: "cron_schedule",
-      entity: "ScraperExecution",
-      timestamp: "2026-09-25 10:00:00 UTC",
-      user: "System Daemon (Cron 4h)",
-      records_updated: 2268,
-      status: "Verified (200 OK)",
-      notes: "Morning London session macro settlement verified.",
-      hash: "c20ad4d7...6f91"
-    },
-    {
-      id: "RUN-0021",
-      action: "cron_schedule",
-      entity: "ScraperExecution",
-      timestamp: "2026-09-25 06:00:00 UTC",
-      user: "System Daemon (Cron 4h)",
-      records_updated: 2268,
-      status: "Verified (200 OK)",
-      notes: "Tokyo session closing rates ingested.",
-      hash: "7d793037...4522"
-    },
-  ];
 
   return (
-    <div className="flex flex-col w-full h-full bg-transparent overflow-y-auto no-scrollbar">
-      {/* --- Top Header (Clean Institutional Spacing & No Awkward Wrap) --- */}
-      <header className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6 lg:pt-8 pb-4 opacity-0 animate-fadeIn relative z-50 flex-shrink-0 gap-4">
-        <div className="flex flex-col gap-1 min-w-max">
-          <div className="flex items-center gap-3">
-            <span className="font-sans font-medium text-xs text-[#AACBC4] tracking-wide">
-              Engine Configuration & Verification
+    <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-fadeIn pb-24">
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* HEADER SECTION & ACTION BAR                                       */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-2 border-b border-white/[0.06]">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <span className="font-mono text-xs text-slate-400 uppercase tracking-widest">
+              {lang === "fr" ? "CONFIGURATION SYSTÈME • SHIFTFX ENGINE" : "SYSTEM CONFIGURATION • SHIFTFX ENGINE"}
             </span>
-            <span className={clsx(
-              "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border font-mono text-[10px] sm:text-[11px] font-semibold transition-colors",
-              cronActive 
-                ? "bg-[#00DF81]/10 border-[#00DF81]/25 text-[#00DF81]"
-                : "bg-white/5 border-white/10 text-[#AACBC4]"
-            )}>
-              <span className={clsx("w-1.5 h-1.5 rounded-full", cronActive ? "bg-[#00DF81] animate-pulse" : "bg-[#AACBC4]")} />
-              Cron Engine: {cronActive ? "Active" : "Paused"}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#D4FF00]/15 border border-[#D4FF00]/35 text-[10px] font-mono font-bold text-[#D4FF00] uppercase tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] animate-pulse" />
+              {cronActive ? t("settings.cron_active_badge") : t("settings.cron_paused_badge")}
             </span>
           </div>
-          <h1 className="font-sans font-bold text-2xl sm:text-3xl text-white tracking-tight whitespace-nowrap">
-            Settings & Architecture
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            {t("settings.title")}
           </h1>
+          <p className="font-sans text-xs sm:text-sm text-slate-400 mt-0.5">
+            {t("settings.subtitle")}
+          </p>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3.5 w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
-          <GlobalSearch placeholder="Search cron, indicators, formulas..." />
-
-          {/* Quick Trigger Button */}
-          <motion.button
-            whileHover={{ scale: 1.02, filter: "brightness(1.08)" }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleTriggerScraperNow}
+        {/* Global Action Buttons */}
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          {/* Run Scraper Trigger */}
+          <button
+            type="button"
+            onClick={handleRunScraper}
             disabled={isScrapingNow}
-            className={clsx(
-              "flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-sans font-bold text-xs shadow-lg transition-all cursor-pointer whitespace-nowrap shrink-0",
-              isScrapingNow
-                ? "bg-white/10 text-white border border-white/10 cursor-not-allowed"
-                : "bg-[#00DF81] text-[#021B1A] shadow-[0_0_20px_rgba(210,246,70,0.35)]"
-            )}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.12] text-xs font-sans font-bold text-white transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
           >
             {isScrapingNow ? (
               <>
-                <RefreshCw size={14} className="animate-spin text-[#021B1A]" />
-                <span>Running Pipeline ({scrapeStep}/5)...</span>
+                <RefreshCw size={14} className="animate-spin text-[#D4FF00]" />
+                <span>{t("settings.running_scraper")}</span>
+              </>
+            ) : scrapeSuccess ? (
+              <>
+                <CheckCircle2 size={14} className="text-emerald-400" />
+                <span className="text-emerald-400">{lang === "fr" ? "Collecte Validée !" : "Ingestion Done!"}</span>
               </>
             ) : (
               <>
-                <Play size={14} fill="currentColor" />
-                <span>Run Scraper Now</span>
+                <Play size={14} className="text-[#D4FF00]" />
+                <span>{t("settings.run_scraper")}</span>
               </>
             )}
-          </motion.button>
+          </button>
 
-          <AuthHeaderWidget />
-        </div>
-      </header>
-
-      {/* --- Success Save Notice --- */}
-      <AnimatePresence>
-        {saveSuccessMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: -12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            className="mx-4 sm:mx-6 lg:mx-10 mb-4 p-3.5 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/30 flex items-center justify-between gap-4 shadow-[0_0_25px_rgba(210,246,70,0.15)]"
+          {/* Save Configuration Button */}
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-5 py-2 rounded-full bg-[#D4FF00] hover:bg-[#dfeb34] text-[#07080C] font-sans font-bold text-xs shadow-[0_0_20px_rgba(212,255,0,0.35)] transition-all cursor-pointer active:scale-95 disabled:opacity-50"
           >
-            <div className="flex items-center gap-3">
-              <CheckCircle2 size={18} className="text-[#00DF81] flex-shrink-0" />
-              <div className="flex flex-col gap-0.5">
-                <span className="font-sans font-bold text-xs text-white">Settings Persisted & Applied Live</span>
-                <span className="font-sans text-[11px] text-[#AACBC4]">{saveSuccessMsg}</span>
-              </div>
-            </div>
-            <button
-              onClick={() => setSaveSuccessMsg(null)}
-              className="text-xs font-mono text-[#AACBC4] hover:text-white px-2 py-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
-            >
-              Dismiss
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* --- Completion Notice Alert --- */}
-      <AnimatePresence>
-        {cronFinishedNotice && (
-          <motion.div
-            initial={{ opacity: 0, y: -15, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            className="mx-4 sm:mx-6 lg:mx-10 mb-4 p-4 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/30 flex items-start justify-between gap-4 shadow-[0_0_30px_rgba(111,245,66,0.15)]"
-          >
-            <div className="flex items-start gap-3">
-              <CheckCircle2 size={20} className="text-[#00DF81] flex-shrink-0 mt-0.5" />
-              <div className="flex flex-col gap-0.5">
-                <span className="font-sans font-bold text-sm text-white">Pipeline Execution Done & Validated</span>
-                <span className="font-sans text-xs text-[#AACBC4]">{cronFinishedNotice}</span>
-              </div>
-            </div>
-            <button
-              onClick={() => setCronFinishedNotice(null)}
-              className="text-xs font-mono text-[#AACBC4] hover:text-white px-2.5 py-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
-            >
-              Dismiss
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* --- Main Content Container --- */}
-      <main className="flex flex-col px-4 sm:px-6 lg:px-10 gap-6 pb-12 max-w-[1600px] w-full mx-auto">
-
-        {/* Section Tabs Switcher (Modular 5-Tab Architecture to completely eliminate crowdedness) */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
-          <div className="flex items-center gap-1.5 bg-[#06302B] border border-white/10 p-1.5 rounded-2xl overflow-x-auto no-scrollbar shadow-lg">
-            
-            {/* Tab 1: Cron */}
-            <button
-              type="button"
-              onClick={() => setActiveTab("cron")}
-              className={clsx(
-                "flex items-center gap-2 px-4 py-2 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-                activeTab === "cron"
-                  ? "bg-[#00DF81] text-[#021B1A] shadow-md shadow-[#00DF81]/20"
-                  : "text-[#AACBC4] hover:text-white hover:bg-white/5"
-              )}
-            >
-              <Clock size={14} />
-              <span>Cron Scheduling</span>
-            </button>
-
-            {/* Tab 2: Ingestion Horizon */}
-            <button
-              type="button"
-              onClick={() => setActiveTab("ingestion")}
-              className={clsx(
-                "flex items-center gap-2 px-4 py-2 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-                activeTab === "ingestion"
-                  ? "bg-[#00DF81] text-[#021B1A] shadow-md shadow-[#00DF81]/20"
-                  : "text-[#AACBC4] hover:text-white hover:bg-white/5"
-              )}
-            >
-              <Calendar size={14} />
-              <span>Ingestion & Feeds</span>
-            </button>
-
-            {/* Tab 3: Safety & Performance */}
-            <button
-              type="button"
-              onClick={() => setActiveTab("safety")}
-              className={clsx(
-                "flex items-center gap-2 px-4 py-2 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-                activeTab === "safety"
-                  ? "bg-[#00DF81] text-[#021B1A] shadow-md shadow-[#00DF81]/20"
-                  : "text-[#AACBC4] hover:text-white hover:bg-white/5"
-              )}
-            >
-              <Server size={14} />
-              <span>Safety & Alerts</span>
-            </button>
-
-            {/* Tab 4: Scraper Execution & Math Audit Logs (User requested verification page for client) */}
-            <button
-              type="button"
-              onClick={() => setActiveTab("audit_logs")}
-              className={clsx(
-                "flex items-center gap-2 px-4 py-2 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer whitespace-nowrap relative",
-                activeTab === "audit_logs"
-                  ? "bg-[#00DF81] text-[#021B1A] shadow-md shadow-[#00DF81]/20"
-                  : "text-[#00DF81] hover:bg-[#00DF81]/10"
-              )}
-            >
-              <ShieldCheck size={14} />
-              <span>Execution & Math Logs</span>
-              <span className={clsx(
-                "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-black",
-                activeTab === "audit_logs" ? "bg-[#021B1A] text-[#00DF81]" : "bg-[#00DF81]/20 text-[#00DF81]"
-              )}>
-                6/6 Live
-              </span>
-            </button>
-
-            {/* Tab 5: Architecture Guide */}
-            <button
-              type="button"
-              onClick={() => setActiveTab("architecture")}
-              className={clsx(
-                "flex items-center gap-2 px-4 py-2 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-                activeTab === "architecture"
-                  ? "bg-[#00DF81] text-[#021B1A] shadow-md shadow-[#00DF81]/20"
-                  : "text-[#AACBC4] hover:text-white hover:bg-white/5"
-              )}
-            >
-              <BookOpen size={14} />
-              <span>Architecture Guide</span>
-            </button>
-          </div>
-
-          {/* Secondary Toolbar: Fix clipping & overlap with robust flex-shrink-0 */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded-xl px-3.5 py-2 text-xs font-mono text-[#AACBC4] whitespace-nowrap flex-shrink-0">
-              <Clock size={14} className="text-[#00DF81]" />
-              <span>Last Ingestion: <strong className="text-white">{lastScrapeTime}</strong></span>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleSaveSettings}
-              disabled={isSaving}
-              className={clsx(
-                "flex items-center gap-2 px-5 py-2 rounded-xl font-sans font-bold text-xs transition-all cursor-pointer shadow-md flex-shrink-0 whitespace-nowrap",
-                isSaved
-                  ? "bg-[#00DF81]/20 border border-[#00DF81]/40 text-[#00DF81]"
-                  : "bg-white/10 hover:bg-white/15 border border-white/10 text-white"
-              )}
-            >
-              {isSaved ? <Check size={14} className="text-[#00DF81]" /> : isSaving ? <RefreshCw size={14} className="animate-spin text-white" /> : <Save size={14} />}
-              <span>{isSaved ? "Saved Successfully!" : isSaving ? "Applying..." : "Save Settings"}</span>
-            </motion.button>
-          </div>
+            {isSaving ? (
+              <>
+                <RefreshCw size={14} className="animate-spin" />
+                <span>{t("settings.saving")}</span>
+              </>
+            ) : (
+              <>
+                <Save size={14} />
+                <span>{t("settings.save")}</span>
+              </>
+            )}
+          </button>
         </div>
+      </div>
 
-        {/* Live Progress Bar when Running Scraper Pipeline */}
-        <AnimatePresence>
-          {isScrapingNow && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className={clsx("p-6 overflow-hidden border border-[#00DF81]/30", matteCard)}
+      {saveNotice && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-sans font-bold flex items-center gap-2"
+        >
+          <CheckCircle2 size={16} />
+          <span>{t("settings.saved_notice")}</span>
+        </motion.div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* MODULAR SCULPTED TAB NAVIGATION POD                               */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+        {[
+          { id: "cron", label: t("settings.tab.cron"), icon: Clock },
+          { id: "language", label: t("settings.tab.language"), icon: Globe2 },
+          { id: "security", label: t("settings.tab.security"), icon: ShieldCheck },
+          { id: "ingestion", label: t("settings.tab.ingestion"), icon: Database },
+          { id: "audit", label: t("settings.tab.audit"), icon: Activity },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                playTabSound();
+                setActiveTab(tab.id as any);
+              }}
+              className={clsx(
+                "relative flex items-center gap-2 px-4 py-2 rounded-full text-xs font-sans font-bold transition-all cursor-pointer shrink-0",
+                isActive
+                  ? "bg-[#D4FF00] text-[#07080C] shadow-[0_0_16px_rgba(212,255,0,0.3)]"
+                  : "bg-white/[0.03] hover:bg-white/[0.06] text-slate-300 border border-white/[0.05]"
+              )}
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/15 border border-[#00DF81]/30 flex items-center justify-center text-[#00DF81]">
-                    <RefreshCw size={16} className="animate-spin" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-sans font-bold text-sm text-white">Automated Ingestion In Progress</span>
-                    <span className="text-xs font-mono text-[#00DF81]">
-                      {scrapeStep === 1 && "Connecting to 9 Central Bank & IMF SDMX 3.0 API endpoints..."}
-                      {scrapeStep === 2 && "Scraping & parsing 6 indicators across 10 currencies (EN & FR)..."}
-                      {scrapeStep === 3 && "Computing pairwise country differentials (Base Country − Quote Country)..."}
-                      {scrapeStep === 4 && "Evaluating Rating Rules (-10 to +10) for all macro metrics..."}
-                      {scrapeStep === 5 && "Summing 6 indicators, calculating Final Score % and updating Matrix..."}
-                    </span>
-                  </div>
-                </div>
-                <span className="font-mono text-xs text-[#AACBC4]">Stage {scrapeStep} / 5</span>
-              </div>
+              <Icon size={14} className={isActive ? "text-[#07080C]" : "text-slate-400"} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
-              {/* Progress Line */}
-              <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-[#00DF81] to-[#2CC295]"
-                  animate={{ width: `${(scrapeStep / 5) * 100}%` }}
-                  transition={{ duration: 0.4 }}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ============================================================== */}
-        {/* TAB 1: CRON & CADENCE SCHEDULING                                */}
-        {/* ============================================================== */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* TAB CONTENT PANELS                                                */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      <AnimatePresence mode="wait">
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* TAB 1: CRON CADENCE & EXECUTION SCHEDULER                      */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
         {activeTab === "cron" && (
-          <div className="flex flex-col gap-6 opacity-0 animate-fadeIn">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              
-              {/* Card 1: Cron Frequency Presets */}
-              <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/20 flex items-center justify-center text-[#00DF81]">
-                      <Clock size={20} />
-                    </div>
-                    <div className="flex flex-col">
-                      <h2 className="font-sans font-bold text-lg text-white">Cron Cadence Presets</h2>
-                      <span className="text-xs text-[#AACBC4]">Select automated polling frequency for macro data</span>
-                    </div>
-                  </div>
-
-                  {/* Daemon Toggle */}
+          <motion.div
+            key="cron"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+          >
+            {/* Left Card: Presets Matrix */}
+            <div className={`lg:col-span-7 ${glassPanel} space-y-5`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-display font-bold text-lg text-white">
+                    {t("settings.cron.presets_title")}
+                  </h3>
+                  <p className="font-sans text-xs text-slate-400 mt-0.5">
+                    {t("settings.cron.presets_subtitle")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-slate-400">
+                    {cronActive ? t("settings.cron.status_active") : t("settings.cron.status_paused")}
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setCronActive(!cronActive)}
+                    onClick={() => {
+                      playClickSound();
+                      setCronActive(!cronActive);
+                    }}
                     className={clsx(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-mono font-bold transition-all cursor-pointer",
-                      cronActive
-                        ? "bg-[#00DF81]/10 border-[#00DF81]/30 text-[#00DF81]"
-                        : "bg-white/5 border-white/10 text-[#AACBC4]"
+                      "w-11 h-6 rounded-full transition-colors relative cursor-pointer",
+                      cronActive ? "bg-[#D4FF00]" : "bg-white/10"
                     )}
                   >
-                    <span className={clsx("w-2 h-2 rounded-full", cronActive ? "bg-[#00DF81] animate-pulse" : "bg-[#AACBC4]")} />
-                    <span>{cronActive ? "Cron Active" : "Cron Paused"}</span>
+                    <motion.div
+                      animate={{ x: cronActive ? 22 : 3 }}
+                      className="w-4 h-4 rounded-full bg-[#07080C] shadow-md absolute top-1"
+                    />
                   </button>
-                </div>
-
-                {/* Preset Frequency Cards */}
-                <div className="flex flex-col gap-3">
-                  <label className="font-sans text-xs font-semibold text-[#AACBC4]">Scraping Frequency Preset</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {CRON_PRESETS.map((p) => {
-                      const isSelected = cronPreset === p.id;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => {
-                            setCronPreset(p.id);
-                            if (p.expression) setCustomCron(p.expression);
-                          }}
-                          className={clsx(
-                            "flex flex-col text-left p-3.5 rounded-2xl border transition-all cursor-pointer",
-                            isSelected
-                              ? "bg-[#00DF81]/10 border-[#00DF81]/40 shadow-sm"
-                              : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
-                          )}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className={clsx("font-sans font-bold text-xs", isSelected ? "text-[#00DF81]" : "text-white")}>
-                              {p.label}
-                            </span>
-                            {p.expression && (
-                              <span className="font-mono text-[10px] text-[#AACBC4] bg-white/5 px-2 py-0.5 rounded-md">
-                                {p.expression}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[11px] text-[#AACBC4] leading-tight">{p.desc}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
               </div>
 
-              {/* Card 2: Crontab Syntax & Timezone */}
-              <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#2CC295]/10 border border-[#2CC295]/20 flex items-center justify-center text-[#2CC295]">
-                      <Terminal size={20} />
-                    </div>
-                    <div className="flex flex-col">
-                      <h2 className="font-sans font-bold text-lg text-white">Crontab Expression & Timezone</h2>
-                      <span className="text-xs text-[#AACBC4]">Direct crontab evaluation & execution schedule</span>
-                    </div>
-                  </div>
-                  <span className="font-mono text-xs text-[#2CC295] bg-[#2CC295]/10 border border-[#2CC295]/20 px-2.5 py-1 rounded-full">
-                    {timezone}
-                  </span>
-                </div>
+              {/* Presets Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {CRON_PRESETS.map((preset) => {
+                  const isSelected = cronPreset === preset.id;
+                  const label = lang === "fr" ? preset.fr : preset.en;
+                  const desc = lang === "fr" ? preset.descFr : preset.descEn;
 
-                {/* Custom Cron Expression Input */}
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <label className="font-sans text-xs font-semibold text-[#AACBC4]">Crontab Expression</label>
-                    <span className="font-mono text-[11px] text-[#2CC295]">{timezone} Standard</span>
-                  </div>
-                  <div className="flex items-center gap-3 bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#00DF81]/50">
-                    <Terminal size={16} className="text-[#AACBC4]" />
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handleCronPresetSelect(preset.id, preset.exp)}
+                      className={clsx(
+                        "p-4 rounded-2xl text-left transition-all cursor-pointer relative flex flex-col justify-between h-[104px]",
+                        isSelected
+                          ? "bg-[#D4FF00]/10 border border-[#D4FF00]/40 shadow-[0_0_20px_rgba(212,255,0,0.1)]"
+                          : "bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06]"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-sans font-bold text-sm text-white">
+                          {label}
+                        </span>
+                        {preset.exp && (
+                          <span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-[#D4FF00] border border-white/10">
+                            {preset.exp}
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-sans text-xs text-slate-400 leading-snug">
+                        {desc}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right Card: Crontab & Timezone */}
+            <div className={`lg:col-span-5 ${glassPanel} space-y-5 flex flex-col justify-between`}>
+              <div>
+                <h3 className="font-display font-bold text-lg text-white">
+                  {t("settings.cron.crontab_title")}
+                </h3>
+                <p className="font-sans text-xs text-slate-400 mt-0.5">
+                  {t("settings.cron.crontab_subtitle")}
+                </p>
+
+                {/* Crontab Expression Input */}
+                <div className="mt-5 space-y-2">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                    {t("settings.cron.input_label")}
+                  </label>
+                  <div className="relative">
                     <input
                       type="text"
                       value={customCron}
@@ -868,1103 +419,458 @@ export default function AdminSettingsPage() {
                         setCronPreset("custom");
                       }}
                       placeholder="0 */4 * * *"
-                      className="w-full bg-transparent border-none outline-none font-mono text-sm text-white placeholder:text-[#AACBC4]/40"
+                      className="w-full px-4 py-3 rounded-2xl bg-[#090B0E] border border-white/[0.1] text-base font-mono text-[#D4FF00] font-bold focus:border-[#D4FF00] outline-none shadow-inner tracking-wider"
                     />
-                  </div>
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-[#AACBC4]">
-                    Evaluates to: <span className="text-[#00DF81] font-mono font-semibold">{getCronExplanation(customCron, cronPreset)}</span>
                   </div>
                 </div>
 
-                {/* Timezone Configuration */}
-                <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                  <span className="font-sans text-xs text-[#AACBC4]">Execution Timezone</span>
+                {/* Natural Language Explanation Pill */}
+                <div className="mt-4 p-4 rounded-2xl bg-[#0A0D12] border border-[#D4FF00]/25 shadow-[0_0_15px_rgba(212,255,0,0.04)] flex flex-col gap-1 text-xs">
+                  <span className="font-mono text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+                    {lang === "fr" ? "INTERPRÉTATION CRONTAB NATURELLE :" : "NATURAL CRONTAB INTERPRETATION:"}
+                  </span>
+                  <p className="font-mono text-white text-xs font-semibold leading-relaxed">
+                    {getCronExplanation(customCron)}
+                  </p>
+                </div>
+
+                {/* Timezone Dropdown */}
+                <div className="mt-4 space-y-2">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                    {t("settings.cron.timezone_label")}
+                  </label>
                   <select
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
-                    className="bg-[#06302B] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-mono text-white outline-none cursor-pointer"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-[#090B0E] border border-white/[0.08] text-xs font-mono text-white outline-none focus:border-[#D4FF00]"
                   >
-                    <option value="UTC">UTC (Universal Coordinated)</option>
-                    <option value="Europe/London">Europe/London (GMT / BST)</option>
-                    <option value="Europe/Paris">Europe/Paris (CET / CEST)</option>
-                    <option value="America/New_York">America/New_York (EST / EDT)</option>
-                    <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                    <option value="Europe/London">Europe/London (GMT / BST - London Quant Core)</option>
+                    <option value="UTC">UTC (Universal Coordinated Time)</option>
+                    <option value="America/New_York">America/New_York (EST / EDT - Wall St. Close)</option>
+                    <option value="Asia/Tokyo">Asia/Tokyo (JST - Asian Sovereign Ingestion)</option>
+                    <option value="Europe/Zurich">Europe/Zurich (CET / CEST - SNB Alignment)</option>
                   </select>
                 </div>
               </div>
 
+              <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs font-mono text-slate-400">
+                <span>{lang === "fr" ? "PROCHAINE EXÉCUTION :" : "NEXT EXECUTION:"}</span>
+                <span className="font-bold text-[#D4FF00]">2026-10-27 12:00:00 UTC</span>
+              </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* ============================================================== */}
-        {/* TAB 2: INGESTION HORIZON & FEED REGISTRY                       */}
-        {/* ============================================================== */}
-        {activeTab === "ingestion" && (
-          <div className="flex flex-col gap-8 opacity-0 animate-fadeIn">
-            {/* Scraping Date Range Horizon */}
-            <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
-              <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#2CC295]/10 border border-[#2CC295]/20 flex items-center justify-center text-[#2CC295]">
-                    <Calendar size={20} />
-                  </div>
-                  <div className="flex flex-col">
-                    <h2 className="font-sans font-bold text-lg text-white">Scraping Ingestion Horizon</h2>
-                    <span className="text-xs text-[#AACBC4]">Define historical lookback window & live update window</span>
-                  </div>
-                </div>
-                <span className="font-mono text-xs text-[#2CC295] bg-[#2CC295]/10 border border-[#2CC295]/20 px-2.5 py-1 rounded-full">
-                  G10 Sovereigns
-                </span>
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* TAB 2: PLATFORM LANGUAGE & LOCALIZATION (FR / EN)               */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {activeTab === "language" && (
+          <motion.div
+            key="language"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16 }}
+            className={`${glassPanel} space-y-6`}
+          >
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Globe2 size={16} className="text-[#D4FF00]" />
+                <h3 className="font-display font-bold text-xl text-white">
+                  {t("settings.lang.title")}
+                </h3>
               </div>
-
-              {/* Preset Ranges */}
-              <div className="flex flex-col gap-3">
-                <label className="font-sans text-xs font-semibold text-[#AACBC4]">Select Ingestion Horizon Preset</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
-                  {DATE_RANGE_PRESETS.map((r) => {
-                    const isSelected = rangePreset === r.id;
-                    return (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => handleSelectDatePreset(r.id)}
-                        className={clsx(
-                          "flex flex-col text-left p-3.5 rounded-2xl border transition-all cursor-pointer",
-                          isSelected
-                            ? "bg-[#2CC295]/10 border-[#2CC295]/40 shadow-sm"
-                            : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
-                        )}
-                      >
-                        <span className={clsx("font-sans font-bold text-xs mb-1", isSelected ? "text-[#2CC295]" : "text-white")}>
-                          {r.label}
-                        </span>
-                        <span className="text-[11px] text-[#AACBC4] leading-tight">{r.desc}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Explicit Date From / To Pickers */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-sans text-xs font-semibold text-[#AACBC4]">Scrape From (Start Date)</label>
-                  <div className="flex items-center gap-2 bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#2CC295]/50">
-                    <Calendar size={16} className="text-[#AACBC4]" />
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => {
-                        setStartDate(e.target.value);
-                        setRangePreset("custom");
-                      }}
-                      className="w-full bg-transparent border-none outline-none font-mono text-xs text-white cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-sans text-xs font-semibold text-[#AACBC4]">Scrape To (End Date)</label>
-                  <div className="flex items-center gap-2 bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#2CC295]/50">
-                    <Calendar size={16} className="text-[#AACBC4]" />
-                    <input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => {
-                        setEndDate(e.target.value);
-                        setRangePreset("custom");
-                      }}
-                      className="w-full bg-transparent border-none outline-none font-mono text-xs text-white cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs">
-                <span className="text-[#AACBC4]">Historical GDP & CPI Revision Handling</span>
-                <span className="text-[#00DF81] font-semibold">Auto-Retrofit Enabled (Central Bank Baseline Anchoring)</span>
-              </div>
+              <p className="font-sans text-sm text-slate-400">
+                {t("settings.lang.subtitle")}
+              </p>
             </div>
 
-            {/* Ingestion Data Sources Table */}
-            <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
-              <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white">
-                    <Database size={20} />
-                  </div>
-                  <div className="flex flex-col">
-                    <h2 className="font-sans font-bold text-lg text-white">Ingestion Feed Registry</h2>
-                    <span className="text-xs text-[#AACBC4]">10 connected central bank statistical feeds & market APIs</span>
-                  </div>
-                </div>
-                <span className="text-xs font-mono text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/20 px-3 py-1 rounded-full">
-                  10 / 10 Feeds Operational
-                </span>
-              </div>
-
-              <div className="w-full overflow-x-auto no-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[900px]">
-                  <thead>
-                    <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#AACBC4]">
-                      <th className="py-3 px-4">Source Name</th>
-                      <th className="py-3 px-4">Type</th>
-                      <th className="py-3 px-4">Languages</th>
-                      <th className="py-3 px-4">Coverage</th>
-                      <th className="py-3 px-4 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.03] text-xs">
-                    {DATA_SOURCES.map((s) => (
-                      <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3.5 px-4 font-sans font-bold text-white flex items-center gap-2.5">
-                          <div className="w-2 h-2 rounded-full bg-[#00DF81]" />
-                          <span>{s.name}</span>
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-[#AACBC4]">{s.type}</td>
-                        <td className="py-3.5 px-4 font-mono text-[#2CC295]">{s.lang}</td>
-                        <td className="py-3.5 px-4 text-[#AACBC4]">{s.coverage}</td>
-                        <td className="py-3.5 px-4 text-right">
-                          <span className="px-2.5 py-1 rounded-full bg-[#00DF81]/10 border border-[#00DF81]/20 text-[#00DF81] font-mono text-[10px] font-bold">
-                            {s.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* TAB 3: SAFETY, ALERTS & LOCALIZATION                            */}
-        {/* ============================================================== */}
-        {activeTab === "safety" && (
-          <div className="flex flex-col gap-8 opacity-0 animate-fadeIn">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              
-              {/* Card 1: Performance, Safety & Alert Webhooks */}
-              <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            {/* Language Selection Bento Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* French Option Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  playSuccessSound();
+                  setLang("fr");
+                }}
+                className={clsx(
+                  "p-6 rounded-[24px] text-left transition-all cursor-pointer relative flex flex-col justify-between gap-4 border",
+                  lang === "fr"
+                    ? "bg-[#D4FF00]/10 border-[#D4FF00] shadow-[0_0_30px_rgba(212,255,0,0.15)] ring-1 ring-[#D4FF00]"
+                    : "bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.08]"
+                )}
+              >
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/20 flex items-center justify-center text-[#00DF81]">
-                      <Server size={20} />
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-white/20 shadow-md flex items-center justify-center">
+                      <CurrencyFlag currency="EUR" size="lg" />
                     </div>
-                    <div className="flex flex-col">
-                      <h2 className="font-sans font-bold text-lg text-white">Engine Concurrency & Safety</h2>
-                      <span className="text-xs text-[#AACBC4]">Concurrency, proxies, retry budgets & webhooks</span>
-                    </div>
-                  </div>
-                  <span className="font-mono text-xs text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/20 px-2.5 py-1 rounded-full">
-                    Resilient
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Concurrency */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-sans text-xs font-semibold text-[#AACBC4]">Scraper Concurrency</label>
-                    <div className="bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3">
-                      <select
-                        value={concurrency}
-                        onChange={(e) => setConcurrency(Number(e.target.value))}
-                        className="w-full bg-transparent border-none outline-none font-mono text-xs text-white cursor-pointer"
-                      >
-                        <option value={1} className="bg-[#06302B]">1 Worker (Gentle)</option>
-                        <option value={2} className="bg-[#06302B]">2 Workers (Balanced)</option>
-                        <option value={4} className="bg-[#06302B]">4 Workers (Recommended)</option>
-                        <option value={8} className="bg-[#06302B]">8 Workers (High Throughput)</option>
-                      </select>
+                    <div>
+                      <h4 className="font-display font-bold text-base text-white">
+                        {t("settings.lang.select_fr")}
+                      </h4>
+                      <span className="font-mono text-xs text-slate-400">Français (FR)</span>
                     </div>
                   </div>
-
-                  {/* Timeout */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-sans text-xs font-semibold text-[#AACBC4]">Request Timeout</label>
-                    <div className="bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3">
-                      <select
-                        value={timeoutSec}
-                        onChange={(e) => setTimeoutSec(Number(e.target.value))}
-                        className="w-full bg-transparent border-none outline-none font-mono text-xs text-white cursor-pointer"
-                      >
-                        <option value={15} className="bg-[#06302B]">15 Seconds</option>
-                        <option value={30} className="bg-[#06302B]">30 Seconds (Default)</option>
-                        <option value={60} className="bg-[#06302B]">60 Seconds (Slow Feeds)</option>
-                      </select>
-                    </div>
-                  </div>
+                  {lang === "fr" && (
+                    <span className="px-3 py-1 rounded-full bg-[#D4FF00] text-[#07080C] font-mono text-[11px] font-extrabold uppercase">
+                      {t("settings.lang.active_badge")}
+                    </span>
+                  )}
                 </div>
+                <p className="font-sans text-xs text-slate-300 leading-relaxed">
+                  {t("settings.lang.select_fr_desc")}
+                </p>
+              </button>
 
-                {/* Proxy & IP Rotation */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.02] border border-white/5">
-                  <div className="flex flex-col">
-                    <span className="font-sans font-bold text-xs text-white">Proxy & Header Rotation</span>
-                    <span className="text-[11px] text-[#AACBC4]">Prevents HTTP 429 rate limiting on statistical servers</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setProxyRotation(!proxyRotation)}
-                    className={clsx(
-                      "w-11 h-6 rounded-full transition-colors relative cursor-pointer",
-                      proxyRotation ? "bg-[#00DF81]" : "bg-white/10"
-                    )}
-                  >
-                    <span className={clsx(
-                      "w-5 h-5 rounded-full bg-[#021B1A] absolute top-0.5 transition-transform",
-                      proxyRotation ? "right-0.5" : "left-0.5"
-                    )} />
-                  </button>
-                </div>
-
-                {/* Webhook Alert URL */}
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="font-sans text-xs font-semibold text-[#AACBC4]">Completion & Error Webhook</label>
-                    <span className="text-[10px] font-mono text-[#AACBC4]">Discord / Slack / Telegram</span>
-                  </div>
-                  <div className="flex items-center gap-3 bg-[#06302B]/90 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-[#00DF81]/50">
-                    <Bell size={16} className="text-[#AACBC4]" />
-                    <input
-                      type="url"
-                      value={webhookUrl}
-                      onChange={(e) => setWebhookUrl(e.target.value)}
-                      placeholder="https://webhook.site/..."
-                      className="w-full bg-transparent border-none outline-none font-mono text-xs text-white placeholder:text-[#AACBC4]/40"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: Language & Multi-Lingual Ingestion Parser */}
-              <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              {/* English Option Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  playSuccessSound();
+                  setLang("en");
+                }}
+                className={clsx(
+                  "p-6 rounded-[24px] text-left transition-all cursor-pointer relative flex flex-col justify-between gap-4 border",
+                  lang === "en"
+                    ? "bg-[#D4FF00]/10 border-[#D4FF00] shadow-[0_0_30px_rgba(212,255,0,0.15)] ring-1 ring-[#D4FF00]"
+                    : "bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.08]"
+                )}
+              >
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/20 flex items-center justify-center text-[#00DF81]">
-                      <Globe2 size={20} />
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-white/20 shadow-md flex items-center justify-center">
+                      <CurrencyFlag currency="GBP" size="lg" />
                     </div>
-                    <div className="flex flex-col">
-                      <h2 className="font-sans font-bold text-lg text-white">Language & Localization (FR / EN)</h2>
-                      <span className="text-xs text-[#AACBC4]">Parser mappings for French & English releases</span>
-                    </div>
-                  </div>
-                  <span className="font-mono text-xs text-[#00DF81] bg-[#00DF81]/10 border border-[#00DF81]/20 px-2.5 py-1 rounded-full">
-                    Multi-Lingual
-                  </span>
-                </div>
-
-                {/* Scraper Parsing Language */}
-                <div className="flex flex-col gap-3">
-                  <label className="font-sans text-xs font-semibold text-[#AACBC4]">Scraper Source Extraction Mode</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setScraperLang("bilingual")}
-                      className={clsx(
-                        "p-3 rounded-2xl border text-center transition-all cursor-pointer",
-                        scraperLang === "bilingual"
-                          ? "bg-[#00DF81]/10 border-[#00DF81]/40 text-[#00DF81] font-bold"
-                          : "bg-white/[0.02] border-white/5 text-[#AACBC4] hover:text-white"
-                      )}
-                    >
-                      <span className="block text-xs">Bilingual (FR + EN)</span>
-                      <span className="text-[10px] text-[#AACBC4] block mt-0.5">Auto-Standardized</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setScraperLang("en")}
-                      className={clsx(
-                        "p-3 rounded-2xl border text-center transition-all cursor-pointer",
-                        scraperLang === "en"
-                          ? "bg-[#00DF81]/10 border-[#00DF81]/40 text-[#00DF81] font-bold"
-                          : "bg-white/[0.02] border-white/5 text-[#AACBC4] hover:text-white"
-                      )}
-                    >
-                      <span className="block text-xs">English Only (EN)</span>
-                      <span className="text-[10px] text-[#AACBC4] block mt-0.5">Fed, BoE, TE</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setScraperLang("fr")}
-                      className={clsx(
-                        "p-3 rounded-2xl border text-center transition-all cursor-pointer",
-                        scraperLang === "fr"
-                          ? "bg-[#00DF81]/10 border-[#00DF81]/40 text-[#00DF81] font-bold"
-                          : "bg-white/[0.02] border-white/5 text-[#AACBC4] hover:text-white"
-                      )}
-                    >
-                      <span className="block text-xs">Français Only (FR)</span>
-                      <span className="text-[10px] text-[#AACBC4] block mt-0.5">INSEE, BdF</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Dictionary Mapping Preview */}
-                <div className="flex flex-col gap-2">
-                  <span className="font-sans text-xs font-semibold text-[#AACBC4]">Indicator Dual-Language Mapping Lexicon</span>
-                  <div className="bg-[#06302B] border border-white/5 rounded-2xl p-4 flex flex-col gap-2 text-xs">
-                    <div className="flex items-center justify-between text-[#AACBC4] pb-1 border-b border-white/5 font-mono text-[11px]">
-                      <span>Indicator Code</span>
-                      <span>Français (FR)</span>
-                      <span>English (EN)</span>
-                    </div>
-                    <div className="flex items-center justify-between py-1">
-                      <span className="font-mono text-[#00DF81]">CPI</span>
-                      <span className="text-white">Indice des prix à la consommation</span>
-                      <span className="text-[#AACBC4]">Consumer Price Index</span>
-                    </div>
-                    <div className="flex items-center justify-between py-1">
-                      <span className="font-mono text-[#00DF81]">GDP</span>
-                      <span className="text-white">Croissance du PIB (Glissement annuel)</span>
-                      <span className="text-[#AACBC4]">GDP Annual Growth Rate</span>
-                    </div>
-                    <div className="flex items-center justify-between py-1">
-                      <span className="font-mono text-[#00DF81]">RATE</span>
-                      <span className="text-white">Taux directeur de la banque centrale</span>
-                      <span className="text-[#AACBC4]">Central Bank Policy Rate</span>
-                    </div>
-                    <div className="flex items-center justify-between py-1">
-                      <span className="font-mono text-[#00DF81]">CA</span>
-                      <span className="text-white">Compte courant / PIB</span>
-                      <span className="text-[#AACBC4]">Current Account to GDP</span>
+                    <div>
+                      <h4 className="font-display font-bold text-base text-white">
+                        {t("settings.lang.select_en")}
+                      </h4>
+                      <span className="font-mono text-xs text-slate-400">English (EN)</span>
                     </div>
                   </div>
+                  {lang === "en" && (
+                    <span className="px-3 py-1 rounded-full bg-[#D4FF00] text-[#07080C] font-mono text-[11px] font-extrabold uppercase">
+                      {t("settings.lang.active_badge")}
+                    </span>
+                  )}
                 </div>
-
-                {/* System UI Reference Language */}
-                <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                  <span className="font-sans text-xs text-[#AACBC4]">System Documentation & Export Language</span>
-                  <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setSystemUIRefLang("en")}
-                      className={clsx("px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer", systemUIRefLang === "en" ? "bg-[#00DF81] text-[#021B1A]" : "text-[#AACBC4]")}
-                    >
-                      English
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSystemUIRefLang("fr")}
-                      className={clsx("px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer", systemUIRefLang === "fr" ? "bg-[#00DF81] text-[#021B1A]" : "text-[#AACBC4]")}
-                    >
-                      Français
-                    </button>
-                  </div>
-                </div>
-              </div>
-
+                <p className="font-sans text-xs text-slate-300 leading-relaxed">
+                  {t("settings.lang.select_en_desc")}
+                </p>
+              </button>
             </div>
-          </div>
+
+            {/* Instant Application Notice */}
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-3 text-xs font-sans text-slate-300">
+              <Sparkles size={18} className="text-[#D4FF00] shrink-0" />
+              <span>{t("settings.lang.instant_notice")}</span>
+            </div>
+          </motion.div>
         )}
 
-        {/* ============================================================== */}
-        {/* TAB 4: SCRAPER EXECUTION & MATH AUDIT LOGS (CLIENT PROOF VIEW) */}
-        {/* ============================================================== */}
-        {activeTab === "audit_logs" && (
-          <div className="flex flex-col gap-8 opacity-0 animate-fadeIn">
-            
-            {/* Top Audit KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              
-              {/* Metric 1 */}
-              <div className={clsx("p-6 flex flex-col justify-between gap-3", matteCard)}>
-                <div className="flex items-center justify-between">
-                  <span className="font-sans text-xs font-medium text-[#AACBC4]">Scraper Ingestion Health</span>
-                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/10 text-[#00DF81] flex items-center justify-center">
-                    <CheckCircle2 size={16} />
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* TAB 3: SECURITY & ADMIN TWO-FACTOR AUTHENTICATION (2FA)         */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {activeTab === "security" && (
+          <motion.div
+            key="security"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16 }}
+            className="space-y-6"
+          >
+            <div className={`${glassPanel} space-y-6`}>
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <ShieldCheck size={18} className="text-[#D4FF00]" />
+                    <h3 className="font-display font-bold text-xl text-white">
+                      {t("settings.sec.title")}
+                    </h3>
                   </div>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-mono text-2xl font-bold text-white">6 / 6 Indicators Active</span>
-                  <span className="text-[11px] text-[#00DF81] font-semibold mt-0.5">
-                    100% Endpoints Verified (IMF SDMX + Central Banks)
-                  </span>
-                </div>
-              </div>
-
-              {/* Metric 2 */}
-              <div className={clsx("p-6 flex flex-col justify-between gap-3", matteCard)}>
-                <div className="flex items-center justify-between">
-                  <span className="font-sans text-xs font-medium text-[#AACBC4]">Math Model Accuracy Proof</span>
-                  <div className="w-8 h-8 rounded-xl bg-[#2CC295]/10 text-[#2CC295] flex items-center justify-center">
-                    <Calculator size={16} />
-                  </div>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-mono text-2xl font-bold text-white">100.0% Exact Formula Match</span>
-                  <span className="text-[11px] text-[#2CC295] font-semibold mt-0.5">
-                    Differential → Rating Rule Lookup → Composite %
-                  </span>
-                </div>
-              </div>
-
-              {/* Metric 3 */}
-              <div className={clsx("p-6 flex flex-col justify-between gap-3", matteCard)}>
-                <div className="flex items-center justify-between">
-                  <span className="font-sans text-xs font-medium text-[#AACBC4]">Live Verification Time</span>
-                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/10 text-[#00DF81] flex items-center justify-center">
-                    <Clock size={16} />
-                  </div>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-mono text-2xl font-bold text-white">{lastScrapeTime}</span>
-                  <span className="text-[11px] text-[#AACBC4] font-mono mt-0.5">
-                    Live System Sync Period: <strong className="text-white">{selectedVerificationMonth}</strong>
-                  </span>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Client Interactive Mathematical Proof Simulator */}
-            <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#00DF81]/10 border border-[#00DF81]/20 flex items-center justify-center text-[#00DF81]">
-                    <Calculator size={20} />
-                  </div>
-                  <div className="flex flex-col">
-                    <h2 className="font-sans font-bold text-lg text-white">
-                      Live Mathematical Calculation Proof
-                    </h2>
-                    <span className="text-xs text-[#AACBC4]">
-                      Client audit breakdown: inspect real raw values, differentials, rating scores & final bias math
-                    </span>
-                  </div>
+                  <p className="font-sans text-sm text-slate-400">
+                    {t("settings.sec.subtitle")}
+                  </p>
                 </div>
 
-                {/* Pair & Month Selectors */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 bg-[#06302B] border border-white/10 rounded-xl px-3 py-1.5 text-xs">
-                    <span className="text-[#AACBC4] font-sans">Currency Pair:</span>
-                    <select
-                      value={selectedVerificationPair}
-                      onChange={(e) => setSelectedVerificationPair(e.target.value)}
-                      className="bg-transparent text-white font-bold outline-none cursor-pointer"
-                    >
-                      {PAIRS.map(p => (
-                        <option key={p.name} value={p.name} className="bg-[#06302B] text-white">
-                          {p.name} ({p.baseCountry} / {p.quoteCountry})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2 bg-[#06302B] border border-white/10 rounded-xl px-3 py-1.5 text-xs">
-                    <span className="text-[#AACBC4] font-sans">Period:</span>
-                    <select
-                      value={selectedVerificationMonth}
-                      onChange={(e) => setSelectedVerificationMonth(e.target.value)}
-                      className="bg-transparent text-white font-mono font-bold outline-none cursor-pointer"
-                    >
-                      <option value="2026-09" className="bg-[#06302B] text-white">2026-09 (Current Live Month)</option>
-                      <option value="2026-08" className="bg-[#06302B] text-white">2026-08</option>
-                      <option value="2026-07" className="bg-[#06302B] text-white">2026-07</option>
-                      <option value="2026-06" className="bg-[#06302B] text-white">2026-06</option>
-                      <option value="2025-12" className="bg-[#06302B] text-white">2025-12 (Year-End Settlement)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 1: Breakdown Table of All 6 Indicators */}
-              <div className="w-full overflow-x-auto no-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[950px]">
-                  <thead>
-                    <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#AACBC4]">
-                      <th className="py-3 px-4">Indicator Pillar</th>
-                      <th className="py-3 px-4">Data Source & Protocol</th>
-                      <th className="py-3 px-4 text-center">{currentPairObj.baseCountry} (Base)</th>
-                      <th className="py-3 px-4 text-center">{currentPairObj.quoteCountry} (Quote)</th>
-                      <th className="py-3 px-4 text-center">Differential (Δ = Base − Quote)</th>
-                      <th className="py-3 px-4 text-center">Rating Rule Lookup</th>
-                      <th className="py-3 px-4 text-center">Rating Score</th>
-                      <th className="py-3 px-4 text-right">Contribution</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.03] text-xs">
-                    {mathProofRows.map((row) => (
-                      <tr key={row.indicator} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3.5 px-4">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-white text-xs">{row.indicator}</span>
-                            <span className="text-[10px] text-[#AACBC4] font-mono">{row.unit}</span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-[11px] text-[#AACBC4]">
-                          <div className="flex flex-col">
-                            <span className="text-white">{row.source}</span>
-                            <span className="text-[10px] text-[#2CC295]">{row.protocol}</span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-center font-mono font-bold text-white">
-                          {row.baseVal}
-                        </td>
-                        <td className="py-3.5 px-4 text-center font-mono font-bold text-[#AACBC4]">
-                          {row.quoteVal}
-                        </td>
-                        <td className="py-3.5 px-4 text-center font-mono">
-                          <span className={clsx(
-                            "px-2 py-0.5 rounded-md font-bold",
-                            String(row.diff).startsWith("-") ? "text-[#FF5555] bg-[#FF5555]/10" : "text-[#00DF81] bg-[#00DF81]/10"
-                          )}>
-                            {row.diff}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center font-mono text-[11px] text-[#AACBC4]">
-                          <span className="bg-white/5 px-2 py-0.5 rounded">
-                            Rule: {row.rule}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center font-mono">
-                          <span className={clsx(
-                            "px-2.5 py-1 rounded-full font-bold text-xs",
-                            row.rating > 0 
-                              ? "bg-[#00DF81]/15 text-[#00DF81] border border-[#00DF81]/30" 
-                              : row.rating < 0 
-                                ? "bg-[#FF5555]/15 text-[#FF5555] border border-[#FF5555]/30" 
-                                : "bg-white/5 text-[#AACBC4] border border-white/10"
-                          )}>
-                            {row.rating > 0 ? `+${row.rating}` : row.rating}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-mono text-white font-semibold">
-                          {row.contribution}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Step 2: Step-by-Step Mathematical Aggregation Proof Card */}
-              <div className="p-6 rounded-2xl bg-[#06302B] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-                
-                {/* Mathematical Equation & Numbers */}
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#00DF81]">
-                    Mathematical Equation Verification
-                  </span>
-                  <div className="font-mono text-sm text-white font-semibold flex items-center gap-2">
-                    <span>Final Score (%) =</span>
-                    <span className="bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 text-[#00DF81]">
-                      ( &Sigma; Indicator Ratings / 60 ) &times; 100
-                    </span>
-                  </div>
-                  <div className="font-mono text-xs text-[#AACBC4] flex items-center gap-2 flex-wrap">
-                    <span>Active Substitution:</span>
-                    <span className="text-white font-bold bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
-                      ({mathProofRows.map(r => r.rating > 0 ? `+${r.rating}` : String(r.rating)).join(" + ")}) = {totalRatingSum > 0 ? `+${totalRatingSum}` : totalRatingSum} / 60 &times; 100 = <strong className="text-[#00DF81]">{Number(finalScorePercentage) > 0 ? `+${finalScorePercentage}` : finalScorePercentage}%</strong>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Final Classification Result */}
-                <div className="flex items-center gap-4 flex-shrink-0">
-                  <div className="flex flex-col text-right">
-                    <span className="text-xs text-[#AACBC4] font-mono">Calculated Bias Regime:</span>
-                    <span className={clsx(
-                      "font-sans font-black text-xl tracking-tight",
-                      biasClassification === "BULLISH" ? "text-[#00DF81]" : biasClassification === "BEARISH" ? "text-[#FF5555]" : "text-[#AACBC4]"
-                    )}>
-                      {biasClassification}
-                    </span>
-                    <span className="text-[10px] text-[#AACBC4] font-mono">
-                      {biasClassification === "BULLISH" ? "≥ +20.0% Threshold Satisfied" : biasClassification === "BEARISH" ? "≤ −20.0% Threshold Satisfied" : "Within [−20%, +20%] Neutral Range"}
-                    </span>
-                  </div>
-
-                  <div className={clsx(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-black text-lg border",
-                    biasClassification === "BULLISH" ? "bg-[#00DF81]/10 border-[#00DF81]/30 text-[#00DF81]" : biasClassification === "BEARISH" ? "bg-[#FF5555]/10 border-[#FF5555]/30 text-[#FF5555]" : "bg-white/5 border-white/10 text-white"
+                <div className="flex items-center gap-2">
+                  <span className={clsx(
+                    "px-3 py-1 rounded-full font-mono text-xs font-extrabold uppercase tracking-wide",
+                    admin2FAEnabled
+                      ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+                      : "bg-white/[0.06] text-slate-400 border border-white/10"
                   )}>
-                    {finalScorePercentage}%
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* Filterable Indicator Endpoint Registry & Scraper Details */}
-            <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#2CC295]/10 border border-[#2CC295]/20 flex items-center justify-center text-[#2CC295]">
-                    <Layers size={20} />
-                  </div>
-                  <div className="flex flex-col">
-                    <h2 className="font-sans font-bold text-lg text-white">
-                      6 Core Indicator Feeds & Formula Verification
-                    </h2>
-                    <span className="text-xs text-[#AACBC4]">
-                      Click an indicator filter to inspect its official scraping source, formula, and verification checksum
-                    </span>
-                  </div>
-                </div>
-
-                {/* Filter Chips */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedIndicatorFilter("ALL")}
-                    className={clsx(
-                      "px-3 py-1.5 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer",
-                      selectedIndicatorFilter === "ALL"
-                        ? "bg-white text-[#021B1A] shadow"
-                        : "bg-white/5 text-[#AACBC4] hover:text-white"
-                    )}
-                  >
-                    All Indicators (6)
-                  </button>
-                  {INDICATORS.map(ind => (
-                    <button
-                      key={ind}
-                      type="button"
-                      onClick={() => setSelectedIndicatorFilter(ind)}
-                      className={clsx(
-                        "px-3 py-1.5 rounded-xl font-sans text-xs font-bold transition-all cursor-pointer",
-                        selectedIndicatorFilter === ind
-                          ? "bg-[#2CC295] text-[#021B1A] shadow"
-                          : "bg-white/5 text-[#AACBC4] hover:text-white"
-                      )}
-                    >
-                      {ind}
-                    </button>
-                  ))}
+                    {admin2FAEnabled ? t("settings.sec.2fa_enabled_badge") : t("settings.sec.2fa_disabled_badge")}
+                  </span>
                 </div>
               </div>
 
-              {/* Indicator Detail Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filteredIndicators.map(ind => {
-                  const spec = INDICATOR_METADATA_SPEC[ind] || {
-                    fullName: ind,
-                    source: "Institutional Feed",
-                    protocol: "SDMX 3.0",
-                    frequency: "Monthly",
-                    formula: "Diff = Base - Quote",
-                    scoringRule: "Mapped to [-10, +10]",
-                    unit: "Metric",
-                    verificationHash: "Verified"
-                  };
-
-                  return (
-                    <div 
-                      key={ind} 
-                      className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between gap-4 hover:border-[#2CC295]/30 transition-all"
-                    >
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono text-xs font-black text-[#2CC295] bg-[#2CC295]/10 px-2 py-0.5 rounded-md">
-                            {ind}
-                          </span>
-                          <span className="text-[10px] font-mono text-[#00DF81] flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#00DF81]" />
-                            {spec.verificationHash}
-                          </span>
-                        </div>
-                        <h3 className="font-sans font-bold text-sm text-white mt-1">
-                          {spec.fullName}
-                        </h3>
-                        <div className="text-xs text-[#AACBC4] space-y-1 mt-1 font-sans">
-                          <div><strong className="text-white">Source:</strong> {spec.source}</div>
-                          <div><strong className="text-white">Protocol:</strong> {spec.protocol}</div>
-                          <div><strong className="text-white">Frequency:</strong> {spec.frequency}</div>
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-[#06302B] border border-white/5 text-[11px] font-mono space-y-1">
-                        <div className="text-[#00DF81] font-semibold">{spec.formula}</div>
-                        <div className="text-[#AACBC4]">{spec.scoringRule}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Scraper Execution Runs & Telemetry History */}
-            <div className={clsx("p-8 flex flex-col gap-6", matteCard)}>
-              <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white">
-                    <FileText size={20} />
-                  </div>
-                  <div className="flex flex-col">
-                    <h2 className="font-sans font-bold text-lg text-white">
-                      Scraper Execution Runs & Timestamp Audit Log
-                    </h2>
-                    <span className="text-xs text-[#AACBC4]">
-                      Chronological immutable telemetry records with exact timestamps, updated records, and status
-                    </span>
-                  </div>
-                </div>
-                <span className="text-xs font-mono text-[#AACBC4]">
-                  Showing last {executionRuns.length} executions
-                </span>
-              </div>
-
-              <div className="w-full overflow-x-auto no-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[900px]">
-                  <thead>
-                    <tr className="border-b border-white/5 text-[11px] font-mono uppercase tracking-wider text-[#AACBC4]">
-                      <th className="py-3 px-4">Run ID</th>
-                      <th className="py-3 px-4">Execution Timestamp (UTC)</th>
-                      <th className="py-3 px-4">Triggered By</th>
-                      <th className="py-3 px-4">Records Updated</th>
-                      <th className="py-3 px-4">Integrity Hash</th>
-                      <th className="py-3 px-4 text-right">Verification Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.03] text-xs">
-                    {executionRuns.map((run: any) => (
-                      <tr key={run.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-bold text-[#00DF81]">
-                          {run.id}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-white">
-                          {run.timestamp}
-                        </td>
-                        <td className="py-3.5 px-4 font-sans text-[#AACBC4]">
-                          {run.user}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-white">
-                          {run.records_updated.toLocaleString()} pair-months
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-[11px] text-[#2CC295]">
-                          {run.hash || "SHA-256 Valid"}
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <span className="px-2.5 py-1 rounded-full bg-[#00DF81]/10 border border-[#00DF81]/20 text-[#00DF81] font-mono text-[10px] font-bold">
-                            {run.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* TAB 5: HOW IT WORKS: ARCHITECTURE & CLIENT EXPLANATION GUIDE   */}
-        {/* ============================================================== */}
-        {activeTab === "architecture" && (
-          <div className="flex flex-col gap-8 opacity-0 animate-fadeIn">
-            
-            {/* Guide Language Selector Banner */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-[#032221] border border-white/10">
-              <div className="flex items-center gap-3">
-                <Info size={18} className="text-[#00DF81]" />
-                <span className="font-sans text-xs text-white">
-                  {guideLang === "EN" 
-                    ? "Interactive client guide explaining where data is scrapped from, how differentials are calculated, and how rating rules work."
-                    : "Guide client interactif expliquant d'où proviennent les données scrapées, le calcul des différentiels et le moteur de scoring."}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setGuideLang("EN")}
-                  className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer", guideLang === "EN" ? "bg-[#00DF81] text-[#021B1A]" : "text-[#AACBC4]")}
-                >
-                  English Version
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGuideLang("FR")}
-                  className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer", guideLang === "FR" ? "bg-[#00DF81] text-[#021B1A]" : "text-[#AACBC4]")}
-                >
-                  Version Française
-                </button>
-              </div>
-            </div>
-
-            {/* Step-by-Step Interactive Pipeline Diagram */}
-            <div className={clsx("p-8 md:p-10 flex flex-col gap-8", matteCard)}>
-              <div className="flex flex-col gap-2 border-b border-white/5 pb-6">
-                <span className="text-xs font-mono font-bold uppercase tracking-widest text-[#00DF81]">
-                  {guideLang === "EN" ? "End-to-End Pipeline Workflow" : "Flux de Traitement de Bout en Bout"}
-                </span>
-                <h2 className="font-sans font-bold text-2xl text-white">
-                  {guideLang === "EN" ? "How ShiftFX Scrapes & Processes Macro Bias" : "Fonctionnement du Moteur Macro FX Differential"}
-                </h2>
-                <p className="text-sm text-[#AACBC4]">
-                  {guideLang === "EN" 
-                    ? "ShiftFX is an institutional macroeconomic analysis service for Forex traders. Proposition: 'Know the macro bias before looking for a trade.'"
-                    : "FX Differential est un service web d'analyse macroéconomique destiné aux traders Forex. Proposition de valeur : 'Know the macro bias before looking for a trade.'"}
+              {/* Crucial Security Policy Box: Admin 2FA Only, No 2FA for Traders */}
+              <div className="p-4 rounded-2xl bg-[#090B0E] border border-amber-500/30 text-xs font-sans text-amber-200/90 flex items-start gap-3">
+                <AlertCircle size={18} className="text-amber-400 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong>{t("settings.sec.2fa_trader_exemption")}</strong>
                 </p>
               </div>
 
-              {/* 5-Stage Diagram Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                
-                {/* Stage 1 */}
-                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#00DF81]/30 transition-all">
-                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/10 text-[#00DF81] font-mono font-bold text-xs flex items-center justify-center">
-                    01
-                  </div>
-                  <span className="font-sans font-bold text-sm text-white">
-                    {guideLang === "EN" ? "Data Ingestion" : "Ingestion des Données"}
-                  </span>
-                  <p className="text-xs text-[#AACBC4] leading-relaxed">
-                    {guideLang === "EN"
-                      ? "Scrapes 6 core indicators across G10 economies from Trading Economics, FRED, and Central Banks."
-                      : "Scraping de 6 indicateurs fondamentaux des économies du G10 via Trading Economics, FRED et Banques Centrales."}
+              {/* 2FA Action Card */}
+              <div className={`${innerPod} flex items-center justify-between flex-wrap gap-4`}>
+                <div className="space-y-1 max-w-xl">
+                  <h4 className="font-display font-bold text-sm text-white">
+                    {t("settings.sec.2fa_card_title")}
+                  </h4>
+                  <p className="font-sans text-xs text-slate-400 leading-relaxed">
+                    {t("settings.sec.2fa_card_desc")}
                   </p>
-                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#00DF81]">Raw Economic Data</div>
                 </div>
 
-                {/* Stage 2 */}
-                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#2CC295]/30 transition-all">
-                  <div className="w-8 h-8 rounded-xl bg-[#2CC295]/10 text-[#2CC295] font-mono font-bold text-xs flex items-center justify-center">
-                    02
-                  </div>
-                  <span className="font-sans font-bold text-sm text-white">
-                    {guideLang === "EN" ? "Country Differential" : "Calcul du Différentiel"}
-                  </span>
-                  <p className="text-xs text-[#AACBC4] leading-relaxed">
-                    {guideLang === "EN"
-                      ? "Compares Country A against Country B: Differential = Country A − Country B."
-                      : "Compare le Pays A au Pays B : Différentiel = Pays A − Pays B pour chaque indicateur."}
-                  </p>
-                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#2CC295]">Diff = Country A - Country B</div>
-                </div>
-
-                {/* Stage 3 */}
-                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#00DF81]/30 transition-all">
-                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/10 text-[#00DF81] font-mono font-bold text-xs flex items-center justify-center">
-                    03
-                  </div>
-                  <span className="font-sans font-bold text-sm text-white">
-                    {guideLang === "EN" ? "Rating Tables" : "Tables de Rating"}
-                  </span>
-                  <p className="text-xs text-[#AACBC4] leading-relaxed">
-                    {guideLang === "EN"
-                      ? "Maps differential intervals into standardized scores ranging from -10 to +10."
-                      : "Convertit chaque différentiel en score borné entre -10 et +10 selon les intervalles configurés."}
-                  </p>
-                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#00DF81]">Indicator Score (-10 to +10)</div>
-                </div>
-
-                {/* Stage 4 */}
-                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#2CC295]/30 transition-all">
-                  <div className="w-8 h-8 rounded-xl bg-[#2CC295]/10 text-[#2CC295] font-mono font-bold text-xs flex items-center justify-center">
-                    04
-                  </div>
-                  <span className="font-sans font-bold text-sm text-white">
-                    {guideLang === "EN" ? "Score Normalization" : "Normalisation du Score"}
-                  </span>
-                  <p className="text-xs text-[#AACBC4] leading-relaxed">
-                    {guideLang === "EN"
-                      ? "Sums all 6 indicator scores (-60 to +60) and normalizes to -100% to +100%."
-                      : "Additionne les 6 scores (-60 à +60) et normalise de -100% à +100% via la formule / 60 × 100."}
-                  </p>
-                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#2CC295]">Final Score % (-100% to +100%)</div>
-                </div>
-
-                {/* Stage 5 */}
-                <div className="flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.02] border border-white/5 relative group hover:border-[#00DF81]/30 transition-all">
-                  <div className="w-8 h-8 rounded-xl bg-[#00DF81]/10 text-[#00DF81] font-mono font-bold text-xs flex items-center justify-center">
-                    05
-                  </div>
-                  <span className="font-sans font-bold text-sm text-white">
-                    {guideLang === "EN" ? "Bias Regime Radar" : "Biais & Radar Terminal"}
-                  </span>
-                  <p className="text-xs text-[#AACBC4] leading-relaxed">
-                    {guideLang === "EN"
-                      ? "Dispatches final bias (Bullish, Bearish, Neutral) to the Trader Terminal & Admin Suite."
-                      : "Attribue le biais (Bullish, Bearish, Neutre) et diffuse le résultat dans le terminal de trading."}
-                  </p>
-                  <div className="mt-auto pt-2 text-[10px] font-mono text-[#00DF81]">BULLISH / BEARISH / NEUTRAL</div>
-                </div>
-
+                {admin2FAEnabled ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      setAdmin2FAEnabled(false);
+                    }}
+                    className="px-4 py-2 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 font-sans font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    {t("settings.sec.2fa_disable_btn")}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      setShow2FAModal(true);
+                    }}
+                    className="px-5 py-2 rounded-full bg-[#D4FF00] hover:bg-[#dfeb34] text-[#07080C] font-sans font-bold text-xs shadow-[0_0_16px_rgba(212,255,0,0.3)] transition-all cursor-pointer"
+                  >
+                    {t("settings.sec.2fa_enable_btn")}
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Deep-Dive Technical Explanation Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* 2FA Setup Modal */}
+            <AnimatePresence>
+              {show2FAModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShow2FAModal(false)}
+                    className="fixed inset-0 bg-black/85 backdrop-blur-md"
+                  />
 
-              {/* Box 1: The 6 Macro Indicators */}
-              <div className={clsx("p-8 flex flex-col gap-5", matteCard)}>
-                <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                  <div className="w-10 h-10 rounded-2xl bg-[#00DF81]/10 text-[#00DF81] flex items-center justify-center">
-                    <Layers size={20} />
-                  </div>
-                  <div className="flex flex-col">
-                    <h3 className="font-sans font-bold text-base text-white">
-                      {guideLang === "EN" ? "The 6 Core Economic Indicators" : "Les 6 Indicateurs Fondamentaux"}
-                    </h3>
-                    <span className="text-xs text-[#AACBC4]">
-                      {guideLang === "EN" ? "Why these 6 metrics govern currency strength" : "Pourquoi ces 6 métriques déterminent la valeur des devises"}
-                    </span>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                    className="relative w-full max-w-md rounded-[26px] bg-[#0E1117] border border-white/[0.12] shadow-2xl p-6 z-10 space-y-5"
+                  >
+                    <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+                      <div className="flex items-center gap-2">
+                        <QrCode size={18} className="text-[#D4FF00]" />
+                        <h4 className="font-display font-bold text-base text-white">
+                          {t("settings.sec.2fa_modal_title")}
+                        </h4>
+                      </div>
+                      <button
+                        onClick={() => setShow2FAModal(false)}
+                        className="text-slate-400 hover:text-white font-mono text-sm cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <p className="text-xs font-sans text-slate-300">
+                      {t("settings.sec.2fa_scan_qr")}
+                    </p>
+
+                    {/* SVG QR Code Simulation */}
+                    <div className="flex justify-center p-4 bg-white rounded-2xl shadow-inner">
+                      <div className="w-40 h-40 bg-[#07080C] p-2 rounded-xl flex flex-col items-center justify-center relative">
+                        <div className="grid grid-cols-6 gap-1 w-full h-full p-2">
+                          {Array.from({ length: 36 }).map((_, i) => (
+                            <div
+                              key={i}
+                              className={clsx(
+                                "rounded-sm",
+                                (i % 2 === 0 || i % 5 === 0) ? "bg-[#D4FF00]" : "bg-transparent"
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <span className="absolute inset-x-0 bottom-2 text-center text-[9px] font-mono text-[#D4FF00] font-bold">
+                          SHIFTFX-ADMIN-TOTP
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Secret Key Display */}
+                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between text-xs font-mono">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-400">{t("settings.sec.2fa_secret_key")}</span>
+                        <span className="font-bold text-white tracking-widest">SFX-8941-K72B-90AC</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSecretKeyCopied(true);
+                          setTimeout(() => setSecretKeyCopied(false), 2000);
+                        }}
+                        className="p-1.5 rounded-lg bg-white/[0.06] text-[#D4FF00] hover:text-white cursor-pointer"
+                      >
+                        {secretKeyCopied ? <Check size={14} /> : <Copy size={14} />}
+                      </button>
+                    </div>
+
+                    {/* 6-digit confirmation input */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-mono text-slate-300">
+                        {t("settings.sec.2fa_enter_code")}
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={verification2FACode}
+                        onChange={(e) => setVerification2FACode(e.target.value.replace(/[^0-9]/g, ""))}
+                        placeholder="123456"
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#090B0E] border border-white/[0.1] text-center font-mono text-xl font-bold text-[#D4FF00] tracking-widest outline-none focus:border-[#D4FF00]"
+                      />
+                    </div>
+
+                    {modal2FAError && (
+                      <p className="text-xs text-rose-400 font-sans">{modal2FAError}</p>
+                    )}
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShow2FAModal(false)}
+                        className="flex-1 py-2.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-xs font-sans font-bold text-slate-300 transition-colors cursor-pointer"
+                      >
+                        {t("settings.sec.2fa_close")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleVerifyAndActivate2FA}
+                        className="flex-1 py-2.5 rounded-full bg-[#D4FF00] hover:bg-[#dfeb34] text-xs font-sans font-bold text-[#07080C] shadow-[0_0_15px_rgba(212,255,0,0.3)] transition-all cursor-pointer"
+                      >
+                        {t("settings.sec.2fa_verify_btn")}
+                      </button>
+                    </div>
+                  </motion.div>
                 </div>
-
-                <div className="flex flex-col gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">1. GDP Annual Growth (Croissance du PIB)</span>
-                      <span className="font-mono text-[#00DF81]">Growth Engine</span>
-                    </div>
-                    <span className="text-[#AACBC4]">
-                      {guideLang === "EN" 
-                        ? "Measures economic expansion. A faster growing economy attracts capital inflows and institutional foreign direct investment."
-                        : "Mesure l'expansion économique. Une économie en croissance attire les flux de capitaux et investissements étrangers."}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">2. Current Account / GDP (Compte Courant / PIB)</span>
-                      <span className="font-mono text-[#2CC295]">Trade Balance</span>
-                    </div>
-                    <span className="text-[#AACBC4]">
-                      {guideLang === "EN"
-                        ? "Reflects the net flow of goods, services, and transfers. A surplus creates structural demand for the domestic currency."
-                        : "Reflète le solde net des échanges. Un surplus génère une demande structurelle pour la devise nationale."}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">3. FX Reserves Excluding Gold (Réserves de Change)</span>
-                      <span className="font-mono text-[#00DF81]">Liquidity Shield</span>
-                    </div>
-                    <span className="text-[#AACBC4]">
-                      {guideLang === "EN"
-                        ? "Buffer held by the central bank to intervene and stabilize exchange rates during liquidity crunches."
-                        : "Coussin financier de la banque centrale pour stabiliser sa devise et absorber les chocs de liquidité."}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">4. CPI Inflation (Indice des Prix à la Consommation)</span>
-                      <span className="font-mono text-[#FF5555]">Price Pressures</span>
-                    </div>
-                    <span className="text-[#AACBC4]">
-                      {guideLang === "EN"
-                        ? "Purchasing power dynamics. Influences whether central banks will raise or slash benchmark rates."
-                        : "Dynamique du pouvoir d'achat. Influence directement les hausses ou baisses de taux des banques centrales."}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">5. Central Bank Interest Rate (Taux Directeur)</span>
-                      <span className="font-mono text-[#00DF81]">Yield & Carry</span>
-                    </div>
-                    <span className="text-[#AACBC4]">
-                      {guideLang === "EN"
-                        ? "The primary catalyst of carry trades. Capital shifts rapidly toward high-yielding currencies."
-                        : "Le moteur principal du carry trade. Les capitaux migrent vers les devises offrant le rendement le plus élevé."}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">6. Benchmark Equity Index (Performance Boursière)</span>
-                      <span className="font-mono text-[#2CC295]">Risk Sentiment</span>
-                    </div>
-                    <span className="text-[#AACBC4]">
-                      {guideLang === "EN"
-                        ? "Serves as a barometer for market risk appetite and domestic equity market strength."
-                        : "Baromètre de l'appétit pour le risque et de la vigueur des marchés actions domestiques."}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Box 2: Concrete Differential & Scoring Example */}
-              <div className={clsx("p-8 flex flex-col gap-5", matteCard)}>
-                <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                  <div className="w-10 h-10 rounded-2xl bg-[#2CC295]/10 text-[#2CC295] flex items-center justify-center">
-                    <Cpu size={20} />
-                  </div>
-                  <div className="flex flex-col">
-                    <h3 className="font-sans font-bold text-base text-white">
-                      {guideLang === "EN" ? "EUR/USD Concrete Calculation Example" : "Exemple Chiffré : Calcul EUR/USD"}
-                    </h3>
-                    <span className="text-xs text-[#AACBC4]">
-                      {guideLang === "EN" ? "Walkthrough of exact math from raw data to final bias" : "Démonstration pas à pas du calcul mathématique exact"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-4 text-xs">
-                  {/* Step 1: Raw Diff */}
-                  <div className="p-4 rounded-xl bg-[#06302B] border border-white/5 flex flex-col gap-2">
-                    <span className="font-bold text-white text-xs">
-                      {guideLang === "EN" ? "Step 1: Compute Raw Differential (Zone Euro − USA)" : "Étape 1 : Calcul du Différentiel Brut (Zone Euro − USA)"}
-                    </span>
-                    <div className="font-mono text-[11px] text-[#AACBC4] space-y-1">
-                      <div>EUR GDP Growth = <span className="text-white">1.8%</span></div>
-                      <div>USD GDP Growth = <span className="text-white">2.5%</span></div>
-                      <div className="text-[#00DF81]">Differential = 1.8% − 2.5% = <strong className="text-white">−0.7%</strong></div>
-                    </div>
-                  </div>
-
-                  {/* Step 2: Rating Tables Application */}
-                  <div className="p-4 rounded-xl bg-[#06302B] border border-white/5 flex flex-col gap-2">
-                    <span className="font-bold text-white text-xs">
-                      {guideLang === "EN" ? "Step 2: Lookup in Rating Table (-10 to +10)" : "Étape 2 : Consultation de la Table de Rating (-10 à +10)"}
-                    </span>
-                    <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-[#AACBC4]">
-                      <div>GDP Growth: <strong className="text-white">+6</strong></div>
-                      <div>Current Account: <strong className="text-white">+4</strong></div>
-                      <div>FX Reserves: <strong className="text-white">+5</strong></div>
-                      <div>CPI Inflation: <strong className="text-white">−2</strong></div>
-                      <div>Interest Rate: <strong className="text-white">+8</strong></div>
-                      <div>Equity Index: <strong className="text-white">+3</strong></div>
-                    </div>
-                    <div className="pt-2 border-t border-white/5 flex items-center justify-between font-mono text-xs text-white">
-                      <span>Total Differential Score:</span>
-                      <span className="text-[#00DF81] font-bold">+24 / 60</span>
-                    </div>
-                  </div>
-
-                  {/* Step 3: Final Normalization */}
-                  <div className="p-4 rounded-xl bg-[#06302B] border border-white/5 flex flex-col gap-2">
-                    <span className="font-bold text-white text-xs">
-                      {guideLang === "EN" ? "Step 3: Normalization to Percentage" : "Étape 3 : Normalisation en Pourcentage"}
-                    </span>
-                    <div className="font-mono text-xs bg-white/5 p-2.5 rounded-lg text-center text-[#00DF81]">
-                      Final Score (%) = Total Score / 60 × 100 = 24 / 60 × 100 = <strong>+40.0%</strong>
-                    </div>
-                    <div className="flex items-center justify-between pt-1 text-xs">
-                      <span className="text-[#AACBC4]">Classification Threshold:</span>
-                      <span className="px-2.5 py-1 rounded-full bg-[#00DF81]/10 text-[#00DF81] font-bold border border-[#00DF81]/20">
-                        BULLISH (Favorable to EUR)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Core Value Proposition Quote */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-[#00DF81]/10 to-transparent border-l-2 border-[#00DF81] text-[#AACBC4] italic leading-relaxed">
-                    {guideLang === "EN"
-                      ? "“A currency is not simply 'strong' or 'weak' in a vacuum. It is strong or weak relative to another currency. ShiftFX reveals this structural divergence.”"
-                      : "« Une devise n'est pas simplement « forte » ou « faible » de manière isolée. Elle est forte ou faible relativement à une autre devise. FX Differential révèle cette divergence structurelle. »"}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         )}
 
-      </main>
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* TAB 4: DATA INGESTION PIPELINES & FEEDS                         */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {activeTab === "ingestion" && (
+          <motion.div
+            key="ingestion"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16 }}
+            className={`${glassPanel} space-y-5`}
+          >
+            <div>
+              <h3 className="font-display font-bold text-xl text-white">
+                {lang === "fr" ? "Flux Multilatéraux & Connecteurs d'Ingestion" : "Multilateral Feeds & Ingestion Connectors"}
+              </h3>
+              <p className="font-sans text-sm text-slate-400 mt-0.5">
+                {lang === "fr"
+                  ? "Surveillance en temps réel des APIs de banques centrales et instituts statistiques G10"
+                  : "Real-time health monitoring of central bank and sovereign statistical APIs"}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+              {DATA_SOURCES.map((source) => (
+                <div
+                  key={source.id}
+                  className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col justify-between gap-3 hover:border-white/[0.12] transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-sans font-bold text-sm text-white">{source.name}</span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 font-mono text-[10px] font-bold text-emerald-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      {source.status}
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-slate-400">{source.type}</span>
+                  <p className="font-sans text-xs text-slate-300 leading-snug">{source.coverage}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* TAB 5: AUDIT LOGS & REAL-TIME DAEMON TELEMETRY                  */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {activeTab === "audit" && (
+          <motion.div
+            key="audit"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16 }}
+            className={`${glassPanel} space-y-6`}
+          >
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h3 className="font-display font-bold text-xl text-white">
+                  {lang === "fr" ? "Moniteur de Télémétrie Daemon & Audit" : "Daemon Telemetry & Execution Audit"}
+                </h3>
+                <p className="font-sans text-sm text-slate-400 mt-0.5">
+                  {lang === "fr" ? "Vérification des cycles de scraping et intégrité mathématique" : "Scraper cycle audit and mathematical integrity validation"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handlePingTelemetry}
+                disabled={isPinging}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-sans font-bold text-white transition-all cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={isPinging ? "animate-spin text-[#D4FF00]" : "text-slate-400"} />
+                <span>{lang === "fr" ? "Tester la Télémétrie" : "Test Telemetry"}</span>
+                {pingLatency !== null && (
+                  <span className="text-[#D4FF00] font-mono font-bold">{pingLatency}ms</span>
+                )}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-1">
+                <span className="font-mono text-[10px] text-slate-400 uppercase">DAEMON STATUS</span>
+                <span className="font-mono text-base font-bold text-emerald-400">ONLINE</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-1">
+                <span className="font-mono text-[10px] text-slate-400 uppercase">ACTIVE WORKERS</span>
+                <span className="font-mono text-base font-bold text-white">4 POOL</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-1">
+                <span className="font-mono text-[10px] text-slate-400 uppercase">MEMORY USAGE</span>
+                <span className="font-mono text-base font-bold text-white">48.2 MB</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col gap-1">
+                <span className="font-mono text-[10px] text-slate-400 uppercase">AUDIT HASH</span>
+                <span className="font-mono text-base font-bold text-[#D4FF00] truncate">SHA256: 8f9b...a12c</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -189,16 +189,6 @@ export default function MacroDataPage() {
   // User Precision Preference: "exact" (Full Precision) vs "approx" (Formatted)
   const [displayPrecision, setDisplayPrecision] = useState<"exact" | "approx">("exact");
 
-  // Floating Micro-Tooltip State for exact unrounded hover display
-  const [hoveredCell, setHoveredCell] = useState<{
-    country: string;
-    base: string;
-    month: string;
-    formatted: FormattedMacroCell;
-    status: string;
-    rect: { top: number; left: number; bottom: number; right: number } | null;
-  } | null>(null);
-
   // Fetch Matrix Data with authoritative fallback to verified MASTER_MACRO_DATABASE
   const fetchMatrixData = async (indicator: string, year: number) => {
     // 1. Preload local verified dataset from MASTER_MACRO_DATABASE (100% matched to EXCEL8EXAMPLE.xlsx & Official APIs)
@@ -756,18 +746,6 @@ export default function MacroDataPage() {
                           <td
                             key={month}
                             onClick={() => handleCellClick(row.country, month, cell)}
-                            onMouseEnter={(e) => {
-                              const r = e.currentTarget.getBoundingClientRect();
-                              setHoveredCell({
-                                country: row.country,
-                                base: row.base,
-                                month,
-                                formatted,
-                                status: cell.status,
-                                rect: { top: r.top, left: r.left, bottom: r.bottom, right: r.right }
-                              });
-                            }}
-                            onMouseLeave={() => setHoveredCell(null)}
                             className={clsx(
                               "py-2 px-2 text-center transition-all duration-150 select-none min-w-[96px]",
                               isLast && "pr-6",
@@ -1092,74 +1070,6 @@ export default function MacroDataPage() {
               </button>
             </motion.div>
           </div>
-        )}
-      </AnimatePresence>
-
-      {/* Floating Micro-Tooltip for Exact Unrounded Precision (Every Decimal Matters in Trading) */}
-      <AnimatePresence>
-        {hoveredCell && hoveredCell.formatted.rawNum !== null && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.96 }}
-            transition={{ duration: 0.1 }}
-            style={{
-              position: "fixed",
-              top: Math.max(12, (hoveredCell.rect?.top ?? 0) - 130),
-              left: Math.min(
-                typeof window !== "undefined" ? window.innerWidth - 340 : 800,
-                Math.max(12, (hoveredCell.rect?.left ?? 0) - 110)
-              ),
-              zIndex: 9999,
-              pointerEvents: "none"
-            }}
-            className="w-80 rounded-2xl bg-[#0D0F15]/95 border border-[#D4FF00]/35 shadow-[0_12px_36px_rgba(0,0,0,0.85),0_0_20px_rgba(212,255,0,0.18)] p-3.5 backdrop-blur-xl pointer-events-none"
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] mb-2">
-              <div className="flex items-center gap-2">
-                <img
-                  src={getCountryFlagUrl(hoveredCell.country || hoveredCell.base)}
-                  alt=""
-                  className="w-4 h-4 rounded-full object-cover ring-1 ring-white/20"
-                />
-                <span className="text-xs font-bold text-white tracking-wide">{hoveredCell.country}</span>
-              </div>
-              <span className="text-[10px] font-mono text-slate-400 font-semibold">{hoveredCell.month}</span>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
-                  {INDICATOR_MAP[activeInd] || activeInd}
-                </span>
-                <span className={clsx(
-                  "text-[9px] font-mono font-extrabold px-2 py-0.5 rounded-full border",
-                  hoveredCell.status === "published"
-                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                    : hoveredCell.status === "forecast"
-                    ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
-                    : "bg-sky-500/15 text-sky-400 border-sky-500/30"
-                )}>
-                  {hoveredCell.status === "published" ? "PUB (Official)" : hoveredCell.status === "forecast" ? "EST (Forecast)" : "MAN (Manual)"}
-                </span>
-              </div>
-
-              <div className="bg-black/60 rounded-xl p-2.5 border border-white/[0.06]">
-                <div className="text-[10px] font-mono text-slate-400 mb-0.5 flex items-center justify-between">
-                  <span>Exact Unrounded Value:</span>
-                  <span className="text-[#D4FF00] font-bold">100% Raw Precision</span>
-                </div>
-                <div className="font-mono text-sm font-extrabold text-[#D4FF00] tracking-tight break-all">
-                  {hoveredCell.formatted.exactFull}
-                </div>
-              </div>
-
-              <div className="text-[9px] font-mono text-slate-400 flex items-center justify-between pt-0.5 border-t border-white/[0.04]">
-                <span>Source: {activeInd === "FX Reserves" ? "IMF SDMX 3.0 API" : activeInd === "Current Account" ? "OECD SDMX 3.0 API" : "TradingEconomics Engine"}</span>
-                <span className="text-[#D4FF00]/90 font-bold">ShiftFX Quant</span>
-              </div>
-            </div>
-          </motion.div>
         )}
       </AnimatePresence>
 

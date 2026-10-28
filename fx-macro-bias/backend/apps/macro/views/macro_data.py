@@ -1,7 +1,8 @@
-"""Macro Data views — Matrix, Differential, Rating, Manual Entry."""
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, throttle_classes
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.response import Response
 from rest_framework import status
+
 
 
 @api_view(["GET"])
@@ -59,10 +60,11 @@ def macro_matrix(request):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def manual_entry(request):
     """
     Admin manually enters a value for (country, indicator, month).
-    A published value arriving later will silently supersede this.
+    Rate-limited to 30 requests per minute to prevent abuse.
     """
     from apps.macro.models import MacroDataPoint, Country, MacroIndicator
     from django.utils import timezone
@@ -216,9 +218,11 @@ def rating_table(request):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def trigger_recalculation(request):
     """
     Trigger recalculation for a specific (pair, month) or full matrix.
+    Rate-limited to 5 requests per minute.
     Body: {"pair": "EUR/USD", "month": "2026-01"} or {"full": true}
     """
     from apps.macro.services.calculator import recalculate_all_for_month, recalculate_full_matrix
@@ -246,3 +250,7 @@ def trigger_recalculation(request):
         "bias": score.bias,
         "is_complete": score.is_complete,
     })
+
+manual_entry.throttle_scope = "manual_entry"
+trigger_recalculation.throttle_scope = "scraper_trigger"
+

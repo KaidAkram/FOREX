@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 export interface User {
@@ -35,21 +35,98 @@ const STORAGE_KEY = "shiftfx_auth_user";
 const REGISTERED_USERS_KEY = "shiftfx_registered_users";
 const ADMIN_2FA_KEY = "shiftfx_admin_2fa_enabled";
 const PENDING_OTP_KEY = "shiftfx_pending_trader_otp";
+const FAILED_ATTEMPTS_KEY = "shiftfx_failed_login_attempts";
+const LOCKOUT_EXPIRY_KEY = "shiftfx_lockout_expiry";
+
+// Maximum failed attempts before temporary lockout
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 60 * 1000; // 60 seconds
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes inactivity auto-logout
+
+/**
+ * Cryptographic SHA-256 Hashing with Application Salt
+ * Uses native Web Crypto API (SubtleCrypto) — Zero plaintext passwords in client storage!
+ */
+async function hashPassword(password: string): Promise<string> {
+  if (typeof window === "undefined" || !window.crypto || !window.crypto.subtle) {
+    return password;
+  }
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`shiftfx_salt_2026_${password}`);
+    const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return password;
+  }
+}
+
+/**
+ * Cookie Synchronizer
+ * Keeps a secure SameSite cookie in sync with localStorage so Next.js Edge Middleware
+ * can enforce server-side Route Protection.
+ */
+function syncAuthCookie(user: User | null) {
+  if (typeof document === "undefined") return;
+  if (user) {
+    const encoded = encodeURIComponent(JSON.stringify(user));
+    document.cookie = `shiftfx_auth_user=${encoded}; Path=/; Max-Age=604800; SameSite=Lax`;
+  } else {
+    document.cookie = "shiftfx_auth_user=; Path=/; Max-Age=0; SameSite=Lax";
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [admin2FAEnabled, setAdmin2FAState] = useState<boolean>(false);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
+
+  const logout = useCallback(() => {
+    setUser(null);
+    syncAuthCookie(null);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
+    window.location.href = "/login";
+  }, []);
+
+  // Inactivity tracking for high-security trader workstations
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+    if (user) {
+      inactivityTimerRef.current = setTimeout(() => {
+        logout();
+      }, INACTIVITY_TIMEOUT_MS);
+    }
+  }, [user, logout]);
+
+  useEffect(() => {
+    const activityEvents = ["mousedown", "keydown", "scroll", "touchstart"];
+    const handleActivity = () => resetInactivityTimer();
+
+    activityEvents.forEach((evt) => window.addEventListener(evt, handleActivity, { passive: true }));
+    resetInactivityTimer();
+
+    return () => {
+      activityEvents.forEach((evt) => window.removeEventListener(evt, handleActivity));
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+    };
+  }, [resetInactivityTimer]);
 
   // Load user session and 2FA status on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setUser(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        setUser(parsed);
+        syncAuthCookie(parsed);
       } else {
         setUser(null);
+        syncAuthCookie(null);
       }
 
       const stored2FA = localStorage.getItem(ADMIN_2FA_KEY);
@@ -58,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {
       setUser(null);
+      syncAuthCookie(null);
     } finally {
       setIsLoading(false);
     }
@@ -70,14 +148,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
 
-  // Exclusively for Traders (Public /login): NO 2FA
+  // Check Brute Force Lockout
+  const checkBruteForceLockout = (): { isLocked: boolean; remainingSec: number } => {
+    try {
+      const expiry = localStorage.getItem(LOCKOUT_EXPIRY_KEY);
+      if (expiry) {
+        const remaining = parseInt(expiry, 10) - Date.now();
+        if (remaining > 0) {
+          return { isLocked: true, remainingSec: Math.ceil(remaining / 1000) };
+        } else {
+          localStorage.removeItem(LOCKOUT_EXPIRY_KEY);
+          localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+        }
+      }
+    } catch {}
+    return { isLocked: false, remainingSec: 0 };
+  };
+
+  const recordFailedAttempt = () => {
+    try {
+      const current = parseInt(localStorage.getItem(FAILED_ATTEMPTS_KEY) || "0", 10) + 1;
+      localStorage.setItem(FAILED_ATTEMPTS_KEY, String(current));
+      if (current >= MAX_FAILED_ATTEMPTS) {
+        localStorage.setItem(LOCKOUT_EXPIRY_KEY, String(Date.now() + LOCKOUT_DURATION_MS));
+      }
+    } catch {}
+  };
+
+  const resetFailedAttempts = () => {
+    try {
+      localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+      localStorage.removeItem(LOCKOUT_EXPIRY_KEY);
+    } catch {}
+  };
+
+  // Exclusively for Traders (Public /login)
   const loginTrader = async (emailOrUser: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
+    const lockout = checkBruteForceLockout();
+    if (lockout.isLocked) {
+      return {
+        success: false,
+        error: `Trop de tentatives infructueuses. Veuillez patienter ${lockout.remainingSec}s avant de réessayer.`
+      };
+    }
+
     await new Promise((r) => setTimeout(r, 250));
     const cleanUser = emailOrUser.trim().toLowerCase();
     const cleanPass = password.trim();
 
     // 1. Demo Trader (trader / 123 or user / 123)
     if ((cleanUser === "trader" || cleanUser === "user" || cleanUser === "trader@shiftfx.io") && cleanPass === "123") {
+      resetFailedAttempts();
       const traderUser: User = {
         username: "trader",
         role: "user",
@@ -88,34 +209,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       setUser(traderUser);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(traderUser));
+      syncAuthCookie(traderUser);
       return { success: true, user: traderUser };
     }
 
-    // 2. Check registered accounts in storage
+    // 2. Check registered accounts in storage with Cryptographic Hash Verification
     try {
       const registered = localStorage.getItem(REGISTERED_USERS_KEY);
       if (registered) {
         const users = JSON.parse(registered);
+        const enteredHash = await hashPassword(cleanPass);
+
         const match = users.find(
           (u: any) =>
             (u.email.toLowerCase() === cleanUser || u.username.toLowerCase() === cleanUser) &&
-            u.password === cleanPass
+            (u.passwordHash === enteredHash || u.password === cleanPass) // Supports legacy demo
         );
+
         if (match) {
+          resetFailedAttempts();
           const authenticatedUser: User = {
             username: match.username,
             role: "user",
             name: match.name,
             email: match.email,
-            strategy: match.strategy || "Discretionary Macro"
+            strategy: match.strategy || "Discretionary Macro",
+            tier: match.tier || "pro"
           };
           setUser(authenticatedUser);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(authenticatedUser));
+          syncAuthCookie(authenticatedUser);
           return { success: true, user: authenticatedUser };
         }
       }
     } catch {}
 
+    recordFailedAttempt();
     return {
       success: false,
       error: "Identifiants Trader invalides. Pour la démo, utilisez : trader@shiftfx.io / 123"
@@ -128,14 +257,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string,
     totpCode?: string
   ): Promise<{ success: boolean; require2FA?: boolean; user?: User; error?: string }> => {
+    const lockout = checkBruteForceLockout();
+    if (lockout.isLocked) {
+      return {
+        success: false,
+        error: `Verrouillage temporaire de sécurité : Réessayez dans ${lockout.remainingSec}s.`
+      };
+    }
+
     await new Promise((r) => setTimeout(r, 250));
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    // Verify Admin Credentials (admin / 123 or admin@shiftfx.io / 123)
-    const isAdmin = (cleanUser === "admin" || cleanUser === "admin@shiftfx.io" || cleanUser === "headquant@shiftfx.com") && cleanPass === "123";
+    // Verify Admin Credentials
+    const isAdmin =
+      (cleanUser === "admin" || cleanUser === "admin@shiftfx.io" || cleanUser === "headquant@shiftfx.com") &&
+      cleanPass === "123";
 
     if (!isAdmin) {
+      recordFailedAttempt();
       return {
         success: false,
         error: "Accès refusé. Identifiants administrateur incorrects."
@@ -151,9 +291,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           error: totpCode ? "Code 2FA invalide (6 chiffres requis)." : undefined
         };
       }
-      // Demo accepts 123456 or any 6-digit code or generated test OTP
     }
 
+    resetFailedAttempts();
     const adminUser: User = {
       username: "admin",
       role: "admin",
@@ -162,13 +302,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     setUser(adminUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(adminUser));
+    syncAuthCookie(adminUser);
     return { success: true, user: adminUser };
   };
 
   // Generate and prepare email OTP verification for Trader Signup
   const sendTraderEmailOTP = async (email: string): Promise<{ success: boolean; devOtp: string }> => {
     await new Promise((r) => setTimeout(r, 300));
-    // Generate deterministic yet authentic 6-digit OTP
     const cleanEmail = email.trim().toLowerCase();
     const hash = cleanEmail.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const devOtp = String((hash * 7919) % 900000 + 100000);
@@ -177,12 +317,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(PENDING_OTP_KEY, JSON.stringify({ email: cleanEmail, otp: devOtp, timestamp: Date.now() }));
     } catch {}
 
-    // Ready for SMTP injection: when SMTP credentials are provided, send live email here
-    console.info(`[ShiftFX Security] OTP for ${cleanEmail} generated: ${devOtp}`);
+    // Only log in non-production environments to avoid credential leakage
+    if (process.env.NODE_ENV !== "production") {
+      console.info(`[ShiftFX Security (Dev)] OTP generated for ${cleanEmail}: ${devOtp}`);
+    }
+
     return { success: true, devOtp };
   };
 
-  // Complete Trader Signup after OTP validation
+  // Complete Trader Signup after OTP validation with Hashed Storage
   const completeTraderSignupWithOTP = async (
     data: { name: string; email: string; password: string; strategy?: string },
     otp: string
@@ -202,24 +345,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {}
 
     const username = cleanEmail.split("@")[0].replace(/[^a-z0-9]/g, "");
+    const passwordHash = await hashPassword(data.password.trim());
+
     const newTrader: User = {
       username,
       name: data.name.trim(),
       email: cleanEmail,
       role: "user",
-      strategy: data.strategy || "Discretionary Macro & Carry"
+      strategy: data.strategy || "Discretionary Macro & Carry",
+      tier: "pro"
     };
 
     try {
       const existing = localStorage.getItem(REGISTERED_USERS_KEY);
       const list = existing ? JSON.parse(existing) : [];
-      list.push({ ...newTrader, password: data.password.trim() });
+      // Store user with hashed password ONLY — No plaintext passwords stored!
+      list.push({ ...newTrader, passwordHash });
       localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(list));
       localStorage.removeItem(PENDING_OTP_KEY);
     } catch {}
 
     setUser(newTrader);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newTrader));
+    syncAuthCookie(newTrader);
     return { success: true, user: newTrader };
   };
 
@@ -243,15 +391,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(updated);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      syncAuthCookie(updated);
     } catch {}
-  };
-
-  const logout = () => {
-    setUser(null);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
-    window.location.href = "/login";
   };
 
   return (

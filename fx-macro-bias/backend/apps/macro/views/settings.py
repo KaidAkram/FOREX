@@ -4,12 +4,16 @@ Handles persistent configuration and pipeline triggers.
 """
 from datetime import datetime, timezone
 import logging
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, throttle_classes
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.response import Response
 from rest_framework import status
+from django.core.exceptions import ValidationError
 from apps.macro.models import SystemSetting, AuditLog
 from apps.macro.services.scheduler import force_trigger_now, get_scheduler_telemetry
 from apps.macro.services.scraper_orchestrator import compute_next_cron_run
+from apps.common.security import validate_safe_webhook_url, sanitize_input_text, is_production_mode
+
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +94,13 @@ def settings_config(request):
     except (ValueError, TypeError):
         return Response({"error": "Invalid numerical parameters."}, status=status.HTTP_400_BAD_REQUEST)
 
+    # SSRF Webhook Validation
+    if "webhookUrl" in merged and merged["webhookUrl"]:
+        try:
+            merged["webhookUrl"] = validate_safe_webhook_url(merged["webhookUrl"])
+        except ValidationError as ve:
+            return Response({"error": str(ve.message)}, status=status.HTTP_400_BAD_REQUEST)
+
     # Compute updated next scheduled run if cron preset changed
     now_utc = datetime.now(timezone.utc)
     next_cron = compute_next_cron_run(merged.get("cronPreset", "4hours"), merged.get("customCron", ""), now_utc)
@@ -128,11 +139,11 @@ def settings_config(request):
 
 
 @api_view(["POST"])
+@throttle_classes([ScopedRateThrottle])
 def trigger_scraper_pipeline(request):
     """
     Executes the live macro scraping, ingestion, and matrix calculation pipeline on demand.
-    Scrapes indicators, detects delayed prints, recalculates differentials and ratings,
-    and handles automatic rescheduling when prints are skipped.
+    Rate-limited to 5 executions per minute to defend against denial of service.
     """
     try:
         username = getattr(request.user, "username", "admin_dashboard")
@@ -164,7 +175,11 @@ def trigger_scraper_pipeline(request):
         })
     except Exception as e:
         logger.exception("Error executing scraper pipeline")
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        err_msg = "Une erreur interne est survenue lors de l'exécution du pipeline." if is_production_mode() else str(e)
+        return Response({"error": err_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+trigger_scraper_pipeline.throttle_scope = "scraper_trigger"
+
 
 
 @api_view(["GET"])

@@ -129,7 +129,7 @@ export function CatalogueKPICard({
   title,
   value,
   numericValue,
-  decimals = 1,
+  decimals,
   prefix = "",
   suffix = "",
   unit,
@@ -165,17 +165,25 @@ export function CatalogueKPICard({
   onClick?: () => void;
 }) {
   const style = WASH_STYLES[variant];
+  const effectiveDecimals =
+    decimals !== undefined
+      ? decimals
+      : numericValue !== undefined && Number.isInteger(numericValue)
+      ? 0
+      : 1;
 
   return (
     <div
-      onClick={() => {
-        if (onClick) {
-          soundFX.playPop(1.15);
-          onClick();
-        }
-      }}
+      onClick={
+        onClick
+          ? () => {
+              soundFX.playPop(1.15);
+              onClick();
+            }
+          : undefined
+      }
       className={`rounded-[22px] p-4 sm:p-5 bg-[#0E1015] hover:bg-[#12151C] ${style.bg} border border-white/[0.06] hover:border-white/[0.14] ${style.borderTop} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_20px_40px_-15px_rgba(0,0,0,0.7)] relative overflow-hidden flex flex-col justify-between transition-all duration-200 ease-out select-none ${
-        onClick ? "cursor-pointer" : ""
+        onClick ? "cursor-pointer" : "cursor-default"
       } ${isActive ? "ring-1 ring-[var(--fx-accent,#D4FF00)]/40 border-[var(--fx-accent,#D4FF00)]/30" : ""} ${className}`}
     >
       {/* Hero Card "Active Focus" Inversion (Fernly Video 00:00 & 00:10) */}
@@ -203,7 +211,7 @@ export function CatalogueKPICard({
           <div className="flex items-baseline gap-2 my-1">
             <span className="font-mono text-[clamp(1.5rem,2vw,1.95rem)] leading-none font-extrabold tracking-tight tabular-nums text-[#F8FAFC]">
               {numericValue !== undefined ? (
-                <AnimatedMetricValue value={numericValue} decimals={decimals} prefix={prefix} suffix={suffix} />
+                <AnimatedMetricValue value={numericValue} decimals={effectiveDecimals} prefix={prefix} suffix={suffix} />
               ) : (
                 value
               )}

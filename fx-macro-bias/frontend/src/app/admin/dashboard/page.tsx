@@ -35,6 +35,7 @@ import {
 } from "@/lib/uxEngineeringStandards";
 import { soundFX } from "@/lib/soundEngine";
 import { GhostWireframeDissolve, AnimatedMetricValue } from "@/components/motion/AnimatedNumberAndMorphChart";
+import { useLanguage } from "@/context/LanguageContext";
 
 const CURRENCY_META: Record<
   string,
@@ -65,12 +66,12 @@ const LATEST_PUBLISHED_FEED = [
 ];
 
 export default function DashboardPage() {
+  const { lang, t } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState("2026-10");
   const [activeFilterTab, setActiveFilterTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
-  const [activeKpiKey, setActiveKpiKey] = useState<string>("pairs");
 
   // 1. Dynamic Pair Scores Calculation from Master Dataset
   const dynamicPairScores = useMemo(() => {
@@ -251,10 +252,10 @@ export default function DashboardPage() {
       {/* 1. UNIFIED ADMIN PAGE HEADER                                       */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <AdminPageHeader
-        eyebrow="ARCHITECTURE QUANTITATIVE • SHIFTFX ENGINE"
-        badgeText="MOTEUR LIVE"
-        title="Tableau de Bord Exécutif"
-        searchPlaceholder="Rechercher paire ou indicateur..."
+        eyebrow={t("dash.eyebrow")}
+        badgeText={t("dash.badge")}
+        title={t("dash.title")}
+        searchPlaceholder={t("dash.search_placeholder")}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         onSearchClick={triggerCommandPalette}
@@ -310,7 +311,7 @@ export default function DashboardPage() {
           >
             <div className="flex items-center gap-2.5">
               <CheckCircleIcon size={16} className="text-emerald-400" />
-              <span className="font-sans font-medium">{refreshNotice}</span>
+              <span className="font-sans font-medium">{t("dash.sync_notice")}</span>
             </div>
             <span className="font-mono text-xs text-[#D4FF00] font-bold tabular-nums">200 OK</span>
           </motion.div>
@@ -318,51 +319,40 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 2. TOP KPI ROW (Active Focus Inversion layoutId="kpi-focus-wash") */}
+      {/* 2. TOP KPI ROW (Non-clickable, hover-only, zero click active ring) */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-5">
         {/* KPI 1: Active FX Pairs */}
         <CatalogueKPICard
-          title="PAIRES FX ACTIVES"
+          title={t("dash.kpi_active_pairs")}
           value="28"
           numericValue={28}
-          unit="Couverture 100%"
+          decimals={0}
+          unit={lang === "fr" ? "Couverture 100%" : "100% Coverage"}
           subtitle={
             <span className="font-sans font-medium text-xs text-slate-300">
-              <span className="font-mono font-bold tabular-nums">7</span> Majeures • <span className="font-mono font-bold tabular-nums">21</span> Croisées
+              <span className="font-mono font-bold tabular-nums">7</span> {lang === "fr" ? "Majeures" : "Majors"} • <span className="font-mono font-bold tabular-nums">21</span> {lang === "fr" ? "Croisées" : "Crosses"}
             </span>
           }
           variant="lime"
           icon={<StackIcon size={16} className="text-[#D4FF00]" />}
           bars={[50, 75, 60, 95]}
           className="h-[115px] sm:h-[132px]"
-          isActive={activeKpiKey === "pairs"}
-          layoutId="dashboard-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1);
-            setActiveKpiKey("pairs");
-          }}
         />
 
         {/* KPI 2: Macro Bias Distribution */}
         <CatalogueKPICard
-          title="BIAIS MACRO GLOBAL"
+          title={t("dash.kpi_global_bias")}
           variant="emerald"
           icon={<PulseIcon size={16} className="text-emerald-400" />}
           className="h-[115px] sm:h-[132px]"
-          isActive={activeKpiKey === "bias"}
-          layoutId="dashboard-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.05);
-            setActiveKpiKey("bias");
-          }}
           customHero={
             <div className="flex flex-col gap-1.5 my-0.5 sm:my-1">
               <div className="flex items-baseline justify-between">
                 <span className="text-xl sm:text-[28px] leading-none font-mono font-extrabold text-[#F8FAFC] tracking-tight tabular-nums flex items-baseline">
                   <AnimatedMetricValue value={biasDistribution.neutralPct} decimals={0} suffix="%" />
                   <span className="font-sans text-xs text-slate-400 font-normal ml-1.5">
-                    Neutre
+                    {t("regime.neutral")}
                   </span>
                 </span>
                 <span className="text-[10px] sm:text-[11px] font-mono tabular-nums text-slate-400">
@@ -394,7 +384,7 @@ export default function DashboardPage() {
           }
           customSubtitle={
             <span className="font-sans font-medium text-xs text-slate-300 whitespace-nowrap">
-              <span className="font-mono tabular-nums">{biasDistribution.bullishPct}%</span> Acheteur • <span className="font-mono tabular-nums">{biasDistribution.bearishPct}%</span> Vendeur
+              <span className="font-mono tabular-nums">{biasDistribution.bullishPct}%</span> {t("regime.bullish")} • <span className="font-mono tabular-nums">{biasDistribution.bearishPct}%</span> {t("regime.bearish")}
             </span>
           }
           customRightFooter={<div />}
@@ -402,21 +392,15 @@ export default function DashboardPage() {
 
         {/* KPI 3: Active Indicators (Single-Line Clean 6 Badges: PIB BC IPC Taux RÉS ACT) */}
         <CatalogueKPICard
-          title="INDICATEURS ACTIFS"
+          title={lang === "fr" ? "INDICATEURS ACTIFS" : "ACTIVE PILLARS"}
           value="6 / 6"
-          unit="Ingérés"
+          unit={lang === "fr" ? "Ingérés" : "Ingested"}
           variant="slate"
           icon={<CheckCircleIcon size={16} className="text-slate-300" />}
           className="h-[115px] sm:h-[132px]"
-          isActive={activeKpiKey === "indicators"}
-          layoutId="dashboard-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.1);
-            setActiveKpiKey("indicators");
-          }}
           customSubtitle={
             <div className="flex items-center gap-[3px] whitespace-nowrap overflow-visible pt-0.5 min-w-0 flex-1">
-              {["PIB", "BC", "IPC", "Taux", "RÉS", "ACT"].map((pill) => (
+              {(lang === "fr" ? ["PIB", "BC", "IPC", "Taux", "RÉS", "ACT"] : ["GDP", "CA", "CPI", "Rates", "FXR", "Eqty"]).map((pill) => (
                 <span
                   key={pill}
                   className="px-1.5 py-0.5 rounded-[5px] bg-white/[0.04] border border-white/[0.06] font-sans font-medium text-[9.5px] text-slate-300 tracking-tight shrink-0"
@@ -431,25 +415,20 @@ export default function DashboardPage() {
 
         {/* KPI 4: Engine Status */}
         <CatalogueKPICard
-          title="STATUT DU MOTEUR"
+          title={t("dash.kpi_engine_status")}
           value="100%"
           numericValue={100}
-          unit="Synchronisé"
+          decimals={0}
+          unit={lang === "fr" ? "Synchronisé" : "Synchronized"}
           subtitle={
             <span className="font-sans font-medium text-xs text-slate-400">
-              Période active : <span className="font-mono tabular-nums">{selectedMonth}</span>
+              {lang === "fr" ? "Période active :" : "Active period:"} <span className="font-mono tabular-nums">{selectedMonth}</span>
             </span>
           }
           variant="emerald"
           icon={<ShieldCheckIcon size={16} className="text-emerald-400" />}
           bars={[80, 85, 90, 100]}
           className="h-[115px] sm:h-[132px]"
-          isActive={activeKpiKey === "engine"}
-          layoutId="dashboard-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.15);
-            setActiveKpiKey("engine");
-          }}
         />
       </div>
 

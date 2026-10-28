@@ -41,6 +41,7 @@ import {
 import { FXPairFlags } from "@/components/ui/DopaminePrimitives";
 import { soundFX } from "@/lib/soundEngine";
 import { AnimatedMetricValue, GhostWireframeDissolve } from "@/components/motion/AnimatedNumberAndMorphChart";
+import { useLanguage } from "@/context/LanguageContext";
 
 import { 
   INDICATORS, 
@@ -246,13 +247,13 @@ export default function FinalScorePage() {
     return {};
   });
 
+  const { lang, t } = useLanguage();
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [viewMode, setViewMode] = useState<"matrix" | "cards">("matrix");
   const [currencyGroup, setCurrencyGroup] = useState<"ALL" | "EUR" | "GBP" | "USD" | "JPY" | "CROSS">("ALL");
   const [regimeFilter, setRegimeFilter] = useState<"ALL" | "BULLISH" | "BEARISH" | "NEUTRAL">("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [heatmapMode, setHeatmapMode] = useState<boolean>(true);
-  const [activeKpiKey, setActiveKpiKey] = useState<string>("bullish");
 
   const { data: scoresData, isLoading, refetch } = useQuery({
     queryKey: ["final-scores", selectedYear, userOverrides],
@@ -492,10 +493,10 @@ export default function FinalScorePage() {
       {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <AdminPageHeader
-        eyebrow="MATRICE DE CONVICTION • SHIFTFX ENGINE"
-        badgeText="28 COMBINAISONS G10"
-        title="Score Final & Matrice de Prévision 3 Mois"
-        searchPlaceholder="Filtrer les 28 paires..."
+        eyebrow={t("score.eyebrow")}
+        badgeText={t("score.badge")}
+        title={t("score.title")}
+        searchPlaceholder={t("score.filter_placeholder")}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         rightActions={
@@ -506,12 +507,12 @@ export default function FinalScorePage() {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                aria-label="Sélectionner l'horizon"
+                aria-label={t("score.horizon")}
                 className="bg-transparent font-mono text-xs text-slate-300 outline-none cursor-pointer pr-1"
               >
                 {YEARS.map(y => (
                   <option key={y} value={y} className="bg-[#101218] text-white">
-                    Horizon : {y}
+                    {t("score.horizon")} {y}
                   </option>
                 ))}
               </select>
@@ -532,29 +533,23 @@ export default function FinalScorePage() {
               )}
             >
               <Flame size={13} className={heatmapMode ? "text-[#D4FF00] fill-[#D4FF00]" : "text-slate-400"} />
-              <span>Mode Heatmap</span>
+              <span>{t("score.heatmap_mode")}</span>
             </button>
           </>
         }
       />
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 2. TOP 4 KPI CARDS (CatalogueKPICard standard)                    */}
+      {/* 2. TOP 4 KPI CARDS (Non-clickable, hover-only, zero click active ring) */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
           
           {/* Card 1: Top Bullish Bias */}
           <CatalogueKPICard
-            title="PLUS FORT VENT PORTEUR"
+            title={t("score.kpi_tailwind")}
             variant="emerald"
             icon={<TrendingUp size={14} />}
-            isActive={activeKpiKey === "bullish"}
-            layoutId="final-score-kpi-focus"
-            onClick={() => {
-              soundFX.playPop(1);
-              setActiveKpiKey("bullish");
-            }}
             customHero={
               <div className="flex items-baseline justify-between my-1">
                 <div className="flex items-center gap-2">
@@ -566,21 +561,15 @@ export default function FinalScorePage() {
                 <span className="font-sans font-bold text-sm text-white">{stats.topBullish.pair}</span>
               </div>
             }
-            subtitle="Top Alpha Acheteur G10"
+            subtitle={t("score.kpi_tailwind_sub")}
             bars={[45, 65, 80, 100]}
           />
 
           {/* Card 2: Top Bearish Bias */}
           <CatalogueKPICard
-            title="PLUS FORT VENT CONTRAIRE"
+            title={t("score.kpi_headwind")}
             variant="rose"
             icon={<TrendingDown size={14} />}
-            isActive={activeKpiKey === "bearish"}
-            layoutId="final-score-kpi-focus"
-            onClick={() => {
-              soundFX.playPop(1.05);
-              setActiveKpiKey("bearish");
-            }}
             customHero={
               <div className="flex items-baseline justify-between my-1">
                 <div className="flex items-center gap-2">
@@ -592,27 +581,21 @@ export default function FinalScorePage() {
                 <span className="font-sans font-bold text-sm text-white">{stats.topBearish.pair}</span>
               </div>
             }
-            subtitle="Déficit de Portage Majeur"
+            subtitle={t("score.kpi_headwind_sub")}
             bars={[90, 70, 45, 20]}
           />
 
           {/* Card 3: Active Month Distribution */}
           <CatalogueKPICard
-            title={`LARGEUR DE RÉGIME (${stats.latestSettledMonth})`}
+            title={`${t("score.kpi_breadth")} (${stats.latestSettledMonth})`}
             variant="sky"
             icon={<Activity size={14} />}
-            isActive={activeKpiKey === "distribution"}
-            layoutId="final-score-kpi-focus"
-            onClick={() => {
-              soundFX.playPop(1.1);
-              setActiveKpiKey("distribution");
-            }}
             customHero={
               <div className="flex flex-col gap-1.5 my-1">
                 <div className="flex items-baseline justify-between">
                   <span className="text-[28px] leading-none font-mono font-extrabold text-white tracking-tight flex items-baseline">
                     <AnimatedMetricValue value={stats.totalPairs} decimals={0} />
-                    <span className="text-xs font-mono text-slate-400 font-normal ml-1">Paires</span>
+                    <span className="text-xs font-mono text-slate-400 font-normal ml-1">{t("score.kpi_pairs_unit")}</span>
                   </span>
                   <span className="text-[11px] font-mono text-slate-400">
                     <span className="text-emerald-400 font-bold">+{stats.bullishCount}</span> / {stats.neutralCount} / <span className="text-rose-400 font-bold">-{stats.bearishCount}</span>
@@ -625,25 +608,19 @@ export default function FinalScorePage() {
                 </div>
               </div>
             }
-            subtitle={`${stats.bullishCount} Acheteur • ${stats.neutralCount} Neutre • ${stats.bearishCount} Vendeur`}
+            subtitle={`${stats.bullishCount} ${t("regime.bullish")} • ${stats.neutralCount} ${t("regime.neutral")} • ${stats.bearishCount} ${t("regime.bearish")}`}
             customRightFooter={<div />}
           />
 
           {/* Card 4: Macro Dispersion Index */}
           <CatalogueKPICard
-            title="DISPERSION ABSOLUE G10"
+            title={t("score.kpi_dispersion")}
             value={`${stats.avgAbs}%`}
             numericValue={parseFloat(stats.avgAbs)}
-            unit="Haute Conviction"
-            subtitle="Divergence Moyenne Absolue"
+            unit={t("score.kpi_high_conviction")}
+            subtitle={t("score.kpi_dispersion_sub")}
             variant="lime"
             icon={<Sparkles size={14} />}
-            isActive={activeKpiKey === "dispersion"}
-            layoutId="final-score-kpi-focus"
-            onClick={() => {
-              soundFX.playPop(1.15);
-              setActiveKpiKey("dispersion");
-            }}
             bars={[40, 65, 80, 95]}
           />
 
@@ -659,15 +636,15 @@ export default function FinalScorePage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.05]">
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full">
               <span className="text-[11px] font-mono uppercase tracking-[0.08em] text-slate-400 mr-2 shrink-0">
-                UNIVERS :
+                {t("score.universe")}
               </span>
               {[
-                { key: "ALL", label: "Toutes (28)" },
+                { key: "ALL", label: t("score.all_pairs") },
                 { key: "EUR", label: "EUR (7)" },
                 { key: "GBP", label: "GBP (6)" },
                 { key: "USD", label: "USD (5)" },
                 { key: "JPY", label: "JPY (4)" },
-                { key: "CROSS", label: "Croisées (6)" },
+                { key: "CROSS", label: t("score.crosses") },
               ].map((grp) => (
                 <button
                   key={grp.key}
@@ -698,7 +675,7 @@ export default function FinalScorePage() {
                 )}
               >
                 <Grid3X3 size={13} />
-                <span>Matrice</span>
+                <span>{t("score.view_matrix")}</span>
               </button>
               <button
                 type="button"
@@ -709,7 +686,7 @@ export default function FinalScorePage() {
                 )}
               >
                 <LayoutGrid size={13} />
-                <span>Classement</span>
+                <span>{t("score.view_rankings")}</span>
               </button>
             </div>
           </div>
@@ -717,7 +694,7 @@ export default function FinalScorePage() {
           {/* Row 2: Regime Filter Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             <span className="text-[11px] font-mono uppercase tracking-[0.08em] text-slate-400 mr-2 shrink-0">
-              RÉGIME :
+              {t("score.regime")}
             </span>
             <button
               onClick={() => setRegimeFilter("ALL")}
@@ -726,7 +703,7 @@ export default function FinalScorePage() {
                 regimeFilter === "ALL" ? "bg-white/[0.12] text-white font-bold" : "text-slate-400 hover:text-white"
               )}
             >
-              Tous Régimes
+              {t("score.all_regimes")}
             </button>
             <button
               onClick={() => setRegimeFilter("BULLISH")}
@@ -735,7 +712,7 @@ export default function FinalScorePage() {
                 regimeFilter === "BULLISH" ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30" : "text-emerald-400/70 hover:text-emerald-400"
               )}
             >
-              Acheteur (≥ +20%)
+              {t("score.bullish_pill")}
             </button>
             <button
               onClick={() => setRegimeFilter("BEARISH")}
@@ -744,7 +721,7 @@ export default function FinalScorePage() {
                 regimeFilter === "BEARISH" ? "bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30" : "text-rose-400/70 hover:text-rose-400"
               )}
             >
-              Vendeur (≤ −20%)
+              {t("score.bearish_pill")}
             </button>
             <button
               onClick={() => setRegimeFilter("NEUTRAL")}
@@ -753,7 +730,7 @@ export default function FinalScorePage() {
                 regimeFilter === "NEUTRAL" ? "bg-white/[0.12] text-white font-bold" : "text-slate-400 hover:text-white"
               )}
             >
-              Neutre
+              {t("score.neutral_pill")}
             </button>
           </div>
         </div>
@@ -773,14 +750,14 @@ export default function FinalScorePage() {
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-sans font-bold text-sm text-white">
-                    Matrice Composite des Biais Macro &amp; Prévisions 3 Mois ({selectedYear})
+                    {t("score.composite_title")} ({selectedYear})
                   </span>
                   <span className="text-[10px] font-mono text-[#D4FF00] bg-[#D4FF00]/10 border border-[#D4FF00]/25 px-2 py-0.5 rounded-full font-bold">
                     28 Paires G10
                   </span>
                 </div>
                 <span className="text-xs text-slate-400">
-                  Cliquez sur les cellules historiques (Jan–Sep) pour la preuve mathématique 6 piliers. Cliquez sur les prévisions (Oct–Déc) pour ajuster les estimations.
+                  {t("score.matrix_instructions")}
                 </span>
               </div>
             </div>
@@ -789,19 +766,19 @@ export default function FinalScorePage() {
             <div className="flex items-center gap-3 text-xs font-mono text-slate-400 flex-wrap">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                <strong className="text-white">Acheteur</strong> (≥ +20%)
+                <strong className="text-white">{t("regime.bullish")}</strong> (≥ +20%)
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-                <strong className="text-white">Neutre</strong> ([-20%, +20%])
+                <strong className="text-white">{t("regime.neutral")}</strong> ([-20%, +20%])
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
-                <strong className="text-white">Vendeur</strong> (≤ -20%)
+                <strong className="text-white">{t("regime.bearish")}</strong> (≤ -20%)
               </span>
               <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300">
                 <Sparkles size={11} className="text-purple-400" />
-                <strong className="text-purple-300">Prévision 3M</strong> (Éditable)
+                <strong className="text-purple-300">{t("score.legend_forecast")}</strong>
               </span>
             </div>
           </div>
@@ -814,7 +791,7 @@ export default function FinalScorePage() {
                   {/* Sticky Left Header */}
                   <th className="sticky left-0 z-30 bg-[#101218] pl-6 pr-4 py-4 font-mono font-semibold text-xs text-slate-400 w-[210px] min-w-[210px] max-w-[210px] border-b border-r border-white/[0.08] shadow-[4px_0_12px_rgba(0,0,0,0.6)]">
                     <div className="flex items-center justify-between">
-                      <span className="font-sans font-bold text-white tracking-wide">PAIRE FX</span>
+                      <span className="font-sans font-bold text-white tracking-wide">{t("score.col_pair")}</span>
                       <span className="text-[10px] font-mono font-bold text-[#D4FF00] bg-[#D4FF00]/10 border border-[#D4FF00]/25 px-1.5 py-0.5 rounded-full">
                         28 G10
                       </span>
@@ -845,7 +822,7 @@ export default function FinalScorePage() {
                           </span>
                           {isFcst ? (
                             <span className="text-[8px] font-mono font-extrabold uppercase tracking-wider text-purple-300 bg-purple-500/25 border border-purple-400/40 px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.3)] flex items-center gap-0.5">
-                              <Sparkles size={8} /> PRÉVISION
+                              <Sparkles size={8} /> {lang === "fr" ? "PRÉVISION" : "FORECAST"}
                             </span>
                           ) : isCurrentLive ? (
                             <span className="text-[9px] font-mono font-black uppercase tracking-wider text-[#07080C] bg-[#D4FF00] px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(212,255,0,0.5)]">

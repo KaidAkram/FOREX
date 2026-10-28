@@ -12,17 +12,27 @@ export const QUANT_THEMES = [
     subtitle: "Acid Lime / Obsidienne",
     color: "#D4FF00",
     rgb: "212, 255, 0",
+    canvas: "#06080A",
+    surface: "#0F1117",
+    secondary: "#161922",
+    borderActive: "rgba(212, 255, 0, 0.35)",
     wash: "rgba(212, 255, 0, 0.08)",
     muted: "rgba(212, 255, 0, 0.16)",
+    glow: "0 0 24px rgba(212, 255, 0, 0.25)",
   },
   {
     id: "forest",
     name: "Émeraude Souverain",
     subtitle: "Menthe / Forêt Profonde",
-    color: "#10B981",
-    rgb: "16, 185, 129",
-    wash: "rgba(16, 185, 129, 0.08)",
-    muted: "rgba(16, 185, 129, 0.16)",
+    color: "#00E599",
+    rgb: "0, 229, 153",
+    canvas: "#040907",
+    surface: "#08140F",
+    secondary: "#0D1E17",
+    borderActive: "rgba(0, 229, 153, 0.35)",
+    wash: "rgba(0, 229, 153, 0.08)",
+    muted: "rgba(0, 229, 153, 0.16)",
+    glow: "0 0 24px rgba(0, 229, 153, 0.25)",
   },
   {
     id: "ocean",
@@ -30,8 +40,13 @@ export const QUANT_THEMES = [
     subtitle: "Saphir / Bleu Quant",
     color: "#38BDF8",
     rgb: "56, 189, 248",
+    canvas: "#040812",
+    surface: "#08101E",
+    secondary: "#0E182A",
+    borderActive: "rgba(56, 189, 248, 0.35)",
     wash: "rgba(56, 189, 248, 0.08)",
     muted: "rgba(56, 189, 248, 0.16)",
+    glow: "0 0 24px rgba(56, 189, 248, 0.25)",
   },
   {
     id: "ember",
@@ -39,8 +54,13 @@ export const QUANT_THEMES = [
     subtitle: "Or Chaud / Cuivre",
     color: "#F59E0B",
     rgb: "245, 158, 11",
+    canvas: "#0A0704",
+    surface: "#150F08",
+    secondary: "#1E160E",
+    borderActive: "rgba(245, 158, 11, 0.35)",
     wash: "rgba(245, 158, 11, 0.08)",
     muted: "rgba(245, 158, 11, 0.16)",
+    glow: "0 0 24px rgba(245, 158, 11, 0.25)",
   },
 ] as const;
 
@@ -53,6 +73,20 @@ export function applyWorkspaceTheme(theme: QuantThemeDef, announce = true) {
   root.style.setProperty("--fx-accent-rgb", theme.rgb);
   root.style.setProperty("--fx-accent-muted", theme.muted);
   root.style.setProperty("--fx-hero-wash", theme.wash);
+  root.style.setProperty("--fx-accent-glow", theme.glow);
+  root.style.setProperty("--color-canvas", theme.canvas);
+  root.style.setProperty("--color-surface", theme.surface);
+  root.style.setProperty("--color-secondary", theme.secondary);
+  root.style.setProperty("--color-border-active", theme.borderActive);
+
+  // Whole theme swapping across entire body and container viewport
+  document.body.style.backgroundColor = theme.canvas;
+  document.documentElement.style.backgroundColor = theme.canvas;
+  const viewport = document.getElementById("admin-main-viewport");
+  if (viewport) {
+    viewport.style.backgroundColor = theme.canvas;
+  }
+
   localStorage.setItem("shiftfx-accent-theme", theme.id);
 
   if (announce) {

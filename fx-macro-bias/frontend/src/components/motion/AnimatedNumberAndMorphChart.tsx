@@ -9,7 +9,7 @@ import { SyncIcon } from "@primer/octicons-react";
 // Smoothly interpolates from old value to new value over 420ms without abrupt snapping
 export function AnimatedMetricValue({
   value,
-  decimals = 1,
+  decimals,
   prefix = "",
   suffix = "",
   className = "",
@@ -20,9 +20,10 @@ export function AnimatedMetricValue({
   suffix?: string;
   className?: string;
 }) {
+  const effectiveDecimals = decimals !== undefined ? decimals : (Number.isInteger(value) ? 0 : 1);
   const spring = useSpring(value, { stiffness: 260, damping: 30, mass: 0.5 });
   const display = useTransform(spring, (current) => {
-    const fixed = current.toFixed(decimals);
+    const fixed = current.toFixed(effectiveDecimals);
     return `${prefix}${fixed}${suffix}`;
   });
 

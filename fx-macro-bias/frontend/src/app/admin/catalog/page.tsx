@@ -20,6 +20,7 @@ import {
 } from "@/components/admin/AdminPrimitives";
 import { soundFX } from "@/lib/soundEngine";
 import { AnimatedMetricValue } from "@/components/motion/AnimatedNumberAndMorphChart";
+import { useLanguage } from "@/context/LanguageContext";
 
 // Helper to format carry advantage concisely (prevents any text clipping or double parenthesis)
 function formatConciseCarry(carry: string): string {
@@ -58,6 +59,7 @@ function formatConciseCarry(carry: string): string {
 }
 
 export default function AdminCatalogPage() {
+  const { lang, t } = useLanguage();
   const [signals, setSignals] = useState<TraderSignal[]>([]);
   const [config, setConfig] = useState<CatalogConfig | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -68,7 +70,6 @@ export default function AdminCatalogPage() {
   const [groupFilter, setGroupFilter] = useState<string>("ALL");
   const [tierFilter, setTierFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [activeKpiKey, setActiveKpiKey] = useState<string>("catalogue");
 
   useEffect(() => {
     const loadedConfig = getCatalogConfig();
@@ -260,10 +261,10 @@ export default function AdminCatalogPage() {
       {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <AdminPageHeader
-        eyebrow="PARAMÉTRAGE INSTITUTIONNEL • SHIFTFX ENGINE"
-        badgeText="ADMIN"
-        title="Catalogue Utilisateur & Plans d'Abonnement"
-        searchPlaceholder="Rechercher une paire ou pays..."
+        eyebrow={t("catalog.eyebrow")}
+        badgeText={t("catalog.badge")}
+        title={t("catalog.title")}
+        searchPlaceholder={t("catalog.search_placeholder")}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         rightActions={
@@ -273,7 +274,7 @@ export default function AdminCatalogPage() {
               className="h-10 px-4 rounded-full bg-[#101218] hover:bg-white/[0.06] border border-white/[0.08] text-xs font-mono text-slate-300 hover:text-white transition-all flex items-center gap-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] cursor-pointer whitespace-nowrap"
             >
               <Eye size={13} className="text-[#D4FF00]" />
-              <span>Portail Trader</span>
+              <span>{t("catalog.trader_portal")}</span>
               <ExternalLink size={11} className="text-slate-400" />
             </Link>
 
@@ -289,7 +290,7 @@ export default function AdminCatalogPage() {
               )}
             >
               <Save size={13} />
-              <span>{isDirty ? "Sauvegarder" : "Synchronisé"}</span>
+              <span>{isDirty ? t("catalog.save") : t("catalog.synchronized")}</span>
             </motion.button>
           </>
         }
@@ -309,7 +310,7 @@ export default function AdminCatalogPage() {
               <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
                 <CheckCircle2 size={14} className="text-emerald-400" />
               </div>
-              <span>Catalogue utilisateur sauvegardé avec succès. Les modifications sont instantanément en direct sur le portail trader.</span>
+              <span>{t("catalog.saved_toast")}</span>
             </div>
             <span className="text-[11px] font-mono opacity-80">{new Date().toLocaleTimeString()}</span>
           </motion.div>
@@ -317,113 +318,82 @@ export default function AdminCatalogPage() {
       </AnimatePresence>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 2. KPI ROW (Active Focus Inversion layoutId="catalog-kpi-focus")   */}
+      {/* 2. KPI ROW (Non-clickable, hover-only, integer counts)              */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-6 gap-3.5 mb-5">
         {/* Card 1: Catalogue G10 */}
         <CatalogueKPICard
-          title="CATALOGUE G10"
+          title={t("catalog.kpi_catalog")}
           value={28}
           numericValue={28}
-          unit="Paires"
-          subtitle="Paires canoniques"
+          decimals={0}
+          unit={lang === "fr" ? "Paires" : "Pairs"}
+          subtitle={t("catalog.kpi_canonical_sub")}
           variant="lime"
           icon={<Layers size={14} />}
           bars={[40, 65, 55, 95]}
-          isActive={activeKpiKey === "catalogue"}
-          layoutId="catalog-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1);
-            setActiveKpiKey("catalogue");
-          }}
         />
 
         {/* Card 2: Publiées */}
         <CatalogueKPICard
-          title="PUBLIÉES"
+          title={t("catalog.kpi_published")}
           value={publishedCount}
           numericValue={publishedCount}
-          unit="Actives"
-          subtitle="Visibles au portail"
+          decimals={0}
+          unit={lang === "fr" ? "Actives" : "Active"}
+          subtitle={t("catalog.kpi_published_sub")}
           variant="emerald"
           icon={<CheckCircle2 size={14} />}
           bars={[50, 75, 80, 100]}
-          isActive={activeKpiKey === "published"}
-          layoutId="catalog-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.05);
-            setActiveKpiKey("published");
-          }}
         />
 
         {/* Card 3: Masquées */}
         <CatalogueKPICard
-          title="MASQUÉES"
+          title={t("catalog.kpi_hidden")}
           value={hiddenCount}
           numericValue={hiddenCount}
-          unit="Filtrées"
-          subtitle="Non affichées"
+          decimals={0}
+          unit={lang === "fr" ? "Filtrées" : "Filtered"}
+          subtitle={t("catalog.kpi_hidden_sub")}
           variant="slate"
           icon={<EyeOff size={14} />}
           bars={[20, 15, 10, Math.max(5, hiddenCount * 10)]}
-          isActive={activeKpiKey === "hidden"}
-          layoutId="catalog-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.1);
-            setActiveKpiKey("hidden");
-          }}
         />
 
         {/* Card 4: Plan Basic */}
         <CatalogueKPICard
-          title="PLAN BASIC"
+          title={t("catalog.kpi_basic")}
           value={basicCount}
           numericValue={basicCount}
-          unit="Standard"
-          subtitle="Accès gratuit"
+          decimals={0}
+          unit={lang === "fr" ? "Standard" : "Public"}
+          subtitle={t("catalog.kpi_basic_sub")}
           variant="sky"
           icon={<Unlock size={14} />}
           bars={[35, 50, 60, 85]}
-          isActive={activeKpiKey === "basic"}
-          layoutId="catalog-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.15);
-            setActiveKpiKey("basic");
-          }}
         />
 
         {/* Card 5: Plan Pro */}
         <CatalogueKPICard
-          title="PLAN PRO"
+          title={t("catalog.kpi_pro")}
           value={proCount}
           numericValue={proCount}
-          unit="Institutionnel"
-          subtitle="Réservé abonnés"
+          decimals={0}
+          unit={lang === "fr" ? "Institutionnel" : "Institutional"}
+          subtitle={t("catalog.kpi_pro_sub")}
           variant="purple"
           icon={<Lock size={14} />}
           bars={[60, 75, 85, 100]}
-          isActive={activeKpiKey === "pro"}
-          layoutId="catalog-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.2);
-            setActiveKpiKey("pro");
-          }}
         />
 
         {/* Card 6: Top Movers */}
         <CatalogueKPICard
-          title="TOP MOVERS"
+          title={t("catalog.kpi_top_movers")}
           value={`${topMoversCount} / 2`}
           unit="Max"
-          subtitle="Ruban vedette"
+          subtitle={t("catalog.kpi_top_movers_sub")}
           variant="lime"
           icon={<Flame size={14} />}
-          isActive={activeKpiKey === "top-movers"}
-          layoutId="catalog-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.25);
-            setActiveKpiKey("top-movers");
-          }}
           customRightFooter={
             <div className="flex items-center gap-1.5 h-4 shrink-0">
               <span className={clsx("w-2 h-2 rounded-full transition-all", topMoversCount >= 1 ? "bg-[#D4FF00] shadow-[0_0_8px_rgba(212,255,0,0.8)]" : "bg-white/10")} />
@@ -446,7 +416,7 @@ export default function AdminCatalogPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filtrer par paire, pays ou moteur macro..."
+                placeholder={lang === "fr" ? "Filtrer par paire, pays ou moteur macro..." : "Filter by pair, country or macro driver..."}
                 className="w-full h-9 pl-9 pr-8 rounded-full bg-[#0A0B0F] border border-white/[0.06] text-xs font-sans text-white placeholder-slate-500 focus:outline-none focus:border-[#D4FF00]/50 transition-colors"
               />
               {searchQuery && (
@@ -465,7 +435,7 @@ export default function AdminCatalogPage() {
                 onClick={handlePublishAll}
                 className="rounded-full bg-white/[0.04] border border-white/[0.08] px-4 py-1.5 text-xs font-mono text-slate-200 hover:text-white hover:bg-white/[0.08] transition-colors whitespace-nowrap cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
               >
-                Tout Publier (28)
+                {t("catalog.publish_all")}
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.95 }}
@@ -473,7 +443,7 @@ export default function AdminCatalogPage() {
                 className="rounded-full bg-[#D4FF00]/15 border border-[#D4FF00]/40 text-[#D4FF00] hover:bg-[#D4FF00]/25 px-4 py-1.5 text-xs font-mono font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[0_0_15px_rgba(212,255,0,0.15)]"
               >
                 <Zap size={12} />
-                Auto Top Movers
+                {t("catalog.auto_top_movers")}
               </motion.button>
             </div>
           </div>
@@ -483,7 +453,7 @@ export default function AdminCatalogPage() {
             {/* Univers Quick-Chips */}
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full">
               <span className="text-[11px] font-mono uppercase tracking-[0.08em] text-slate-400 mr-2 shrink-0">
-                UNIVERS:
+                {t("catalog.filter_universe")}
               </span>
               {["ALL", "EUR", "GBP", "USD", "JPY", "CROSS"].map((grp) => (
                 <button
@@ -496,7 +466,7 @@ export default function AdminCatalogPage() {
                       : "text-slate-400 hover:text-white"
                   )}
                 >
-                  {grp === "ALL" ? "Tous" : grp}
+                  {grp === "ALL" ? t("catalog.filter_all") : grp}
                 </button>
               ))}
             </div>
@@ -504,28 +474,28 @@ export default function AdminCatalogPage() {
             <div className="flex items-center gap-2.5 flex-wrap">
               {/* Plan Filter Track */}
               <div className="rounded-full bg-[#0A0B0F] border border-white/[0.06] px-2 py-1 inline-flex items-center gap-1 text-xs font-mono">
-                <span className="text-slate-500 px-1 text-[11px]">Plan:</span>
-                {["ALL", "basic", "pro"].map((t) => (
+                <span className="text-slate-500 px-1 text-[11px]">{t("catalog.filter_plan")}</span>
+                {["ALL", "basic", "pro"].map((tPlan) => (
                   <button
-                    key={t}
-                    onClick={() => { setTierFilter(t); playTabSound(); }}
+                    key={tPlan}
+                    onClick={() => { setTierFilter(tPlan); playTabSound(); }}
                     className={clsx(
                       "px-2.5 py-0.5 rounded-full capitalize transition-colors cursor-pointer",
-                      tierFilter === t ? "bg-white/[0.12] text-white font-semibold" : "text-slate-400 hover:text-white"
+                      tierFilter === tPlan ? "bg-white/[0.12] text-white font-semibold" : "text-slate-400 hover:text-white"
                     )}
                   >
-                    {t === "ALL" ? "Tous" : t}
+                    {tPlan === "ALL" ? t("catalog.filter_all") : tPlan}
                   </button>
                 ))}
               </div>
 
               {/* Status Filter Track */}
               <div className="rounded-full bg-[#0A0B0F] border border-white/[0.06] px-2 py-1 inline-flex items-center gap-1 text-xs font-mono">
-                <span className="text-slate-500 px-1 text-[11px]">Statut:</span>
+                <span className="text-slate-500 px-1 text-[11px]">{t("catalog.filter_status")}</span>
                 {[
-                  { key: "ALL", label: "Tous" },
-                  { key: "PUBLISHED", label: "Publiées" },
-                  { key: "HIDDEN", label: "Masquées" }
+                  { key: "ALL", label: t("catalog.filter_all") },
+                  { key: "PUBLISHED", label: t("catalog.published_badge") },
+                  { key: "HIDDEN", label: t("catalog.hidden_badge") }
                 ].map((s) => (
                   <button
                     key={s.key}
@@ -549,15 +519,15 @@ export default function AdminCatalogPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       <SculptedTableContainer className="pb-3">
         <div className="overflow-x-auto w-full">
-          <table className="w-full table-fixed border-collapse min-w-[960px]">
+          <table className="w-full table-fixed border-collapse min-w-[1140px]">
             <thead>
               <tr className="bg-white/[0.02] border-b border-white/[0.06] h-11 text-[11px] font-mono uppercase tracking-wider text-slate-400">
-                <th className="w-[20%] text-left pl-6 pr-3">PAIRE FX</th>
-                <th className="w-[13%] text-center px-3">SCORE MACRO</th>
-                <th className="w-[14%] text-center px-3">PUBLICATION</th>
-                <th className="w-[16%] text-center px-3">ATTRIBUTION TIER</th>
-                <th className="w-[14%] text-center px-3">RUBAN TOP MOVER</th>
-                <th className="w-[23%] text-left pr-6 pl-3">JUSTIFICATION MACRO</th>
+                <th className="w-[18%] text-left pl-6 pr-3">{t("catalog.col_pair")}</th>
+                <th className="w-[12%] text-center px-3">{t("catalog.col_score")}</th>
+                <th className="w-[13%] text-center px-3">{t("catalog.col_publication")}</th>
+                <th className="w-[14%] text-center px-3">{t("catalog.col_tier")}</th>
+                <th className="w-[13%] text-center px-3">{t("catalog.col_ribbon")}</th>
+                <th className="w-[30%] text-left pr-6 pl-3">{t("catalog.col_justification")}</th>
               </tr>
             </thead>
 
@@ -574,7 +544,7 @@ export default function AdminCatalogPage() {
                       row.isPublished ? "hover:bg-white/[0.02]" : "bg-black/25 opacity-55 hover:opacity-80"
                     )}
                   >
-                    {/* Col 1 (20%): FX Pair + HatScripts Vector Flags */}
+                    {/* Col 1 (18%): FX Pair + HatScripts Vector Flags */}
                     <td className="pl-6 pr-3">
                       <div className="flex items-center gap-3">
                         <FXPairFlags pair={row.pair} size="md" />
@@ -592,7 +562,7 @@ export default function AdminCatalogPage() {
                       </div>
                     </td>
 
-                    {/* Col 2 (13%): Macro Score (Centered, tabular-nums) */}
+                    {/* Col 2 (12%): Macro Score (Centered, tabular-nums) */}
                     <td className="px-3 text-center">
                       <div className="flex flex-col items-center">
                         <span className={clsx(
@@ -607,12 +577,12 @@ export default function AdminCatalogPage() {
                           isBear ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
                           "bg-slate-400/10 text-slate-400 border-slate-400/20"
                         )}>
-                          {row.biasFrench}
+                          {lang === "fr" ? row.biasFrench : row.bias}
                         </span>
                       </div>
                     </td>
 
-                    {/* Col 3 (14%): Publication Toggle (Centered emerald pill) */}
+                    {/* Col 3 (13%): Publication Toggle (Centered emerald pill) */}
                     <td className="px-3 text-center">
                       <motion.button
                         whileTap={{ scale: 0.94 }}
@@ -625,11 +595,11 @@ export default function AdminCatalogPage() {
                         )}
                       >
                         <span className={clsx("w-1.5 h-1.5 rounded-full", row.isPublished ? "bg-emerald-400 animate-pulse" : "bg-slate-600")} />
-                        <span>{row.isPublished ? "Publié" : "Masqué"}</span>
+                        <span>{row.isPublished ? t("catalog.published_badge") : t("catalog.hidden_badge")}</span>
                       </motion.button>
                     </td>
 
-                    {/* Col 4 (16%): Attribution Tier (Centered sliding pill switcher) */}
+                    {/* Col 4 (14%): Attribution Tier (Centered sliding pill switcher) */}
                     <td className="px-3 text-center">
                       <div className="rounded-full bg-[#0A0B0F] border border-white/[0.07] p-0.5 inline-flex items-center text-xs font-mono">
                         <button
@@ -657,7 +627,7 @@ export default function AdminCatalogPage() {
                       </div>
                     </td>
 
-                    {/* Col 5 (14%): Top Mover Checkbox (Centered button) */}
+                    {/* Col 5 (13%): Top Mover Checkbox (Centered button) */}
                     <td className="px-3 text-center">
                       <motion.button
                         whileTap={{ scale: 0.94 }}
@@ -670,25 +640,25 @@ export default function AdminCatalogPage() {
                         )}
                       >
                         <Flame size={12} className={row.isTopMover ? "text-[#D4FF00] fill-[#D4FF00]" : "text-slate-500"} />
-                        <span>{row.isTopMover ? "En Avant ★" : "Standard"}</span>
+                        <span>{row.isTopMover ? t("catalog.featured_badge") : t("catalog.standard_ribbon")}</span>
                       </motion.button>
                     </td>
 
-                    {/* Col 6 (23%): Justification Macro (2 Clean Lines, Side-by-Side Pills, Zero Clipping) */}
+                    {/* Col 6 (30%): Justification Macro (Full width, Zero Clipping) */}
                     <td className="pr-6 pl-3">
                       <div className="flex flex-col min-w-0">
                         {/* Line 1: Macro summary */}
-                        <span className="text-xs text-slate-300 truncate max-w-[260px] leading-snug">
+                        <span className="text-xs text-slate-300 leading-snug break-words max-w-[320px]">
                           {row.primaryDriver}
                         </span>
-                        {/* Line 2: Both pills side-by-side on the same line */}
-                        <div className="flex items-center gap-1.5 mt-1.5 whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 border border-[#D4FF00]/25 text-[#D4FF00] px-2.5 py-0.5 text-[10px] font-mono tabular-nums whitespace-nowrap">
+                        {/* Line 2: Both pills side-by-side on the same line, zero clipping */}
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap sm:flex-nowrap whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 border border-[#D4FF00]/25 text-[#D4FF00] px-2.5 py-0.5 text-[10px] font-mono tabular-nums whitespace-nowrap shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] shrink-0" />
                             {formatConciseCarry(row.carryAdvantage)}
                           </span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-slate-400 px-2 py-0.5 text-[10px] font-mono tabular-nums whitespace-nowrap">
-                            {row.confidence}% Confiance
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-slate-400 px-2.5 py-0.5 text-[10px] font-mono tabular-nums whitespace-nowrap shrink-0">
+                            {row.confidence}% {t("catalog.confidence")}
                           </span>
                         </div>
                       </div>

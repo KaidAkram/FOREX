@@ -506,6 +506,32 @@ export default function AdminSettingsPage() {
               <div className="pt-2">
                 <WorkspaceThemeSwitcher />
               </div>
+
+              {/* Cosmos Studio Preloader Action Card */}
+              <div className="pt-3 border-t border-white/[0.06] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-sans font-bold text-sm text-white flex items-center gap-2">
+                    <Sparkles size={14} className="text-[var(--fx-accent,#D4FF00)]" />
+                    <span>{lang === "fr" ? "Animation d'Introduction Cosmos Studio" : "Cosmos Studio Intro Animation"}</span>
+                  </h4>
+                  <p className="font-sans text-xs text-slate-400 mt-0.5">
+                    {lang === "fr" 
+                      ? "Cadre typographique monospace avec compteur laser 00-100% et levée de rideau vers le terminal" 
+                      : "Monospace agency framing with 00-100% laser counter and curtain-wipe reveal"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFX.playPop(1.2);
+                    window.dispatchEvent(new CustomEvent("shiftfx-play-preloader"));
+                  }}
+                  className="px-4 py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-xs font-mono text-white flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-sm"
+                >
+                  <Play size={12} className="text-[var(--fx-accent,#D4FF00)] fill-[var(--fx-accent,#D4FF00)]" />
+                  <span>{lang === "fr" ? "Rejouer l'animation" : "Replay Animation"}</span>
+                </button>
+              </div>
             </div>
 
             {/* Visual Bento 2: Sovereign Language Switcher */}

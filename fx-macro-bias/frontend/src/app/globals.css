@@ -46,16 +46,18 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    background-color: #06070A;
+    background-color: var(--color-canvas, #06080A);
     color: #F8FAFC;
+    transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   body {
-    background-color: #06070A;
+    background-color: var(--color-canvas, #06080A);
     color: #F8FAFC;
     font-family: var(--font-sans);
     min-height: 100vh;
     overflow-x: hidden;
+    transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   /* Ultra-thin Minimalist Dark Scrollbar */

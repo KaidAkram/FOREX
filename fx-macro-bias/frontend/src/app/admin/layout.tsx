@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { XIcon, SyncIcon } from "@primer/octicons-react";
 import { SPRING_WEIGHTLESS } from "@/lib/uxEngineeringStandards";
 import { GlobalThemeToast } from "@/components/theme/WorkspaceThemeSwitcher";
+import { CosmosPreloader } from "@/components/motion/CosmosPreloader";
 
 // Self-contained page views for instant sub-millisecond workspace toggling
 import DashboardPage from "./dashboard/page";
@@ -214,6 +215,9 @@ export default function AdminLayout({
 
   return (
     <SidebarProvider>
+      {/* Cosmos Studio Luxury Preloader Animation (pin.it/6LwA0o9og) */}
+      <CosmosPreloader />
+
       {/* Ambient 3D Geometric Glass Objects Layer */}
       <Ambient3DBackground />
 
@@ -227,7 +231,7 @@ export default function AdminLayout({
       />
 
       {/* Main Admin Shell Layout */}
-      <div className="flex h-screen bg-[#07080C] text-white overflow-hidden font-sans antialiased relative z-10">
+      <div className="flex h-screen bg-[var(--color-canvas,#06080A)] transition-colors duration-500 text-white overflow-hidden font-sans antialiased relative z-10">
         {/* Desktop Collapsible Liquid-Glass Capsule Sidebar with Instant Switcher */}
         <CollapsibleGlassSidebar
           activeId={activeSection}

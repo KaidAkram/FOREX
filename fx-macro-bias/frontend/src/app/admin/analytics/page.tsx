@@ -15,6 +15,7 @@ import {
   GhostWireframeDissolve
 } from "@/components/motion/AnimatedNumberAndMorphChart";
 import { soundFX } from "@/lib/soundEngine";
+import { useLanguage } from "@/context/LanguageContext";
 
 // --- Constants ---
 const INDICATORS = [
@@ -202,13 +203,13 @@ const CustomDropdown = ({
 };
 
 export default function AnalyticsPage() {
+  const { t, lang } = useLanguage();
   const [activePair, setActivePair] = useState("EUR/USD");
   const [activeIndicator, setActiveIndicator] = useState("Croissance PIB (GDP)");
   const [timeRange, setTimeRange] = useState<"1S" | "1M" | "3M" | "1A">("1M");
   const [windowRange, setWindowRange] = useState("12 Mois");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeKpiIndex, setActiveKpiIndex] = useState(0);
 
   const currentTf = TIMEFRAME_CONFIG[timeRange];
 
@@ -226,10 +227,10 @@ export default function AnalyticsPage() {
       {/* 1. UNIFIED ADMIN PAGE HEADER                                       */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <AdminPageHeader
-        eyebrow="TÉLÉMÉTRIE QUANTITATIVE • SHIFTFX CHOREOGRAPHY"
-        badgeText="MOTEUR DYNAMIQUE"
-        title="Analytique & Performance Modèle"
-        searchPlaceholder="Rechercher un indicateur, paire..."
+        eyebrow={t("analytics.eyebrow")}
+        badgeText={t("analytics.badge")}
+        title={t("analytics.title")}
+        searchPlaceholder={t("analytics.search_placeholder")}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         rightActions={
@@ -241,13 +242,13 @@ export default function AnalyticsPage() {
                 soundFX.playPop(1.1);
                 setWindowRange(e.target.value);
               }}
-              aria-label="Sélectionner la fenêtre temporelle"
+              aria-label={t("analytics.window")}
               className="bg-transparent font-mono text-xs text-slate-300 outline-none cursor-pointer pr-1"
             >
-              <option value="12 Mois" className="bg-[#101218] text-white">Fenêtre : 12 Mois</option>
-              <option value="6 Mois" className="bg-[#101218] text-white">Fenêtre : 6 Mois</option>
-              <option value="3 Mois" className="bg-[#101218] text-white">Fenêtre : 3 Mois</option>
-              <option value="Tout l'historique" className="bg-[#101218] text-white">Tout l'historique</option>
+              <option value="12 Mois" className="bg-[#101218] text-white">{t("analytics.window")} 12 {lang === "fr" ? "Mois" : "Months"}</option>
+              <option value="6 Mois" className="bg-[#101218] text-white">{t("analytics.window")} 6 {lang === "fr" ? "Mois" : "Months"}</option>
+              <option value="3 Mois" className="bg-[#101218] text-white">{t("analytics.window")} 3 {lang === "fr" ? "Mois" : "Months"}</option>
+              <option value="Tout l'historique" className="bg-[#101218] text-white">{lang === "fr" ? "Tout l'historique" : "All History"}</option>
             </select>
           </div>
         }
@@ -255,62 +256,54 @@ export default function AnalyticsPage() {
 
       <GhostWireframeDissolve isRefreshing={isRefreshing}>
         {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* 2. TOP KPI ROW WITH SIMULTANEOUS NUMBER COUNTING (Fernly 00:03)    */}
+        {/* 2. TOP KPI ROW - STRICTLY HOVER-ONLY, NON-CLICKABLE STAT PODS      */}
         {/* ══════════════════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
           
           {/* KPI 1: Bullish Confidence */}
           <CatalogueKPICard
-            title="CONFIANCE BIAIS ACHETEUR"
+            title={t("analytics.kpi_confidence")}
             numericValue={currentTf.confidence}
             decimals={1}
             unit="%"
-            subtitle="Précision directionnelle Long"
+            subtitle={t("analytics.kpi_confidence_sub")}
             variant="emerald"
-            isActive={activeKpiIndex === 0}
-            onClick={() => setActiveKpiIndex(0)}
             icon={<TrendingUp size={14} />}
             bars={[40, 65, 75, 95]}
           />
 
           {/* KPI 2: Bearish Divergence Rate */}
           <CatalogueKPICard
-            title="TAUX DIVERGENCE VENDEUR"
+            title={t("analytics.kpi_divergence")}
             numericValue={currentTf.divergence}
             decimals={1}
             unit="%"
-            subtitle="Écart de régime Short"
+            subtitle={t("analytics.kpi_divergence_sub")}
             variant="rose"
-            isActive={activeKpiIndex === 1}
-            onClick={() => setActiveKpiIndex(1)}
             icon={<TrendingDown size={14} />}
             bars={[65, 45, 30, 15]}
           />
 
           {/* KPI 3: Macro Data Ingestion */}
           <CatalogueKPICard
-            title="INGESTION DONNÉES MACRO"
+            title={t("analytics.kpi_ingestion")}
             numericValue={currentTf.ingestion}
             decimals={1}
             unit="%"
-            subtitle="Flux banques centrales G10"
+            subtitle={t("analytics.kpi_ingestion_sub")}
             variant="lime"
-            isActive={activeKpiIndex === 2}
-            onClick={() => setActiveKpiIndex(2)}
             icon={<Database size={14} />}
             bars={[90, 95, 99, 100]}
           />
 
           {/* KPI 4: Total Signals Evaluated */}
           <CatalogueKPICard
-            title="SIGNAUX QUANTITATIFS"
+            title={t("analytics.kpi_signals")}
             numericValue={currentTf.signals}
             decimals={0}
             unit="Pts"
-            subtitle={`Échantillon sur ${currentTf.label}`}
+            subtitle={`${lang === "fr" ? "Échantillon sur" : "Sample over"} ${currentTf.label}`}
             variant="sky"
-            isActive={activeKpiIndex === 3}
-            onClick={() => setActiveKpiIndex(3)}
             icon={<Activity size={14} />}
             bars={[30, 50, 70, 85]}
           />
@@ -318,7 +311,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* 3. MORPHING SVG SPLINE CHART + INTERACTIVE SCRUBBER (Fernly 00:04) */}
+        {/* 3. MORPHING SVG SPLINE CHART + INTERACTIVE SCRUBBER                */}
         {/* ══════════════════════════════════════════════════════════════════ */}
         <section className="rounded-[24px] bg-[#101218] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_20px_40px_-15px_rgba(0,0,0,0.7)] p-4 sm:p-6 mb-5">
           
@@ -327,18 +320,18 @@ export default function AnalyticsPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <h2 className="text-base font-bold text-white tracking-tight mr-2 whitespace-nowrap flex items-center gap-2">
                 <Sparkles size={16} style={{ color: "var(--fx-accent, #D4FF00)" }} />
-                <span>Courbe Spline & Morphing Vectoriel</span>
+                <span>{t("analytics.spline_title")}</span>
               </h2>
               <div className="flex items-center gap-2 flex-wrap">
                 <CustomDropdown
-                  label="Paire"
+                  label={t("analytics.dropdown_pair")}
                   value={activePair}
                   options={FX_PAIRS}
                   onChange={setActivePair}
                   isPair={true}
                 />
                 <CustomDropdown
-                  label="Indicateur"
+                  label={t("analytics.dropdown_indicator")}
                   value={activeIndicator}
                   options={INDICATORS}
                   onChange={setActiveIndicator}
@@ -347,20 +340,20 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            {/* Timeframe pill track with audio pop (Fernly 00:03) */}
+            {/* Timeframe pill track with audio pop */}
             <div className="rounded-full bg-[#0A0B0F] border border-white/[0.06] p-1 inline-flex items-center gap-1 text-xs font-mono">
-              {(["1S", "1M", "3M", "1A"] as const).map((t) => (
+              {(["1S", "1M", "3M", "1A"] as const).map((tVal) => (
                 <button
-                  key={t}
-                  onClick={() => handleTimeframeChange(t)}
+                  key={tVal}
+                  onClick={() => handleTimeframeChange(tVal)}
                   className={clsx(
                     "px-3.5 py-1 rounded-full transition-all cursor-pointer font-bold",
-                    timeRange === t 
+                    timeRange === tVal 
                       ? "bg-[var(--fx-accent,#D4FF00)] text-[#07080C] shadow-[0_0_12px_rgba(var(--fx-accent-rgb),0.35)]" 
                       : "text-slate-400 hover:text-white"
                   )}
                 >
-                  {t}
+                  {tVal}
                 </button>
               ))}
             </div>
@@ -379,29 +372,29 @@ export default function AnalyticsPage() {
           {/* Sub-footer stats */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 mt-2 border-t border-white/[0.06] text-xs font-mono text-slate-400 gap-2">
             <div className="flex items-center gap-4">
-              <span>Points interpolés : <span className="text-white font-bold">{currentTf.splinePoints.length}</span></span>
-              <span>Régime observé : <span className="text-emerald-400 font-bold">Expansion Modérée</span></span>
+              <span>{t("analytics.interpolated_points")} <span className="text-white font-bold">{currentTf.splinePoints.length}</span></span>
+              <span>{t("analytics.observed_regime")} <span className="text-emerald-400 font-bold">{t("analytics.regime_val")}</span></span>
             </div>
-            <span>Dernière mise à jour : 26 Oct 2026 • Synchronisé UTC</span>
+            <span>{t("analytics.last_update")}</span>
           </div>
 
         </section>
 
         {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* 4. STAGGERED BASELINE BARS FACTOR DISTRIBUTION (Fernly 00:10/00:12) */}
+        {/* 4. STAGGERED BASELINE BARS FACTOR DISTRIBUTION                     */}
         {/* ══════════════════════════════════════════════════════════════════ */}
         <section className="rounded-[24px] bg-[#101218] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_20px_40px_-15px_rgba(0,0,0,0.7)] p-4 sm:p-6 mb-5">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.06]">
             <div>
               <h3 className="font-display font-bold text-sm text-white">
-                Décomposition Factorielle Macroéconomique ({currentTf.label})
+                {t("analytics.decomp_title")} ({currentTf.label})
               </h3>
               <p className="font-sans text-xs text-slate-400 mt-0.5">
-                Surperformance relative des piliers souverains (PIB, IPC, Taux, BC, RÉS, ACT)
+                {t("analytics.decomp_sub")}
               </p>
             </div>
             <span className="font-mono text-xs text-slate-400">
-              Échelle : <span className="text-[var(--fx-accent,#D4FF00)] font-bold">±15%</span>
+              {t("analytics.scale")} <span className="text-[var(--fx-accent,#D4FF00)] font-bold">±15%</span>
             </span>
           </div>
 

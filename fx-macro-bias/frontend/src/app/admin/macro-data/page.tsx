@@ -33,6 +33,7 @@ import { CurrencyFlag, FXPairFlags } from "@/components/ui/DopaminePrimitives";
 import { getCountryFlagUrl, formatCleanMacroPercent } from "@/lib/macroFormatters";
 import { soundFX } from "@/lib/soundEngine";
 import { AnimatedMetricValue, GhostWireframeDissolve } from "@/components/motion/AnimatedNumberAndMorphChart";
+import { useLanguage } from "@/context/LanguageContext";
 
 const TABS = ["Matrice Macro", "Différentiels & Notes"];
 const YEARS = MACRO_YEARS;
@@ -55,13 +56,13 @@ const INDICATOR_MAP: Record<string, string> = {
 };
 
 export default function MacroDataPage() {
+  const { lang, t } = useLanguage();
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [activeInd, setActiveInd] = useState("GDP");
   const [activePair, setActivePair] = useState(PAIRS[0].name);
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [countrySearch, setCountrySearch] = useState("");
   const [headerSearch, setHeaderSearch] = useState("");
-  const [activeKpiKey, setActiveKpiKey] = useState<string>("economies");
 
   // User Assumptions & Forward Overrides state initialized lazily
   const [assumptions, setAssumptions] = useState<Record<string, string>>(() => {
@@ -273,10 +274,10 @@ export default function MacroDataPage() {
       {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <AdminPageHeader
-        eyebrow="PIPELINE D'INGESTION • SHIFTFX ENGINE"
-        badgeText="DONNÉES COMPLÈTES"
-        title="Centre de Données Macroéconomiques G10"
-        searchPlaceholder="Rechercher un pays, indicateur..."
+        eyebrow={t("macro.eyebrow")}
+        badgeText={t("macro.badge")}
+        title={t("macro.title")}
+        searchPlaceholder={t("macro.search_placeholder")}
         searchValue={headerSearch}
         onSearchChange={setHeaderSearch}
         rightActions={
@@ -285,12 +286,12 @@ export default function MacroDataPage() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              aria-label="Sélectionner le millésime"
+              aria-label={t("macro.vintage")}
               className="bg-transparent font-mono text-xs text-slate-300 outline-none cursor-pointer pr-1"
             >
               {YEARS.map((y) => (
                 <option key={y} value={y} className="bg-[#101218] text-white">
-                  Millésime : {y}
+                  {t("macro.vintage")} {y}
                 </option>
               ))}
             </select>
@@ -299,85 +300,62 @@ export default function MacroDataPage() {
       />
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 2. TOP KPI ROW (4 Uniform CatalogueKPICard components)             */}
-      {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 2. TOP KPI ROW (Active Focus Inversion layoutId="macro-data-kpi-focus") */}
+      {/* 2. TOP KPI ROW (Non-clickable, hover-only, zero click active ring) */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
         
         {/* KPI 1: Sovereign Economies */}
         <CatalogueKPICard
-          title="ÉCONOMIES SOUVERAINES"
+          title={t("macro.kpi_economies")}
           value="8"
           numericValue={8}
-          unit="Zones G10"
-          subtitle="Couverture 100%"
+          decimals={0}
+          unit="G10"
+          subtitle={t("macro.kpi_economies_sub")}
           variant="lime"
           icon={<Database size={14} />}
           bars={[50, 75, 80, 95]}
-          isActive={activeKpiKey === "economies"}
-          layoutId="macro-data-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1);
-            setActiveKpiKey("economies");
-          }}
         />
 
         {/* KPI 2: Matrix Observations */}
         <CatalogueKPICard
-          title="MATRICE OBSERVATIONS"
+          title={t("macro.kpi_observations")}
           value="576"
           numericValue={576}
-          unit="Points Macro"
-          subtitle="6 Piliers × 12 Mois"
+          decimals={0}
+          unit={lang === "fr" ? "Points Macro" : "Data Points"}
+          subtitle={t("macro.kpi_observations_sub")}
           variant="sky"
           icon={<CheckCircle2 size={14} />}
           bars={[60, 70, 85, 100]}
-          isActive={activeKpiKey === "observations"}
-          layoutId="macro-data-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.05);
-            setActiveKpiKey("observations");
-          }}
         />
 
         {/* KPI 3: Published Data */}
         <CatalogueKPICard
-          title="DONNÉES PUBLIÉES (PUB)"
+          title={t("macro.kpi_published")}
           value="75%"
           numericValue={75}
+          decimals={0}
           suffix="%"
-          unit="Officielles"
-          subtitle="Janvier – Septembre 2026"
+          unit={lang === "fr" ? "Officielles" : "Official"}
+          subtitle={t("macro.kpi_published_sub")}
           variant="emerald"
           icon={<Sparkles size={14} />}
           bars={[70, 75, 80, 75]}
-          isActive={activeKpiKey === "published"}
-          layoutId="macro-data-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.1);
-            setActiveKpiKey("published");
-          }}
         />
 
         {/* KPI 4: Quant Estimates */}
         <CatalogueKPICard
-          title="ESTIMATIONS QUANT (EST)"
+          title={t("macro.kpi_calendar")}
           value="25%"
           numericValue={25}
+          decimals={0}
           suffix="%"
           unit="Projections"
-          subtitle="Octobre – Décembre 2026"
+          subtitle={t("macro.kpi_calendar_sub")}
           variant="purple"
           icon={<Calendar size={14} />}
           bars={[25, 25, 25, 25]}
-          isActive={activeKpiKey === "estimates"}
-          layoutId="macro-data-kpi-focus"
-          onClick={() => {
-            soundFX.playPop(1.15);
-            setActiveKpiKey("estimates");
-          }}
         />
 
       </div>
@@ -388,23 +366,26 @@ export default function MacroDataPage() {
       <SculptedFilterPod className="p-3.5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
         {/* View Switcher: Matrice Macro | Différentiels & Notes */}
         <div className="rounded-full bg-[#0A0B0F] border border-white/[0.06] p-1 inline-flex items-center gap-1 text-xs font-mono">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => { 
-                soundFX.playPop(1); 
-                setActiveTab(tab); 
-              }}
-              className={clsx(
-                "px-4 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap",
-                activeTab === tab
-                  ? "bg-[#D4FF00] text-[#07080C] font-bold shadow-[0_0_12px_rgba(212,255,0,0.3)]"
-                  : "text-slate-400 hover:text-white"
-              )}
-            >
-              {tab}
-            </button>
-          ))}
+          {TABS.map((tab, idx) => {
+            const label = idx === 0 ? t("macro.tab_matrix") : t("macro.tab_differentials");
+            return (
+              <button
+                key={tab}
+                onClick={() => { 
+                  soundFX.playPop(1); 
+                  setActiveTab(tab); 
+                }}
+                className={clsx(
+                  "px-4 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap",
+                  activeTab === tab
+                    ? "bg-[#D4FF00] text-[#07080C] font-bold shadow-[0_0_12px_rgba(212,255,0,0.3)]"
+                    : "text-slate-400 hover:text-white"
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* 6 Indicator Selector Pills */}

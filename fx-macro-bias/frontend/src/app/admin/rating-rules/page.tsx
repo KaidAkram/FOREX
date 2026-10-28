@@ -17,6 +17,7 @@ import { soundFX } from "@/lib/soundEngine";
 import { GhostWireframeDissolve } from "@/components/motion/AnimatedNumberAndMorphChart";
 import confetti from "canvas-confetti";
 import OFFICIAL_RATING_RULES_DATA from "@/data/officialRatingRules.json";
+import { useLanguage } from "@/context/LanguageContext";
 
 const INDICATORS = [
   { id: "GDP", label: "PIB (GDP)" },
@@ -88,6 +89,7 @@ const fetchRules = async (indicator: string) => {
 };
 
 export default function RatingRulesPage() {
+  const { t, lang } = useLanguage();
   const queryClient = useQueryClient();
   const [activeIndicator, setActiveIndicator] = useState<string>("GDP");
   const [searchQuery, setSearchQuery] = useState("");
@@ -216,19 +218,27 @@ export default function RatingRulesPage() {
     }
   };
 
-  const activeIndLabel = INDICATORS.find(i => i.id === activeIndicator)?.label || activeIndicator;
+  const activeIndObj = INDICATORS.find(i => i.id === activeIndicator);
+  const activeIndLabel = lang === "fr" 
+    ? (activeIndObj?.label || activeIndicator) 
+    : (activeIndicator === "GDP" ? "GDP Growth" :
+       activeIndicator === "Current Account" ? "Current Account" :
+       activeIndicator === "CPI" ? "CPI Inflation" :
+       activeIndicator === "Interest Rate" ? "Central Bank Rates" :
+       activeIndicator === "FX Reserves" ? "FX Reserves" :
+       activeIndicator === "Equity" ? "Equity Indices" : activeIndicator);
 
   return (
     <div className="w-full max-w-[1550px] mx-auto p-4 sm:p-6 lg:p-8 flex flex-col text-white font-sans">
       
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
+      {/* 1. UNIFIED ADMIN PAGE HEADER                                       */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <AdminPageHeader
-        eyebrow="CALIBRATION QUANTITATIVE • MODÈLE MULTI-PILIERS"
-        badgeText="ENGINE LIVE"
-        title="Règles de Notation Macroéconomique"
-        searchPlaceholder="Rechercher une règle, seuil..."
+        eyebrow={t("rules.eyebrow")}
+        badgeText={t("rules.badge")}
+        title={t("rules.title")}
+        searchPlaceholder={t("rules.search_placeholder")}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         rightActions={
@@ -240,57 +250,67 @@ export default function RatingRulesPage() {
             className="h-10 px-5 rounded-full bg-[#D4FF00] hover:bg-[#dfeb34] text-[#07080C] font-bold text-xs flex items-center gap-2 shadow-[0_0_20px_rgba(212,255,0,0.25)] transition-all cursor-pointer whitespace-nowrap"
           >
             <Plus size={15} strokeWidth={2.5} />
-            <span>Ajouter une Règle</span>
+            <span>{t("rules.add_rule")}</span>
           </motion.button>
         }
       />
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 2. FILTER & INDICATOR POD (SculptedFilterPod from Catalogue)      */}
+      {/* 2. FILTER & INDICATOR POD                                          */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <SculptedFilterPod className="p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         {/* Left Pill Track */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full">
-          {INDICATORS.map((ind) => (
-            <button
-              key={ind.id}
-              onClick={() => { 
-                soundFX.playPop(1); 
-                setActiveIndicator(ind.id); 
-              }}
-              className={clsx(
-                "px-4 py-1.5 rounded-full text-xs font-mono transition-all cursor-pointer whitespace-nowrap",
-                activeIndicator === ind.id 
-                  ? "bg-[#D4FF00] text-[#07080C] font-bold shadow-[0_0_15px_rgba(212,255,0,0.3)]" 
-                  : "text-slate-400 hover:text-white"
-              )}
-            >
-              {ind.label}
-            </button>
-          ))}
+          {INDICATORS.map((ind) => {
+            const displayLabel = lang === "fr" ? ind.label : (
+              ind.id === "GDP" ? "GDP Growth" :
+              ind.id === "Current Account" ? "Current Account" :
+              ind.id === "CPI" ? "CPI Inflation" :
+              ind.id === "Interest Rate" ? "Central Bank Rates" :
+              ind.id === "FX Reserves" ? "FX Reserves" :
+              ind.id === "Equity" ? "Equity Indices" : ind.label
+            );
+            return (
+              <button
+                key={ind.id}
+                onClick={() => { 
+                  soundFX.playPop(1); 
+                  setActiveIndicator(ind.id); 
+                }}
+                className={clsx(
+                  "px-4 py-1.5 rounded-full text-xs font-mono transition-all cursor-pointer whitespace-nowrap",
+                  activeIndicator === ind.id 
+                    ? "bg-[#D4FF00] text-[#07080C] font-bold shadow-[0_0_15px_rgba(212,255,0,0.3)]" 
+                    : "text-slate-400 hover:text-white"
+                )}
+              >
+                {displayLabel}
+              </button>
+            );
+          })}
         </div>
 
         {/* Right Info Pill */}
         <div className="rounded-full bg-[#D4FF00]/10 border border-[#D4FF00]/30 text-[#D4FF00] px-4 py-1.5 text-xs font-mono whitespace-nowrap shrink-0">
-          Échelle : −10 (Vendeur) à +10 (Acheteur)
+          {t("rules.scale_pill")}
         </div>
       </SculptedFilterPod>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 3. RULES TABLE CONTAINER (Rounded-[24px])                         */}
+      {/* 3. RULES TABLE CONTAINER                                           */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <GhostWireframeDissolve isRefreshing={isLoading}>
       <SculptedTableContainer className="p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-white/[0.06] gap-3 mb-3">
           <div>
             <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-              <span>Table de Transformation Différentielle : {activeIndLabel}</span>
+              <span>{t("rules.table_title")} {activeIndLabel}</span>
               <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-white/[0.04] text-slate-400 border border-white/[0.08]">
                 Base − Quote
               </span>
             </h2>
             <p className="text-xs font-mono text-slate-400 mt-1">
-              Intervalles de différentiels macro appliqués pour générer les scores de conviction (−10 à +10).
+              {t("rules.table_sub")}
             </p>
           </div>
         </div>
@@ -300,11 +320,11 @@ export default function RatingRulesPage() {
           <table className="w-full border-separate border-spacing-0 min-w-[720px]">
             <thead>
               <tr className="text-[11px] font-mono uppercase tracking-wider text-slate-400 border-b border-white/[0.06] h-10">
-                <th className="py-2.5 px-4 text-left w-[120px]">PALIER</th>
-                <th className="py-2.5 px-4 text-center w-[250px]">PLAGE DIFFÉRENTIELLE</th>
-                <th className="py-2.5 px-4 text-center w-[300px]">RÉGIME MACRO &amp; SENTIMENT</th>
-                <th className="py-2.5 px-4 text-center w-[150px]">IMPACT SCORE</th>
-                <th className="py-2.5 px-4 text-right w-[100px]">ACTIONS</th>
+                <th className="py-2.5 px-4 text-left w-[120px]">{t("rules.col_tier")}</th>
+                <th className="py-2.5 px-4 text-center w-[250px]">{t("rules.col_diff_range")}</th>
+                <th className="py-2.5 px-4 text-center w-[300px]">{t("rules.col_regime_sentiment")}</th>
+                <th className="py-2.5 px-4 text-center w-[150px]">{t("rules.col_score_impact")}</th>
+                <th className="py-2.5 px-4 text-right w-[100px]">{t("rules.col_actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.03]">
@@ -346,7 +366,7 @@ export default function RatingRulesPage() {
                           <span className={clsx(rule.min === "-∞" ? "text-slate-500" : "text-white")}>
                             {rule.min}
                           </span>
-                          <span className="text-slate-500 text-xs font-sans">à</span>
+                          <span className="text-slate-500 text-xs font-sans">{t("rules.to")}</span>
                           <span className={clsx(rule.max === "+∞" ? "text-slate-500" : "text-white")}>
                             {rule.max}
                           </span>
@@ -359,19 +379,23 @@ export default function RatingRulesPage() {
                           {isPositive && (
                             <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1 rounded-full">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
-                              {rule.regime || "Biais Acheteur"}
+                              {lang === "fr" 
+                                ? (rule.regime || "Biais Acheteur")
+                                : (rule.regime?.replace("Biais Acheteur Fort", "Strong Bullish Bias").replace("Biais Acheteur Modéré", "Moderate Bullish Bias").replace("Biais Acheteur", "Bullish Bias") || "Bullish Bias")}
                             </span>
                           )}
                           {isNegative && (
                             <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/25 px-3 py-1 rounded-full">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
-                              {rule.regime || "Biais Vendeur"}
+                              {lang === "fr"
+                                ? (rule.regime || "Biais Vendeur")
+                                : (rule.regime?.replace("Biais Vendeur Fort", "Strong Bearish Bias").replace("Biais Vendeur Modéré", "Moderate Bearish Bias").replace("Biais Vendeur", "Bearish Bias") || "Bearish Bias")}
                             </span>
                           )}
                           {!isPositive && !isNegative && (
                             <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-400 bg-slate-400/10 border border-slate-400/20 px-3 py-1 rounded-full">
                               <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                              Régime Neutre / Équilibré
+                              {lang === "fr" ? "Régime Neutre / Équilibré" : "Neutral / Balanced"}
                             </span>
                           )}
                         </div>
@@ -460,10 +484,10 @@ export default function RatingRulesPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-base text-white">
-                      {modalMode === "add" ? "Ajouter un Palier" : "Modifier le Palier"}
+                      {modalMode === "add" ? (lang === "fr" ? "Ajouter un Palier" : "Add Differential Tier") : (lang === "fr" ? "Modifier le Palier" : "Edit Differential Tier")}
                     </h3>
                     <p className="text-xs font-mono text-slate-400">
-                      Indicateur : {activeIndLabel}
+                      {lang === "fr" ? "Indicateur :" : "Indicator:"} {activeIndLabel}
                     </p>
                   </div>
                 </div>
@@ -478,7 +502,7 @@ export default function RatingRulesPage() {
               <form onSubmit={handleSaveModal} className="space-y-4">
                 <div>
                   <label className="block text-xs font-mono uppercase text-slate-400 mb-1.5">
-                    Plage Différentielle (Min à Max)
+                    {lang === "fr" ? "Plage Différentielle (Min à Max)" : "Differential Range (Min to Max)"}
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -489,7 +513,7 @@ export default function RatingRulesPage() {
                         placeholder="Ex: -2.5 ou -∞"
                         className="w-full h-10 px-3.5 rounded-xl bg-[#0A0B0F] border border-white/[0.08] font-mono text-xs text-white focus:outline-none focus:border-[#D4FF00]/50"
                       />
-                      <span className="text-[10px] font-mono text-slate-500 mt-1 block">Borne inférieure</span>
+                      <span className="text-[10px] font-mono text-slate-500 mt-1 block">{lang === "fr" ? "Borne inférieure" : "Lower bound"}</span>
                     </div>
                     <div>
                       <input
@@ -499,13 +523,13 @@ export default function RatingRulesPage() {
                         placeholder="Ex: +∞ ou 3.0"
                         className="w-full h-10 px-3.5 rounded-xl bg-[#0A0B0F] border border-white/[0.08] font-mono text-xs text-white focus:outline-none focus:border-[#D4FF00]/50"
                       />
-                      <span className="text-[10px] font-mono text-slate-500 mt-1 block">Borne supérieure</span>
+                      <span className="text-[10px] font-mono text-slate-500 mt-1 block">{lang === "fr" ? "Borne supérieure" : "Upper bound"}</span>
                     </div>
                   </div>
                   {!isFormValid && (
                     <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1.5 font-mono">
                       <AlertCircle size={12} />
-                      Intervalle invalide (le minimum doit être strictement inférieur au maximum).
+                      {lang === "fr" ? "Intervalle invalide (le minimum doit être strictement inférieur au maximum)." : "Invalid interval (minimum must be strictly less than maximum)."}
                     </p>
                   )}
                 </div>
@@ -513,7 +537,7 @@ export default function RatingRulesPage() {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-mono uppercase text-slate-400">
-                      Impact Score (−10 à +10)
+                      {lang === "fr" ? "Impact Score (−10 à +10)" : "Score Impact (−10 to +10)"}
                     </label>
                     <span className={clsx(
                       "font-mono font-bold text-xs px-2 py-0.5 rounded-lg border",
@@ -534,9 +558,9 @@ export default function RatingRulesPage() {
                     className="w-full accent-[#D4FF00] cursor-pointer"
                   />
                   <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
-                    <span>−10 (Max Vendeur)</span>
-                    <span>0 (Neutre)</span>
-                    <span>+10 (Max Acheteur)</span>
+                    <span>{lang === "fr" ? "−10 (Max Vendeur)" : "−10 (Max Bearish)"}</span>
+                    <span>{lang === "fr" ? "0 (Neutre)" : "0 (Neutral)"}</span>
+                    <span>{lang === "fr" ? "+10 (Max Acheteur)" : "+10 (Max Bullish)"}</span>
                   </div>
                 </div>
 
@@ -546,7 +570,7 @@ export default function RatingRulesPage() {
                     onClick={() => setModalMode(null)}
                     className="h-9 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-xs font-mono text-slate-300 transition-colors cursor-pointer"
                   >
-                    Annuler
+                    {t("rules.cancel")}
                   </button>
                   <button
                     type="submit"
@@ -557,7 +581,7 @@ export default function RatingRulesPage() {
                     )}
                   >
                     <Check size={14} />
-                    <span>{modalMode === "add" ? "Ajouter" : "Enregistrer"}</span>
+                    <span>{modalMode === "add" ? (lang === "fr" ? "Ajouter" : "Add") : t("rules.save_rule")}</span>
                   </button>
                 </div>
               </form>

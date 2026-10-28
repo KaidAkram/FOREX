@@ -53,3 +53,52 @@ export function formatCleanMacroPercent(raw: number | string): string {
 export function formatMacroValue(raw: number | string): string {
   return formatCleanMacroPercent(raw);
 }
+
+export const SOVEREIGN_TO_FRENCH: Record<string, string> = {
+  USA: "États-Unis",
+  "United States": "États-Unis",
+  "États-Unis": "États-Unis",
+  USD: "États-Unis",
+  "Euro Area": "Zone Euro",
+  "Zone Euro": "Zone Euro",
+  EUR: "Zone Euro",
+  Japan: "Japon",
+  Japon: "Japon",
+  JPY: "Japon",
+  "United Kingdom": "Royaume-Uni",
+  "Royaume-Uni": "Royaume-Uni",
+  UK: "Royaume-Uni",
+  GBP: "Royaume-Uni",
+  Australia: "Australie",
+  Australie: "Australie",
+  AUD: "Australie",
+  Canada: "Canada",
+  CAD: "Canada",
+  Switzerland: "Suisse",
+  Suisse: "Suisse",
+  CHF: "Suisse",
+  "New Zealand": "Nouvelle-Zélande",
+  "Nouvelle-Zélande": "Nouvelle-Zélande",
+  NZD: "Nouvelle-Zélande",
+  Sweden: "Suède",
+  Suède: "Suède",
+  SEK: "Suède",
+  Norway: "Norvège",
+  Norvège: "Norvège",
+  NOK: "Norvège",
+};
+
+export function getCountryFrenchName(nameOrCode: string): string {
+  if (!nameOrCode) return "";
+  const key = nameOrCode.trim();
+  return SOVEREIGN_TO_FRENCH[key] || SOVEREIGN_TO_FRENCH[key.toUpperCase()] || nameOrCode;
+}
+
+export function formatPairCountriesFr(pair: string, baseCountry?: string, quoteCountry?: string): string {
+  if (baseCountry && quoteCountry) {
+    return `${getCountryFrenchName(baseCountry)} / ${getCountryFrenchName(quoteCountry)}`;
+  }
+  const [b, q] = pair.split("/");
+  return `${getCountryFrenchName(b)} / ${getCountryFrenchName(q)}`;
+}
+

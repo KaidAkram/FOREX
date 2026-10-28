@@ -67,17 +67,8 @@ def main():
         if not c_name:
             continue
         m_str = dp.month.strftime("%Y-%m")
-        # Format values cleanly
+        # Preserve 100% full unrounded precision as required by client
         val = dp.value
-        if ind_key == "FX Reserves":
-            val = round(val, 2)
-        elif ind_key == "Current Account":
-            val = round(val, 2)
-        elif ind_key == "Equity":
-            val = round(val, 2)
-        else:
-            val = round(val, 2)
-
         master_db[ind_key][c_name][m_str] = val
         count += 1
 

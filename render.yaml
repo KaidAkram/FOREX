@@ -8,3 +8,21 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: /api
+
+  - type: web
+    name: shiftfx-backend
+    env: python
+    plan: free
+    buildCommand: cd fx-macro-bias/backend && pip install -r requirements.txt && python manage.py migrate
+    startCommand: cd fx-macro-bias/backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "*"

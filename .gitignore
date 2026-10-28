@@ -12,7 +12,7 @@ __MACOSX/
 **/outputs/
 __pycache__/
 *.pyc
-*.sqlite3
+*.sqlite3*
 .env.production
 *.zip
 *.mov

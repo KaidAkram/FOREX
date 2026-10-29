@@ -734,10 +734,10 @@ export default function MacroDataPage() {
                       {row.data.map((cell: any, cellIdx: number) => {
                         const month = displayMonths[cellIdx];
                         const isCurrentLive = month === `${SYSTEM_CURRENT_YEAR}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
-                        const isMissing = cell.value === null || cell.value === undefined;
-                        const isPublished = cell.status === "published";
-                        const isForecast = cell.status === "forecast";
-                        const isManual = cell.status === "manual";
+                        const isMissing = cell.value === null || cell.value === undefined || cell.value === "—";
+                        const isPublished = !isMissing && cell.status === "published";
+                        const isForecast = !isMissing && cell.status === "forecast";
+                        const isManual = !isMissing && cell.status === "manual";
                         const isLast = cellIdx === displayMonths.length - 1;
 
                         const formatted = formatMacroCellDisplay(cell.value, activeInd, displayPrecision);
@@ -756,7 +756,7 @@ export default function MacroDataPage() {
                             <div className="flex flex-col items-center justify-center gap-1 group/cell">
                               <span className={clsx(
                                 "font-mono text-xs font-semibold tabular-nums tracking-tight transition-colors",
-                                isMissing ? "text-rose-400 font-bold" : isManual ? "text-[#38BDF8] font-bold" : "text-white group-hover/cell:text-[#D4FF00]"
+                                isMissing ? "text-slate-500 font-bold" : isManual ? "text-[#38BDF8] font-bold" : "text-white group-hover/cell:text-[#D4FF00]"
                               )}>
                                 {formatted.display}
                               </span>
@@ -777,6 +777,12 @@ export default function MacroDataPage() {
                               {isManual && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 text-[9px] font-mono font-bold">
                                   MAN
+                                </span>
+                              )}
+
+                              {isMissing && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/[0.04] text-slate-500 border border-white/[0.08] text-[9px] font-mono font-medium">
+                                  —
                                 </span>
                               )}
                             </div>

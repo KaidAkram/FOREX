@@ -85,14 +85,34 @@ export function CollapsibleGlassSidebar({
     setOptimisticActive(null);
   }, [pathname]);
 
+  const [userToggled, setUserToggled] = useState(false);
+
   useEffect(() => {
+    const handleResize = () => {
+      // Auto-collapse when window width drops below 1320px (laptop/split screen)
+      if (!userToggled) {
+        if (window.innerWidth < 1320) {
+          setCollapsed(true);
+        } else {
+          setCollapsed(false);
+        }
+      }
+    };
+
     const saved = localStorage.getItem("shiftfx-sidebar-collapsed");
     if (saved !== null) {
       setCollapsed(saved === "true");
+      setUserToggled(true);
+    } else {
+      handleResize();
     }
-  }, []);
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [userToggled]);
 
   const toggleSidebar = () => {
+    setUserToggled(true);
     const next = !collapsed;
     setCollapsed(next);
     localStorage.setItem("shiftfx-sidebar-collapsed", String(next));

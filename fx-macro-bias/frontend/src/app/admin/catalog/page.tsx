@@ -309,7 +309,7 @@ export default function AdminCatalogPage() {
   }, [pairsList, groupFilter, tierFilter, statusFilter, searchQuery]);
 
   return (
-    <div className="w-full max-w-[1550px] mx-auto p-4 sm:p-6 lg:p-8 flex flex-col text-white">
+    <div className="w-full max-w-[1600px] mx-auto p-3.5 sm:p-5 lg:p-6 xl:p-8 flex flex-col text-white">
       
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
@@ -374,7 +374,7 @@ export default function AdminCatalogPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 2. KPI ROW (Non-clickable, hover-only, integer counts)              */}
       {/* ══════════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-6 gap-3.5 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-3.5 mb-5">
         {/* Card 1: Catalogue G10 */}
         <CatalogueKPICard
           title={t("catalog.kpi_catalog")}
@@ -503,9 +503,9 @@ export default function AdminCatalogPage() {
           </div>
 
           {/* Row 2: Secondary Category Pills & Segmented Tracks */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
             {/* Univers Quick-Chips */}
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 max-w-full">
               <span className="text-[11px] font-mono uppercase tracking-[0.08em] text-slate-400 mr-2 shrink-0">
                 {t("catalog.filter_universe")}
               </span>
@@ -525,7 +525,7 @@ export default function AdminCatalogPage() {
               ))}
             </div>
 
-            <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
               {/* Plan Filter Track */}
               <div className="rounded-full bg-[#0A0B0F] border border-white/[0.06] px-2 py-1 inline-flex items-center gap-1 text-xs font-mono">
                 <span className="text-slate-500 px-1 text-[11px]">{t("catalog.filter_plan")}</span>
@@ -569,19 +569,19 @@ export default function AdminCatalogPage() {
       </SculptedFilterPod>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* 4. MAIN DATA TABLE (Explicit column widths, zero clipping)         */}
+      {/* 4. MAIN DATA TABLE (Dynamic adaptive columns, zero clipping)       */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <SculptedTableContainer className="pb-3">
         <div className="overflow-x-auto w-full">
-          <table className="w-full table-fixed border-collapse min-w-[1140px]">
+          <table className="w-full table-fixed border-collapse min-w-[960px] xl:min-w-full">
             <thead>
               <tr className="bg-white/[0.02] border-b border-white/[0.06] h-11 text-[11px] font-mono uppercase tracking-wider text-slate-400">
-                <th className="w-[18%] text-left pl-6 pr-3">{t("catalog.col_pair")}</th>
-                <th className="w-[12%] text-center px-3">{t("catalog.col_score")}</th>
-                <th className="w-[13%] text-center px-3">{t("catalog.col_publication")}</th>
-                <th className="w-[14%] text-center px-3">{t("catalog.col_tier")}</th>
-                <th className="w-[13%] text-center px-3">{t("catalog.col_ribbon")}</th>
-                <th className="w-[30%] text-left pr-6 pl-3">{t("catalog.col_justification")}</th>
+                <th className="w-[18%] text-left pl-4 sm:pl-6 pr-2 sm:pr-3">{t("catalog.col_pair")}</th>
+                <th className="w-[11%] text-center px-2 sm:px-3">{t("catalog.col_score")}</th>
+                <th className="w-[12%] text-center px-2 sm:px-3">{t("catalog.col_publication")}</th>
+                <th className="w-[14%] text-center px-2 sm:px-3">{t("catalog.col_tier")}</th>
+                <th className="w-[13%] text-center px-2 sm:px-3">{t("catalog.col_ribbon")}</th>
+                <th className="w-[32%] text-left pr-4 sm:pr-6 pl-2 sm:pl-3">{t("catalog.col_justification")}</th>
               </tr>
             </thead>
 
@@ -599,7 +599,7 @@ export default function AdminCatalogPage() {
                     )}
                   >
                     {/* Col 1 (18%): FX Pair + HatScripts Vector Flags */}
-                    <td className="pl-6 pr-3">
+                    <td className="pl-4 sm:pl-6 pr-2 sm:pr-3">
                       <div className="flex items-center gap-3">
                         <FXPairFlags pair={row.pair} size="md" />
                         <div className="flex flex-col min-w-0">
@@ -616,8 +616,8 @@ export default function AdminCatalogPage() {
                       </div>
                     </td>
 
-                    {/* Col 2 (12%): Macro Score (Centered, tabular-nums) */}
-                    <td className="px-3 text-center">
+                    {/* Col 2 (11%): Macro Score (Centered, tabular-nums) */}
+                    <td className="px-2 sm:px-3 text-center">
                       <div className="flex flex-col items-center">
                         <span className={clsx(
                           "font-mono font-bold text-sm tabular-nums",
@@ -636,8 +636,8 @@ export default function AdminCatalogPage() {
                       </div>
                     </td>
 
-                    {/* Col 3 (13%): Publication Toggle (Centered emerald pill) */}
-                    <td className="px-3 text-center">
+                    {/* Col 3 (12%): Publication Toggle (Centered emerald pill) */}
+                    <td className="px-2 sm:px-3 text-center">
                       <motion.button
                         whileTap={{ scale: 0.94 }}
                         onClick={() => handleTogglePublished(row.pair)}
@@ -654,7 +654,7 @@ export default function AdminCatalogPage() {
                     </td>
 
                     {/* Col 4 (14%): Attribution Tier (Centered sliding pill switcher) */}
-                    <td className="px-3 text-center">
+                    <td className="px-2 sm:px-3 text-center">
                       <div className="rounded-full bg-[#0A0B0F] border border-white/[0.07] p-0.5 inline-flex items-center text-xs font-mono">
                         <button
                           onClick={() => handleSetTier(row.pair, "basic")}
@@ -682,7 +682,7 @@ export default function AdminCatalogPage() {
                     </td>
 
                     {/* Col 5 (13%): Top Mover Checkbox (Centered button) */}
-                    <td className="px-3 text-center">
+                    <td className="px-2 sm:px-3 text-center">
                       <motion.button
                         whileTap={{ scale: 0.94 }}
                         onClick={() => handleToggleTopMover(row.pair)}
@@ -698,12 +698,12 @@ export default function AdminCatalogPage() {
                       </motion.button>
                     </td>
 
-                    {/* Col 6 (30%): Justification Macro (Full width, Zero Clipping) */}
-                    <td className="pr-6 pl-3">
+                    {/* Col 6 (32%): Justification Macro (Adaptive, Zero Clipping) */}
+                    <td className="pr-4 sm:pr-6 pl-2 sm:pl-3">
                       <div className="flex flex-col min-w-0">
                         {/* Line 1: Macro summary + Edit action */}
                         <div className="flex items-start justify-between gap-2">
-                          <span className="text-xs text-slate-300 leading-snug break-words max-w-[320px]">
+                          <span className="text-xs text-slate-300 leading-snug break-words">
                             {row.primaryDriver}
                           </span>
                           <button
@@ -715,8 +715,8 @@ export default function AdminCatalogPage() {
                             <Edit3 size={12} />
                           </button>
                         </div>
-                        {/* Line 2: Both pills side-by-side on the same line, zero clipping */}
-                        <div className="flex items-center gap-2 mt-1.5 flex-wrap sm:flex-nowrap whitespace-nowrap">
+                        {/* Line 2: Responsive Badges, Zero Clipping */}
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                           {config?.pairs[row.pair]?.customDriverNote && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#D4FF00]/20 border border-[#D4FF00]/40 text-[#D4FF00] px-2 py-0.2 text-[9px] font-mono font-bold whitespace-nowrap shrink-0">
                               Personnalisé
@@ -725,9 +725,6 @@ export default function AdminCatalogPage() {
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 border border-[#D4FF00]/25 text-[#D4FF00] px-2.5 py-0.5 text-[10px] font-mono tabular-nums whitespace-nowrap shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] shrink-0" />
                             {formatConciseCarry(row.carryAdvantage)}
-                          </span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-slate-400 px-2.5 py-0.5 text-[10px] font-mono tabular-nums whitespace-nowrap shrink-0">
-                            {row.confidence}% {t("catalog.confidence")}
                           </span>
                         </div>
                       </div>

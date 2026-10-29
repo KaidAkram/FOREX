@@ -381,7 +381,7 @@ export default function MacroDataPage() {
   };
 
   return (
-    <div className="w-full max-w-[1550px] mx-auto p-4 sm:p-6 lg:p-8 flex flex-col text-white font-sans">
+    <div className="w-full max-w-[1600px] mx-auto p-3.5 sm:p-5 lg:p-6 xl:p-8 flex flex-col text-white font-sans">
       
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
@@ -527,9 +527,9 @@ export default function MacroDataPage() {
       {/* 4. MATRIX TABLE CONTAINER (Strictly Zero Right-Edge Clipping!)    */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <GhostWireframeDissolve isRefreshing={matrixLoading}>
-      <SculptedTableContainer className="p-6">
+      <SculptedTableContainer className="p-3.5 sm:p-5 lg:p-6">
         {/* Table Subheader Bar with Title & Clean Legend & Country Search */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-white/[0.06] mb-3">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3.5 pb-4 border-b border-white/[0.06] mb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-[#D4FF00]/15 border border-[#D4FF00]/30 flex items-center justify-center text-[#D4FF00]">
               <Database size={15} />

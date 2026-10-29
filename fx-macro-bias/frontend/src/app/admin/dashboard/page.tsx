@@ -247,7 +247,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="w-full max-w-[1550px] mx-auto p-3.5 sm:p-6 lg:p-8 flex flex-col text-white">
+    <div className="w-full max-w-[1600px] mx-auto p-3.5 sm:p-5 lg:p-6 xl:p-8 flex flex-col text-white">
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 1. UNIFIED ADMIN PAGE HEADER                                       */}
       {/* ══════════════════════════════════════════════════════════════════ */}
@@ -462,7 +462,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Currency Pods: Desktop Grid vs Mobile Horizontal Snap Carousel */}
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-2.5 pb-2 no-scrollbar lg:grid lg:grid-cols-8 lg:gap-3 lg:overflow-visible mt-4 sm:mt-5">
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-2.5 pb-2 no-scrollbar sm:grid sm:grid-cols-4 xl:grid-cols-8 sm:gap-3 sm:overflow-visible mt-4 sm:mt-5">
           {currencyStrengthRanking.map((curr) => {
             const isPos = curr.score > 0;
             const isZero = curr.score === 0;

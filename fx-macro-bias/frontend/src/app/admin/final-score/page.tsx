@@ -487,7 +487,7 @@ export default function FinalScorePage() {
   };
 
   return (
-    <div className="w-full max-w-[1550px] mx-auto p-4 sm:p-6 lg:p-8 flex flex-col text-white font-sans">
+    <div className="w-full max-w-[1600px] mx-auto p-3.5 sm:p-5 lg:p-6 xl:p-8 flex flex-col text-white font-sans">
       
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
@@ -633,7 +633,7 @@ export default function FinalScorePage() {
       <SculptedFilterPod>
         <div className="flex flex-col gap-3.5">
           {/* Row 1: Universe Quick-Chips & View Mode Switcher */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.05]">
+          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 pb-3 border-b border-white/[0.05]">
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full">
               <span className="text-[11px] font-mono uppercase tracking-[0.08em] text-slate-400 mr-2 shrink-0">
                 {t("score.universe")}

@@ -271,9 +271,9 @@ export default function TraderPortalPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 3.1 TOP FLOATING GLASS NAVIGATION BAR                             */}
       {/* ══════════════════════════════════════════════════════════════════ */}
-      <header className="h-16 px-6 sticky top-0 z-30 bg-[#07080C]/85 backdrop-blur-2xl border-b border-white/[0.06] flex items-center justify-between">
+      <header className="h-16 px-4 sm:px-6 sticky top-0 z-30 bg-[#07080C]/85 backdrop-blur-2xl border-b border-white/[0.06] flex items-center justify-between">
         {/* Left: Brand Lockup + Hairline Divider + Live Telemetry Pill */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Link href="/portal" className="flex items-center">
             <ShiftFXWordmark badge="TERMINAL" />
           </Link>
@@ -437,7 +437,7 @@ export default function TraderPortalPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* MAIN TRADER WORKSPACE                                             */}
       {/* ══════════════════════════════════════════════════════════════════ */}
-      <main className="flex-1 max-w-[1550px] w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3.5 sm:px-6 py-5 sm:py-6 flex flex-col gap-5 sm:gap-6">
         {/* ──────────────────────────────────────────────────────────── */}
         {/* 3.2 SECTION 1: OPPORTUNITÉS CLÉS DU JOUR (TOP MOVERS HERO)  */}
         {/* ──────────────────────────────────────────────────────────── */}
@@ -614,9 +614,9 @@ export default function TraderPortalPage() {
         {/* ──────────────────────────────────────────────────────────── */}
         {/* 3.4 SECTION 3: UNIFIED FILTER BAR + SMOOTH VIEW SWITCHER     */}
         {/* ──────────────────────────────────────────────────────────── */}
-        <section className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <section className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
           {/* Left Pill Track: Toutes | Top Movers | Acheteur | Vendeur | Neutre | Favoris */}
-          <div className="flex items-center rounded-full bg-[#0D0F15] p-1 border border-white/[0.07] shadow-inner overflow-x-auto max-w-full">
+          <div className="flex items-center rounded-full bg-[#0D0F15] p-1 border border-white/[0.07] shadow-inner overflow-x-auto no-scrollbar max-w-full">
             {regimeTabs.map((tab) => {
               const isActive = regimeFilter === tab.id;
               return (

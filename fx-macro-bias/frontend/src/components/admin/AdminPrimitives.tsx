@@ -79,30 +79,30 @@ export function AdminPageHeader({
   hideSearch?: boolean;
 }) {
   return (
-    <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 mb-6 pb-1">
+    <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-3.5 sm:gap-4 mb-5 sm:mb-6 pb-1">
       {/* Left Title Lockup */}
       <div className="min-w-0">
-        <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-          <span className="font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400 whitespace-nowrap">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <span className="font-sans text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400 whitespace-nowrap">
             {eyebrow}
           </span>
-          <span className="rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-[#D4FF00]/12 text-[#D4FF00] border border-[#D4FF00]/30 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 tabular-nums">
+          <span className="rounded-full px-2.5 py-0.5 font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-[#D4FF00]/12 text-[#D4FF00] border border-[#D4FF00]/30 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 tabular-nums">
             <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] animate-pulse" />
             {badgeText}
           </span>
         </div>
-        <h1 className="font-display text-[clamp(1.35rem,1.8vw,1.75rem)] leading-[1.15] font-bold tracking-[-0.025em] text-white [text-wrap:balance]">
+        <h1 className="font-display text-[clamp(1.25rem,1.8vw,1.75rem)] leading-[1.15] font-bold tracking-[-0.025em] text-white [text-wrap:balance]">
           {title}
         </h1>
       </div>
 
       {/* Right Single-Row Utility Bar */}
-      <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap">
         {rightActions}
         {!hideSearch && (
           <div
             onClick={onSearchClick}
-            className="w-full sm:w-[290px] h-10 rounded-full bg-[#101218] border border-white/[0.07] hover:border-white/[0.16] px-3.5 flex items-center justify-between gap-2.5 focus-within:border-[#D4FF00]/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all cursor-pointer"
+            className="w-full sm:w-[220px] md:w-[260px] xl:w-[290px] h-10 rounded-full bg-[#101218] border border-white/[0.07] hover:border-white/[0.16] px-3.5 flex items-center justify-between gap-2.5 focus-within:border-[#D4FF00]/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all cursor-pointer"
           >
             <SearchIcon size={15} className="text-slate-400 shrink-0" />
             <input

@@ -132,12 +132,10 @@ def main():
                    ("2026-09-01", "2026-09 (Q3 Forecast)"), 
                    ("2026-12-01", "2026-12 (Q4 Forecast)")]
 
+    from apps.macro.services.calculator import GDP_GRID_X, GDP_GRID_Y, nearest_grid_rating
+
     def expected_gdp_rating(diff):
-        if diff >= 2.0: return 10
-        elif diff >= 1.0: return 5
-        elif diff < -2.0: return -10
-        elif diff < -1.0: return -5
-        else: return 0
+        return nearest_grid_rating(diff, GDP_GRID_X, GDP_GRID_Y)
 
     diffs_all_ok = True
     ratings_all_ok = True

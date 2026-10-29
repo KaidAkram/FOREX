@@ -189,6 +189,7 @@ class Command(BaseCommand):
                             for m in sub_months:
                                 ref_date = date(y, m, 1)
                                 dt_pub = datetime(y, m, 1, 0, 0, 0, tzinfo=timezone.utc)
+                                is_pub = (y < 2026) or (y == 2026 and m <= 9)
                                 all_records.append({
                                     "country": country,
                                     "indicator": indicator,
@@ -196,7 +197,7 @@ class Command(BaseCommand):
                                     "value": val,
                                     "source": "TradingEconomics Official Release",
                                     "period_type": "quarterly_expanded",
-                                    "status": "published",
+                                    "status": MacroDataPoint.Status.PUBLISHED if is_pub else MacroDataPoint.Status.FORECAST,
                                     "published_at": dt_pub
                                 })
                                 country_records += 1
@@ -211,8 +212,8 @@ class Command(BaseCommand):
 
         self.stdout.write(f"\n--> Upserting {len(all_records)} total MacroDataPoints into database...")
         upserted_count = 0
-        affected_months = set()
         from apps.macro.signals import disable_macro_signals
+        from apps.macro.services.calculator import recalculate_full_matrix
         with disable_macro_signals(), transaction.atomic():
             for rec in all_records:
                 MacroDataPoint.objects.update_or_create(
@@ -229,23 +230,11 @@ class Command(BaseCommand):
                     }
                 )
                 upserted_count += 1
-                affected_months.add(rec["month"])
 
         self.stdout.write(self.style.SUCCESS(f"[SUCCESS] Successfully upserted {upserted_count} GDP MacroDataPoints!"))
 
-        # 3. Recalculate pipeline for all active FX pairs and affected months inside transaction
-        self.stdout.write(f"\n--> Triggering bias engine recalculation across {len(affected_months)} months...")
-        active_pairs = list(FXPair.objects.filter(is_active=True))
-        total_recalculated = 0
-
-        with transaction.atomic():
-            for pair in active_pairs:
-                for m in sorted(affected_months):
-                    try:
-                        recalculate_all_for_month(pair.id, m)
-                        total_recalculated += 1
-                    except Exception as e:
-                        self.stdout.write(self.style.WARNING(f"   Recalc error for {pair} at {m}: {e}"))
-
+        # 3. Recalculate pipeline using high-performance batch recalculate_full_matrix
+        self.stdout.write("\n--> Triggering bias engine recalculation across all active FX pairs...")
+        total_recalculated = recalculate_full_matrix()
         self.stdout.write(self.style.SUCCESS(f"[SUCCESS] Recalculated {total_recalculated} pair-month final scores successfully!"))
         self.stdout.write("=" * 70)

@@ -86,7 +86,7 @@ OECD_COUNTRY_MAP = {
     "czech-republic": "CZE",
     "denmark": "DNK",
     "estonia": "EST",
-    "euro-area": "EA20",
+    "euro-area": "EA",
     "finland": "FIN",
     "france": "FRA",
     "germany": "DEU",

@@ -37,7 +37,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
       "font-src 'self' https://cdn.fontshare.com https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https://hatscripts.github.io",
-      "connect-src 'self' http://localhost:8001 http://127.0.0.1:8001 http://localhost:3000 http://localhost:3002 https://api.imf.org https://stats.oecd.org https://api.worldbank.org",
+      "connect-src 'self' http://localhost:8001 http://127.0.0.1:8001 http://localhost:3000 http://localhost:3002 https://*.onrender.com https://api.imf.org https://stats.oecd.org https://api.worldbank.org",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -45,11 +45,17 @@ const securityHeaders = [
   },
 ];
 
+const backendTarget =
+  process.env.BACKEND_INTERNAL_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "http://localhost:8001";
+
 const nextConfig = {
   output: process.env.STANDALONE === "true" ? "standalone" : undefined,
   poweredByHeader: false,
   reactStrictMode: true,
   images: {
+    dangerouslyAllowSVG: false,
     remotePatterns: [
       {
         protocol: "https",
@@ -65,12 +71,12 @@ const nextConfig = {
       },
     ];
   },
-  // Proxy API calls to Django in development
+  // Proxy API calls to Django backend
   async rewrites() {
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8001/api/:path*",
+        destination: `${backendTarget}/api/:path*`,
       },
     ];
   },

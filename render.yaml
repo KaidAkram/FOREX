@@ -10,12 +10,17 @@ services:
         value: production
       - key: NEXT_PUBLIC_API_URL
         value: /api
+      - key: BACKEND_INTERNAL_URL
+        fromService:
+          type: web
+          name: shiftfx-backend
+          property: host
 
   - type: web
     name: shiftfx-backend
     env: python
     plan: free
-    buildCommand: cd fx-macro-bias/backend && pip install -r requirements.txt && python manage.py migrate
+    buildCommand: cd fx-macro-bias/backend && pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
     startCommand: cd fx-macro-bias/backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
@@ -24,5 +29,11 @@ services:
         value: config.settings.production
       - key: DEBUG
         value: "False"
+      - key: SECRET_KEY
+        generateValue: true
       - key: ALLOWED_HOSTS
-        value: "*"
+        value: "localhost,127.0.0.1,.onrender.com"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://shiftfx.io,https://terminal.shiftfx.io,https://admin.shiftfx.io"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com,https://shiftfx.io,https://terminal.shiftfx.io,https://admin.shiftfx.io"

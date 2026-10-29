@@ -61,6 +61,7 @@ class Command(BaseCommand):
                 if val is not None:
                     y, m = ym.split("-")
                     dt = date(int(y), int(m), 1)
+                    is_pub = (int(y) < 2026) or (int(y) == 2026 and int(m) <= 9)
                     records_to_upsert.append(
                         MacroDataPoint(
                             country=country_obj,
@@ -68,7 +69,7 @@ class Command(BaseCommand):
                             month=dt,
                             value=float(val),
                             source="Official IMF SDMX 3.0 (RXF11FX_REVS)",
-                            status="PROCESSED",
+                            status=MacroDataPoint.Status.PUBLISHED if is_pub else MacroDataPoint.Status.FORECAST,
                             is_active_value=True,
                         )
                     )
@@ -79,33 +80,9 @@ class Command(BaseCommand):
             MacroDataPoint.objects.bulk_create(records_to_upsert)
         self.stdout.write(self.style.SUCCESS(f"  -> Successfully loaded {len(records_to_upsert)} unrounded raw points."))
 
-        # 3. Calculate Differentials and Ratings for all pairs from 2023-01 to 2026-12
-        self.stdout.write("\n[3/4] Calculating 12-Month Moving Average Flows, Spreads & Ratings...")
-        active_pairs = list(FXPair.objects.filter(is_active=True).select_related("base_currency", "quote_currency"))
-
-        # Months from 2023-01 to 2026-12 (48 months)
-        eval_months = []
-        for y in range(2023, 2027):
-            for m in range(1, 13):
-                eval_months.append(date(y, m, 1))
-
-        diff_count = 0
-        with transaction.atomic():
-            for ym_date in eval_months:
-                for pair in active_pairs:
-                    diff = calculate_differential(pair.pk, indicator.pk, ym_date)
-                    calculate_rating(diff.pk)
-                    diff_count += 1
-        self.stdout.write(self.style.SUCCESS(f"  -> Successfully computed {diff_count} pair differentials & ratings."))
-
-        # 4. Recompute FinalScore across all pairs
-        self.stdout.write("\n[4/4] Recomputing composite FinalScore and Macro Bias for all pairs...")
-        score_count = 0
-        with transaction.atomic():
-            for ym_date in eval_months:
-                for pair in active_pairs:
-                    calculate_final_score(pair.pk, ym_date)
-                    score_count += 1
-        self.stdout.write(self.style.SUCCESS(f"  -> Successfully recomputed {score_count} composite final scores."))
-
+        # 3. Batch recalculate full matrix differentials, ratings, and final scores
+        self.stdout.write("\n[3/3] Recalculating full matrix differentials, ratings, and biases...")
+        from apps.macro.services.calculator import recalculate_full_matrix
+        recalculated = recalculate_full_matrix()
+        self.stdout.write(self.style.SUCCESS(f"  -> Successfully updated {recalculated} pair-month records."))
         self.stdout.write(self.style.SUCCESS("\n[SUCCESS] FX Reserves completely rectified across Django database!"))

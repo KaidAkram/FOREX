@@ -92,17 +92,34 @@ class Command(BaseCommand):
 
         all_records = []
         # Querying each country individually prevents OECD SDMX multi-series date truncation
+        import time
         for oecd_code, country_obj in code_to_country.items():
             url = f"https://sdmx.oecd.org/public/rest/data/OECD.SDD.TPS,DSD_BOP@DF_BOP,1.0/{oecd_code}..CA...Q.PT_B1GQ.Y?startPeriod={start_period}"
             req = urllib.request.Request(url, headers={
                 "Accept": "application/vnd.sdmx.data+json;version=1.0.0-wd, application/json",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             })
-            try:
-                with urllib.request.urlopen(req, timeout=25) as resp:
-                    raw_json = json.loads(resp.read().decode("utf-8"))
-            except Exception as exc:
-                self.stdout.write(self.style.WARNING(f"   [!] Failed to fetch {oecd_code}: {exc}"))
+            raw_json = None
+            for attempt in range(4):
+                try:
+                    time.sleep(1.2)  # Avoid rate limiting
+                    with urllib.request.urlopen(req, timeout=25) as resp:
+                        raw_json = json.loads(resp.read().decode("utf-8"))
+                        break
+                except urllib.error.HTTPError as exc:
+                    if exc.code == 429 and attempt < 3:
+                        backoff = (attempt + 1) * 3
+                        self.stdout.write(self.style.WARNING(f"   [!] Rate limited (429) for {oecd_code}. Retrying in {backoff}s..."))
+                        time.sleep(backoff)
+                        continue
+                    else:
+                        self.stdout.write(self.style.WARNING(f"   [!] Failed to fetch {oecd_code}: {exc}"))
+                        break
+                except Exception as exc:
+                    self.stdout.write(self.style.WARNING(f"   [!] Failed to fetch {oecd_code}: {exc}"))
+                    break
+
+            if not raw_json:
                 continue
 
             structure = raw_json.get("data", {}).get("structure", {})

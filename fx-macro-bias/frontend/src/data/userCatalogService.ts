@@ -266,6 +266,35 @@ export function saveCatalogConfig(config: CatalogConfig): void {
   }
 }
 
+/**
+ * Update custom macro thesis/commentary for a specific pair.
+ * Persists to localStorage and triggers reactive catalog update.
+ */
+export function updatePairCustomThesis(pair: string, customThesis: string): void {
+  const config = getCatalogConfig();
+  if (!config.pairs[pair]) {
+    config.pairs[pair] = {
+      pair,
+      isPublished: true,
+      tier: DEFAULT_BASIC_PAIRS.has(pair) ? "basic" : "pro",
+      isTopMover: false
+    };
+  }
+  config.pairs[pair].customDriverNote = customThesis.trim();
+  saveCatalogConfig(config);
+}
+
+/**
+ * Reset custom macro thesis for a specific pair back to default algorithmic driver.
+ */
+export function resetPairCustomThesis(pair: string): void {
+  const config = getCatalogConfig();
+  if (config.pairs[pair]) {
+    delete config.pairs[pair].customDriverNote;
+    saveCatalogConfig(config);
+  }
+}
+
 // ----------------------------------------------------------------------------
 // Watchlist Management
 // ----------------------------------------------------------------------------
@@ -391,6 +420,10 @@ export function getTraderSignals(year: number = SYSTEM_CURRENT_YEAR): TraderSign
     });
 
     const driverDetails = generateDriverSummary(pairName, pairData.baseCountry, pairData.quoteCountry, scoreNum);
+    const customDriver = pairConfig.customDriverNote && pairConfig.customDriverNote.trim().length > 0
+      ? pairConfig.customDriverNote.trim()
+      : null;
+    const finalPrimaryDriver = customDriver || driverDetails.primaryDriver;
 
     return {
       pair: pairName,
@@ -406,7 +439,7 @@ export function getTraderSignals(year: number = SYSTEM_CURRENT_YEAR): TraderSign
       bias,
       biasFrench,
       confidence,
-      primaryDriver: driverDetails.primaryDriver,
+      primaryDriver: finalPrimaryDriver,
       carryAdvantage: driverDetails.carryAdvantage,
       tier: pairConfig.tier,
       isPublished: pairConfig.isPublished,

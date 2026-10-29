@@ -77,11 +77,6 @@ export function TraderPairCard({
     ? "bg-rose-500/12 border-rose-500/30 text-rose-400"
     : "bg-white/[0.05] border-white/[0.1] text-slate-300";
 
-  // Closed 2-Layer Radial Confidence Ring Math
-  const radius = 7;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (item.confidence / 100) * circumference;
-
   return (
     <motion.article
       layout
@@ -173,7 +168,7 @@ export function TraderPairCard({
         </div>
       </div>
 
-      {/* ROW 2: Tabular Score + Interactive Scrubbing Sparkline + Closed Radial Confidence Ring */}
+      {/* ROW 2: Tabular Score + Interactive Scrubbing Sparkline */}
       <div className="flex items-center justify-between gap-3 my-4 py-2 border-y border-white/[0.05]">
         <div className="shrink-0">
           <AnimatedMetricValue
@@ -185,43 +180,12 @@ export function TraderPairCard({
           />
         </div>
 
-        <div className="w-28 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div className="w-36 shrink-0" onClick={(e) => e.stopPropagation()}>
           <MorphingSplineChart
             data={item.sparkline}
             accentColor={chartAccent}
             height={38}
           />
-        </div>
-
-        {/* Closed 2-Layer Radial Confidence Ring + Label */}
-        <div
-          className="flex items-center gap-1.5 shrink-0"
-          title={`Confiance du modèle : ${item.confidence}%`}
-        >
-          <svg className="w-4 h-4 -rotate-90 shrink-0" viewBox="0 0 18 18">
-            <circle
-              cx="9"
-              cy="9"
-              r={radius}
-              fill="none"
-              stroke="rgba(255,255,255,0.12)"
-              strokeWidth="2"
-            />
-            <circle
-              cx="9"
-              cy="9"
-              r={radius}
-              fill="none"
-              stroke={chartAccent}
-              strokeWidth="2"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-            />
-          </svg>
-          <span className="font-mono text-xs text-slate-300 tabular-nums">
-            {item.confidence}%
-          </span>
         </div>
       </div>
 

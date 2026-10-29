@@ -43,10 +43,6 @@ import {
   getCurrencyStrengthMeter,
 } from "@/data/userCatalogService";
 import { TraderPairCard, TraderPairData } from "@/components/trader/TraderPairCard";
-import {
-  G10RelativeStrengthBarometer,
-  G10CurrencyItem,
-} from "@/components/trader/G10RelativeStrengthBarometer";
 import { PairThesisDrawer } from "@/components/trader/PairThesisDrawer";
 
 // Generate organic 6-point sparkline ending at score
@@ -214,24 +210,6 @@ export default function TraderPortalPage() {
       .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
       .slice(0, 2);
   }, [traderPairItems]);
-
-  // G10 Barometer relative strength meter
-  const g10BarometerData: G10CurrencyItem[] = useMemo(() => {
-    const rawStrength = getCurrencyStrengthMeter(signals);
-    if (rawStrength && rawStrength.length > 0) {
-      return rawStrength.map((cs) => {
-        const score = cs.netScore;
-        const status: "FORT" | "FAIBLE" | "NEUTRE" =
-          score >= 12 ? "FORT" : score <= -15 ? "FAIBLE" : "NEUTRE";
-        return {
-          code: cs.currency,
-          score,
-          status,
-        };
-      });
-    }
-    return [];
-  }, [signals]);
 
   // Filtered pair items
   const filteredPairs = useMemo(() => {
@@ -507,10 +485,6 @@ export default function TraderPortalPage() {
                 : "bg-white/[0.05] border-white/[0.1] text-slate-300";
 
               // 2-Layer SVG Radial Ring Math
-              const ringRadius = 7;
-              const ringCircumference = 2 * Math.PI * ringRadius;
-              const ringOffset = ringCircumference - (tm.confidence / 100) * ringCircumference;
-
               const [base, quote] = tm.pair.split("/");
 
               return (
@@ -594,7 +568,7 @@ export default function TraderPortalPage() {
                       />
                     </div>
 
-                    {/* Large Score + Closed 2-Layer Radial Confidence Ring */}
+                    {/* Large Score */}
                     <div className="flex flex-col items-end shrink-0">
                       <AnimatedMetricValue
                         value={tm.score}
@@ -603,38 +577,6 @@ export default function TraderPortalPage() {
                         suffix="%"
                         className={`text-3xl md:text-4xl font-mono font-extrabold tracking-tight tabular-nums ${scoreColor}`}
                       />
-
-                      {/* Closed 2-Layer Radial Progress Ring */}
-                      <div
-                        className="flex items-center gap-1.5 mt-1.5"
-                        title={`Confiance du modèle : ${tm.confidence}%`}
-                      >
-                        <svg className="w-4 h-4 -rotate-90 shrink-0" viewBox="0 0 18 18">
-                          <circle
-                            cx="9"
-                            cy="9"
-                            r={ringRadius}
-                            fill="none"
-                            stroke="rgba(255,255,255,0.12)"
-                            strokeWidth="2"
-                          />
-                          <circle
-                            cx="9"
-                            cy="9"
-                            r={ringRadius}
-                            fill="none"
-                            stroke={chartAccent}
-                            strokeWidth="2"
-                            strokeDasharray={ringCircumference}
-                            strokeDashoffset={ringOffset}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <span className="font-sans text-xs text-slate-400 tabular-nums">
-                          <strong className="font-mono text-slate-300">{tm.confidence}%</strong>{" "}
-                          Confiance
-                        </span>
-                      </div>
                     </div>
                   </div>
 
@@ -668,17 +610,6 @@ export default function TraderPortalPage() {
             })}
           </div>
         </section>
-
-        {/* ──────────────────────────────────────────────────────────── */}
-        {/* 3.3 SECTION 2: BAROMÈTRE MACRO DE FORCE RELATIVE (G10)       */}
-        {/* ──────────────────────────────────────────────────────────── */}
-        <G10RelativeStrengthBarometer
-          selectedCurrency={currencyUniverse}
-          onSelectCurrency={(cur) => {
-            setCurrencyUniverse(cur);
-          }}
-          currencyData={g10BarometerData}
-        />
 
         {/* ──────────────────────────────────────────────────────────── */}
         {/* 3.4 SECTION 3: UNIFIED FILTER BAR + SMOOTH VIEW SWITCHER     */}
@@ -844,8 +775,7 @@ export default function TraderPortalPage() {
                       <th className="text-left px-5 py-3.5 border-b border-white/[0.06]">Paire FX</th>
                       <th className="text-center px-4 py-3.5 border-b border-white/[0.06]">Biais</th>
                       <th className="text-right px-4 py-3.5 border-b border-white/[0.06]">Score Net</th>
-                      <th className="text-center px-4 py-3.5 border-b border-white/[0.06]">Confiance</th>
-                      <th className="text-left px-4 py-3.5 border-b border-white/[0.06]">Moteur Économique</th>
+                      <th className="text-left px-5 py-3.5 border-b border-white/[0.06]">Moteur Économique</th>
                       <th className="text-center px-4 py-3.5 border-b border-white/[0.06]">Horizon 3M</th>
                       <th className="text-center px-4 py-3.5 border-b border-white/[0.06]">Action</th>
                     </tr>
@@ -940,26 +870,8 @@ export default function TraderPortalPage() {
                             />
                           </td>
 
-                          {/* Col 4: Confidence with Progress Bar */}
-                          <td className="px-4 py-3.5 text-center">
-                            <div className="inline-flex items-center gap-2">
-                              <span className="font-mono text-xs text-slate-300 tabular-nums">
-                                {item.confidence}%
-                              </span>
-                              <div className="w-12 h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
-                                <div
-                                  className="h-full rounded-full"
-                                  style={{
-                                    width: `${item.confidence}%`,
-                                    backgroundColor: chartAccent,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Col 5: Moteur Économique in clean Satoshi */}
-                          <td className="px-4 py-3.5 max-w-[280px]">
+                          {/* Col 4: Moteur Économique in clean Satoshi */}
+                          <td className="px-5 py-3.5 max-w-[340px]">
                             <p className="font-sans text-xs text-slate-300 line-clamp-1 leading-relaxed">
                               {item.thesis}
                             </p>

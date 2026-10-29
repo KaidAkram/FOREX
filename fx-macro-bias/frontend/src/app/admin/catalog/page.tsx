@@ -4,7 +4,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { 
   Globe2, CheckCircle2, Search, Flame, Save, ExternalLink, Layers, 
-  Lock, Unlock, Eye, EyeOff, Zap, SlidersHorizontal, ShieldCheck, Sparkles, Star
+  Lock, Unlock, Eye, EyeOff, Zap, SlidersHorizontal, ShieldCheck, Sparkles, Star,
+  Edit3, X
 } from "lucide-react";
 import { clsx } from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
@@ -64,6 +65,10 @@ export default function AdminCatalogPage() {
   const [config, setConfig] = useState<CatalogConfig | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Thesis editing modal state
+  const [editingPair, setEditingPair] = useState<TraderSignal | null>(null);
+  const [customThesisDraft, setCustomThesisDraft] = useState("");
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -233,6 +238,55 @@ export default function AdminCatalogPage() {
     soundFX.playChime();
     playSuccessSound();
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.5 } });
+    setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  // Open Edit Thesis Modal
+  const handleOpenEditThesis = (row: TraderSignal) => {
+    soundFX.playPop();
+    setEditingPair(row);
+    const custom = config?.pairs[row.pair]?.customDriverNote;
+    setCustomThesisDraft(custom ?? row.primaryDriver);
+  };
+
+  // Save Custom Thesis
+  const handleSaveCustomThesis = () => {
+    if (!editingPair || !config) return;
+    const pair = editingPair.pair;
+    const updatedPairs = {
+      ...config.pairs,
+      [pair]: {
+        ...config.pairs[pair],
+        customDriverNote: customThesisDraft.trim()
+      }
+    };
+    const updatedConfig = { ...config, pairs: updatedPairs };
+    setConfig(updatedConfig);
+    saveCatalogConfig(updatedConfig);
+    setIsDirty(false);
+    setSaveSuccess(true);
+    setEditingPair(null);
+    soundFX.playChime();
+    playSuccessSound();
+    confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
+    setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  // Reset Custom Thesis to Algorithmic Default
+  const handleResetCustomThesis = () => {
+    if (!editingPair || !config) return;
+    const pair = editingPair.pair;
+    const updatedPairs = { ...config.pairs };
+    if (updatedPairs[pair]) {
+      delete updatedPairs[pair].customDriverNote;
+    }
+    const updatedConfig = { ...config, pairs: updatedPairs };
+    setConfig(updatedConfig);
+    saveCatalogConfig(updatedConfig);
+    setIsDirty(false);
+    setSaveSuccess(true);
+    setEditingPair(null);
+    soundFX.playPop();
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
@@ -647,12 +701,27 @@ export default function AdminCatalogPage() {
                     {/* Col 6 (30%): Justification Macro (Full width, Zero Clipping) */}
                     <td className="pr-6 pl-3">
                       <div className="flex flex-col min-w-0">
-                        {/* Line 1: Macro summary */}
-                        <span className="text-xs text-slate-300 leading-snug break-words max-w-[320px]">
-                          {row.primaryDriver}
-                        </span>
+                        {/* Line 1: Macro summary + Edit action */}
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-xs text-slate-300 leading-snug break-words max-w-[320px]">
+                            {row.primaryDriver}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditThesis(row)}
+                            className="p-1 rounded-lg bg-white/[0.04] hover:bg-[#D4FF00]/15 hover:text-[#D4FF00] text-slate-400 border border-white/[0.07] transition-all shrink-0 cursor-pointer"
+                            title="Modifier la thèse macro (Admin)"
+                          >
+                            <Edit3 size={12} />
+                          </button>
+                        </div>
                         {/* Line 2: Both pills side-by-side on the same line, zero clipping */}
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap sm:flex-nowrap whitespace-nowrap">
+                          {config?.pairs[row.pair]?.customDriverNote && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#D4FF00]/20 border border-[#D4FF00]/40 text-[#D4FF00] px-2 py-0.2 text-[9px] font-mono font-bold whitespace-nowrap shrink-0">
+                              Personnalisé
+                            </span>
+                          )}
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D4FF00]/10 border border-[#D4FF00]/25 text-[#D4FF00] px-2.5 py-0.5 text-[10px] font-mono tabular-nums whitespace-nowrap shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] shrink-0" />
                             {formatConciseCarry(row.carryAdvantage)}
@@ -670,6 +739,94 @@ export default function AdminCatalogPage() {
           </table>
         </div>
       </SculptedTableContainer>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* MODAL: EDIT MACRO THESIS / DRIVER                                  */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {editingPair && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditingPair(null)}
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+              className="relative w-full max-w-xl bg-[#0C0E14] border border-white/[0.1] rounded-[24px] p-6 shadow-2xl z-10 space-y-4"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <FXPairFlags pair={editingPair.pair} size="lg" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-display text-xl font-black text-white">{editingPair.pair}</h3>
+                      <span className="text-xs text-slate-400 font-mono">({editingPair.baseCountry} / {editingPair.quoteCountry})</span>
+                    </div>
+                    <p className="text-xs text-[#D4FF00] font-sans font-medium mt-0.5">
+                      Édition de la Thèse Macroéconomique Fondamentale
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingPair(null)}
+                  className="w-8 h-8 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-sans font-semibold text-slate-300 block">
+                  Texte de la thèse macro (Moteur économique) :
+                </label>
+                <textarea
+                  value={customThesisDraft}
+                  onChange={(e) => setCustomThesisDraft(e.target.value)}
+                  rows={4}
+                  className="w-full bg-[#121620] border border-white/[0.12] rounded-xl p-3.5 text-xs font-sans text-white focus:outline-none focus:border-[#D4FF00]/60 resize-none leading-relaxed"
+                  placeholder="Saisissez la thèse macroéconomique personnalisée..."
+                />
+                <p className="text-[11px] text-slate-400 leading-normal">
+                  Ce texte est instantanément synchronisé avec le terminal trader (/portal) sur la carte, le tableau, et le volet de thèse.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+                <button
+                  type="button"
+                  onClick={handleResetCustomThesis}
+                  className="text-xs font-sans text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                >
+                  Rétablir le texte calculé par défaut
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingPair(null)}
+                    className="px-4 py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.1] text-xs font-sans text-slate-300 transition-colors cursor-pointer"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveCustomThesis}
+                    className="px-5 py-2 rounded-full bg-[#D4FF00] hover:bg-[#e0ff33] text-black font-sans font-bold text-xs shadow-[0_0_15px_rgba(212,255,0,0.3)] transition-colors cursor-pointer"
+                  >
+                    Enregistrer la Thèse
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

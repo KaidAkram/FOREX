@@ -268,16 +268,23 @@ class ScraperOrchestrator:
         skipped = None
 
         with disable_macro_signals(), transaction.atomic():
+            # Purge fake estimates beyond official publication cutoffs:
+            # Euro Area: > 2026-01-01
+            MacroDataPoint.objects.filter(country__name="Euro Area", indicator=indicator, month__gt=date(2026, 1, 1)).delete()
+            # Switzerland: > 2026-08-01
+            MacroDataPoint.objects.filter(country__name="Switzerland", indicator=indicator, month__gt=date(2026, 8, 1)).delete()
+            # Other countries: > 2026-09-01
+            MacroDataPoint.objects.filter(indicator=indicator, month__gt=date(2026, 9, 1)).delete()
+
             for c_name, pts in country_raw.items():
                 c_obj = active_countries.get(c_name)
                 if not c_obj:
                     continue
                 for ym, val in pts.items():
-                    if val is not None:
+                    if val is not None and not (isinstance(val, float) and (val != val)):  # check not None and not NaN
                         y, m = ym.split("-")
                         dt = date(int(y), int(m), 1)
-                        # Up to current date 2026-09 is published. 2026-10 onwards is forecast.
-                        is_pub = (int(y) < 2026) or (int(y) == 2026 and int(m) <= 9)
+                        # All released IMF SDMX points are officially published (never EST)
                         MacroDataPoint.objects.update_or_create(
                             country=c_obj,
                             indicator=indicator,
@@ -285,7 +292,7 @@ class ScraperOrchestrator:
                             defaults={
                                 "value": float(val),
                                 "source": "Official IMF SDMX 3.0 (RXF11FX_REVS)",
-                                "status": MacroDataPoint.Status.PUBLISHED if is_pub else MacroDataPoint.Status.FORECAST,
+                                "status": MacroDataPoint.Status.PUBLISHED,
                                 "is_active_value": True,
                             }
                         )
@@ -337,11 +344,11 @@ class ScraperOrchestrator:
         skipped = None
 
         with disable_macro_signals(), transaction.atomic():
-            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 9, 1)).update(
+            # Q2 data are unavailable for both Euro Area and UK
+            MacroDataPoint.objects.filter(country__name__in=["United Kingdom", "Euro Area"], indicator=indicator, month__gte=date(2026, 4, 1)).delete()
+
+            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 6, 1)).update(
                 status=MacroDataPoint.Status.PUBLISHED
-            )
-            MacroDataPoint.objects.filter(indicator=indicator, month__gt=date(2026, 9, 1)).update(
-                status=MacroDataPoint.Status.FORECAST
             )
 
         # Verify if 2026-09 is present
@@ -357,7 +364,7 @@ class ScraperOrchestrator:
         indicator = MacroIndicator.objects.get(slug="gdp")
         saved = MacroDataPoint.objects.filter(indicator=indicator).count()
         skipped = None
-        # In late October 2026, Q3 (2026-09) is published, Q4 (2026-10..12) is forecast
+        # Q1-Q3 (<= 2026-09) is published, Q4 (2026-10..12) is forecast
         with disable_macro_signals(), transaction.atomic():
             MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 9, 1)).update(
                 status=MacroDataPoint.Status.PUBLISHED
@@ -374,22 +381,13 @@ class ScraperOrchestrator:
         indicator = MacroIndicator.objects.get(slug="cpi")
         saved = MacroDataPoint.objects.filter(indicator=indicator).count()
         skipped = None
-        # Preserve country-specific publication calendar:
-        # Released economies (US, EUR, JPN, CAD, AUS, SWE, NOR, CHE) published through September 2026 (2026-09)
-        # UK September 2026 CPI is pending publication -> mark as FORECAST (Estimation)
-        # October, November, December 2026 are forward forecasts for all pending economies
+        # Official prints through September 2026 (2026-09) for all economies
+        # October, November, December 2026 are forward forecasts
         with disable_macro_signals(), transaction.atomic():
-            for m in range(1, 10):
-                MacroDataPoint.objects.filter(indicator=indicator, month=date(2026, m, 1)).exclude(
-                    country__name="United Kingdom", month=date(2026, 9, 1)
-                ).update(status=MacroDataPoint.Status.PUBLISHED)
-            
-            # UK September CPI is forecast / estimation pending publication
-            MacroDataPoint.objects.filter(country__name="United Kingdom", indicator=indicator, month=date(2026, 9, 1)).update(
-                status=MacroDataPoint.Status.FORECAST
+            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 9, 1)).update(
+                status=MacroDataPoint.Status.PUBLISHED
             )
-            # October, November, December CPI are forecasts pending official release
-            MacroDataPoint.objects.filter(indicator=indicator, month__gte=date(2026, 10, 1)).update(
+            MacroDataPoint.objects.filter(indicator=indicator, month__gt=date(2026, 9, 1)).update(
                 status=MacroDataPoint.Status.FORECAST
             )
 

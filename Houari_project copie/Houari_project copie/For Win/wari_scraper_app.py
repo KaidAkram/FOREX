@@ -773,13 +773,24 @@ class WariScraperApp(ctk.CTk):
                                         if (p && p.y !== null && p.y !== undefined) {
                                             var xVal = p.category || p.name || p.x;
                                             var dateStr = '';
-                                            if (!isNaN(xVal) && parseInt(xVal) > 1000000000000) {
-                                                var d = new Date(parseInt(xVal));
-                                                var yr = d.getUTCFullYear();
-                                                var mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-                                                dateStr = yr + '-' + mo + '-01';
+                                            var numVal = parseInt(xVal);
+                                            if (!isNaN(numVal)) {
+                                                if (numVal > 100000000000) {
+                                                    var d = new Date(numVal);
+                                                    dateStr = d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-01';
+                                                } else if (numVal > 1000000000) {
+                                                    var d = new Date(numVal * 1000);
+                                                    dateStr = d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-01';
+                                                } else {
+                                                    dateStr = String(xVal);
+                                                }
                                             } else {
-                                                dateStr = String(xVal);
+                                                var d = new Date(xVal);
+                                                if (!isNaN(d.getTime()) && d.getUTCFullYear() > 2000) {
+                                                    dateStr = d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-01';
+                                                } else {
+                                                    dateStr = String(xVal);
+                                                }
                                             }
 
                                             var ptColor = String(p.color || series.color || '').toLowerCase();
@@ -937,6 +948,9 @@ class WariScraperApp(ctk.CTk):
                                 obs = s_val.get("observations", {})
                                 for tidx_str, oval in obs.items():
                                     quarter_str = time_periods[int(tidx_str)]
+                                    # Client requirement: Q2 data are unavailable for both Euro Area and UK
+                                    if formatted_country in ["United Kingdom", "Euro Area"] and quarter_str >= "2026-Q2":
+                                        continue
                                     raw_val = oval[0]
                                     if raw_val is not None:
                                         val_float = float(raw_val) # Unrounded raw float

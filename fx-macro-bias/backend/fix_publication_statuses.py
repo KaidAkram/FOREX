@@ -29,44 +29,36 @@ def fix_all_statuses():
         )
         print(f"GDP: {p_count} set to published (<= 2026-09), {f_count} set to forecast (> 2026-09)")
 
-        # 2. Current Account: Cutoff is 2026-09. 2026-10, 2026-11, 2026-12 are forward forecasts.
+        # 2. Current Account: Q2 (>= 2026-04) unavailable for UK and Euro Area.
         ind_ca = MacroIndicator.objects.get(slug="ca_gdp")
-        p_count = MacroDataPoint.objects.filter(indicator=ind_ca, month__lte=date(2026, 9, 1)).update(
+        MacroDataPoint.objects.filter(country__name__in=["United Kingdom", "Euro Area"], indicator=ind_ca, month__gte=date(2026, 4, 1)).delete()
+        p_count = MacroDataPoint.objects.filter(indicator=ind_ca, month__lte=date(2026, 6, 1)).update(
             status=MacroDataPoint.Status.PUBLISHED
         )
-        f_count = MacroDataPoint.objects.filter(indicator=ind_ca, month__gt=date(2026, 9, 1)).update(
-            status=MacroDataPoint.Status.FORECAST
-        )
-        print(f"Current Account: {p_count} set to published, {f_count} set to forecast")
+        print(f"Current Account: {p_count} set to published (Q2 omitted for UK & Euro Area)")
 
-        # 3. FX Reserves: Cutoff is 2026-09. 2026-10, 2026-11, 2026-12 are forward forecasts.
+        # 3. FX Reserves:
+        # Euro Area published only through 2026-01. Switzerland through 2026-08. Others through 2026-09.
+        # No forecasts exist on IMF - all official prints are published.
         ind_fx = MacroIndicator.objects.get(slug="fx_reserves")
-        p_count = MacroDataPoint.objects.filter(indicator=ind_fx, month__lte=date(2026, 9, 1)).update(
+        MacroDataPoint.objects.filter(country__name="Euro Area", indicator=ind_fx, month__gt=date(2026, 1, 1)).delete()
+        MacroDataPoint.objects.filter(country__name="Switzerland", indicator=ind_fx, month__gt=date(2026, 8, 1)).delete()
+        MacroDataPoint.objects.filter(indicator=ind_fx, month__gt=date(2026, 9, 1)).delete()
+        p_count = MacroDataPoint.objects.filter(indicator=ind_fx).update(
             status=MacroDataPoint.Status.PUBLISHED
         )
-        f_count = MacroDataPoint.objects.filter(indicator=ind_fx, month__gt=date(2026, 9, 1)).update(
-            status=MacroDataPoint.Status.FORECAST
-        )
-        print(f"FX Reserves: {p_count} set to published, {f_count} set to forecast")
+        print(f"FX Reserves: {p_count} set to published (purged unpublished months)")
 
         # 4. CPI Inflation:
-        # USA, Euro Area, Japan, Australia, Canada, Switzerland, Sweden, Norway: <= 2026-09 is published.
-        # United Kingdom: <= 2026-08 is published, 2026-09 is forecast.
-        # All countries: >= 2026-10 are forecast.
+        # All countries published through 2026-09. 2026-10..12 are forward forecasts.
         ind_cpi = MacroIndicator.objects.get(slug="cpi")
-        MacroDataPoint.objects.filter(indicator=ind_cpi, month__lte=date(2026, 8, 1)).update(
+        MacroDataPoint.objects.filter(indicator=ind_cpi, month__lte=date(2026, 9, 1)).update(
             status=MacroDataPoint.Status.PUBLISHED
-        )
-        MacroDataPoint.objects.filter(indicator=ind_cpi, month=date(2026, 9, 1)).exclude(
-            country__name="United Kingdom"
-        ).update(status=MacroDataPoint.Status.PUBLISHED)
-        MacroDataPoint.objects.filter(indicator=ind_cpi, month=date(2026, 9, 1), country__name="United Kingdom").update(
-            status=MacroDataPoint.Status.FORECAST
         )
         MacroDataPoint.objects.filter(indicator=ind_cpi, month__gte=date(2026, 10, 1)).update(
             status=MacroDataPoint.Status.FORECAST
         )
-        print("CPI: Published up to 2026-09 (UK pending 2026-09), forward months set to forecast")
+        print("CPI: Published up to 2026-09 for all economies, forward months set to forecast")
 
         # 5. Interest Rate: Published through 2026-10. 2026-11 and 2026-12 are forecast.
         ind_ir = MacroIndicator.objects.get(slug="interest_rate")

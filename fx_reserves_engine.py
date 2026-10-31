@@ -126,8 +126,18 @@ def build_fx_dataset():
         print(f"  -> Note: IMF SDMX API query ({e}). Using Excel baseline.")
 
     df_raw = pd.DataFrame(country_series)
-    # Forward fill any missing months towards the end of 2026
-    df_raw = df_raw.ffill()
+    
+    # Enforce authoritative official IMF publication cutoffs:
+    # Euro Area: published only through 2026-01
+    if 'Euro Area' in df_raw.columns:
+        df_raw.loc[df_raw.index > '2026-01', 'Euro Area'] = np.nan
+    # Switzerland: published only through 2026-08
+    if 'Switzerland' in df_raw.columns:
+        df_raw.loc[df_raw.index > '2026-08', 'Switzerland'] = np.nan
+    # All other countries: published only through 2026-09 (no forecasts exist on IMF)
+    for col in df_raw.columns:
+        if col not in ['Euro Area', 'Switzerland']:
+            df_raw.loc[df_raw.index > '2026-09', col] = np.nan
 
     print("--- 3. Executing 3-Step FX Reserves Math ---")
     # Étape 1: Variation mensuelle (Reserves(N) - Reserves(N-1))

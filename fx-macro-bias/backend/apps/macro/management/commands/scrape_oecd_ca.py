@@ -158,6 +158,9 @@ class Command(BaseCommand):
                     base_month = (q_num - 1) * 3 + 1
                     for offset in range(3):
                         m_date = date(year, base_month + offset, 1)
+                        # Client specification: Q2 data are unavailable for both Euro Area and UK
+                        if country_obj.name in ["United Kingdom", "Euro Area"] and year == 2026 and m_date >= date(2026, 4, 1):
+                            continue
                         all_records.append({
                             "country": country_obj,
                             "month": m_date,

@@ -112,30 +112,36 @@ def main():
   // GDP: Official prints through 2026-09 (Q1, Q2, Q3 published). Q4 (2026-10..12) are forward forecasts.
   "GDP": "2026-09",
 
-  // Current Account: UK published through 2026-03 (Q1); Euro Area & Others published through 2026-06 (Q2).
-  // No forecasts published for CA - unpublished periods are missing (null).
+  // Current Account: UK & Euro Area published through 2026-03 (Q1); Others published through 2026-06 (Q2).
+  // Q2 is unavailable for both Euro Area and UK. No forecasts published for CA - unpublished periods are missing (null).
   "Current Account": (country: string) => {
-    if (country === "United Kingdom") {
+    if (country === "United Kingdom" || country === "Euro Area") {
       return "2026-03";
     }
     return "2026-06";
   },
 
-  // CPI: Official prints through September 2026 (2026-09).
-  // United Kingdom September 2026 release is pending (2026-08 cutoff).
+  // CPI: Official prints through September 2026 (2026-09) for all economies.
   // October 2026 (2026-10) and beyond are forward forecasts.
-  "CPI": (country: string) => {
-    if (country === "United Kingdom") {
-      return "2026-08";
-    }
-    return "2026-09";
-  },
+  "CPI": "2026-09",
 
   // Interest Rate: Official central bank policy prints through October 2026 (2026-10). November/December are forecasts.
   "Interest Rate": "2026-10",
 
-  // FX Reserves: Official IMF SDMX reserves through September 2026 (2026-09).
-  "FX Reserves": "2026-09",
+  // FX Reserves:
+  // Euro Area: Last published is 2026-01. Following months not yet published.
+  // Switzerland: Last published is 2026-08. Following months not yet published.
+  // Other countries: Official IMF SDMX reserves published through September 2026 (2026-09).
+  // Months after September 2026 have no forecasts and are missing (null).
+  "FX Reserves": (country: string) => {
+    if (country === "Euro Area") {
+      return "2026-01";
+    }
+    if (country === "Switzerland") {
+      return "2026-08";
+    }
+    return "2026-09";
+  },
 
   // Equity: Real-time continuous sovereign equity close prints through October 2026 (2026-10).
   "Equity": "2026-10",

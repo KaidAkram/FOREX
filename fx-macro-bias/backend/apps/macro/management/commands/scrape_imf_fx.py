@@ -58,10 +58,9 @@ class Command(BaseCommand):
             if not country_obj:
                 continue
             for ym, val in pts.items():
-                if val is not None:
+                if val is not None and not (isinstance(val, float) and (val != val)):
                     y, m = ym.split("-")
                     dt = date(int(y), int(m), 1)
-                    is_pub = (int(y) < 2026) or (int(y) == 2026 and int(m) <= 9)
                     records_to_upsert.append(
                         MacroDataPoint(
                             country=country_obj,
@@ -69,7 +68,7 @@ class Command(BaseCommand):
                             month=dt,
                             value=float(val),
                             source="Official IMF SDMX 3.0 (RXF11FX_REVS)",
-                            status=MacroDataPoint.Status.PUBLISHED if is_pub else MacroDataPoint.Status.FORECAST,
+                            status=MacroDataPoint.Status.PUBLISHED,
                             is_active_value=True,
                         )
                     )

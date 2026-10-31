@@ -45,10 +45,25 @@ const securityHeaders = [
   },
 ];
 
-const backendTarget =
+const rawBackend =
   process.env.BACKEND_INTERNAL_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   "http://localhost:8001";
+
+let backendTarget = rawBackend.trim();
+if (
+  !backendTarget.startsWith("http://") &&
+  !backendTarget.startsWith("https://") &&
+  !backendTarget.startsWith("/")
+) {
+  if (backendTarget.includes(".onrender.com")) {
+    backendTarget = `https://${backendTarget}`;
+  } else {
+    backendTarget = `http://${backendTarget}`;
+  }
+}
+backendTarget = backendTarget.replace(/\/+$/, "");
+
 
 const nextConfig = {
   output: process.env.STANDALONE === "true" ? "standalone" : undefined,

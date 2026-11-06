@@ -97,7 +97,15 @@ export const OFFICIAL_RELEASE_CUTOFFS: Record<string, string | ((country: string
 
   // CPI: Official prints through September 2026 (2026-09) for all economies.
   // October 2026 (2026-10) and beyond are forward forecasts.
-  "CPI": "2026-09",
+  // CPI: Official prints through October 2026 (2026-10) for Euro Area, Switzerland, and Sweden.
+  // Other economies published through September 2026 (2026-09).
+  "CPI": (country: string) => {
+    const c = country.toLowerCase();
+    if (c.includes("euro") || c.includes("switzerland") || c.includes("sweden")) {
+      return "2026-10";
+    }
+    return "2026-09";
+  },
 
   // Interest Rate: Official central bank policy prints through October 2026 (2026-10). November/December are forecasts.
   "Interest Rate": "2026-10",
@@ -721,7 +729,7 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 2.9,
       "2026-08": 3.2,
       "2026-09": 3.8,
-      "2026-10": null,
+      "2026-10": 4.0,
       "2026-11": null,
       "2026-12": null
     },
@@ -869,7 +877,7 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-05": 4.0,
       "2026-06": 3.8,
       "2026-07": 3.5,
-      "2026-08": 3.5,
+      "2026-08": 4.0,
       "2026-09": 4.3,
       "2026-10": null,
       "2026-11": null,
@@ -971,7 +979,7 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 0.4,
       "2026-08": 0.8,
       "2026-09": 1.0,
-      "2026-10": null,
+      "2026-10": 1.5,
       "2026-11": null,
       "2026-12": null
     },
@@ -1071,7 +1079,7 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 0.2,
       "2026-08": 0.3,
       "2026-09": 1.1,
-      "2026-10": null,
+      "2026-10": 0.9,
       "2026-11": null,
       "2026-12": null
     },

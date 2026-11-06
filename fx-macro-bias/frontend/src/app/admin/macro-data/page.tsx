@@ -578,6 +578,7 @@ export default function MacroDataPage() {
           {INDICATORS.map((ind) => (
             <button
               key={ind}
+              id={`btn-ind-${ind.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
               onClick={() => { 
                 soundFX.playPop(1.05); 
                 setActiveInd(ind); 

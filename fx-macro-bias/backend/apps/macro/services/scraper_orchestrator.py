@@ -15,6 +15,11 @@ import logging
 import json
 import os
 import sys
+import re
+import gzip
+import base64
+import urllib.request
+import urllib.parse
 from datetime import datetime, date, timedelta, timezone
 from typing import Dict, Any, List, Optional
 from pathlib import Path
@@ -34,6 +39,21 @@ from apps.macro.signals import disable_macro_signals
 from apps.macro.services.calculator import recalculate_full_matrix
 
 logger = logging.getLogger(__name__)
+
+# TradingEconomics CloudFront decryption key & Sovereign Economy slugs
+TE_OBFUSCATION_KEY = "tradingeconomics-charts-core-api-key".encode("utf-8")
+TE_COUNTRY_SLUGS = {
+    "USD": "united-states",
+    "EUR": "euro-area",
+    "JPY": "japan",
+    "GBP": "united-kingdom",
+    "AUD": "australia",
+    "CAD": "canada",
+    "CHF": "switzerland",
+    "NZD": "new-zealand",
+    "SEK": "sweden",
+    "NOK": "norway",
+}
 
 # Root directory reference for engine scripts
 ROOT_DIR = Path(__file__).resolve().parents[5]
@@ -359,144 +379,208 @@ class ScraperOrchestrator:
         return saved, skipped
 
     @classmethod
+    def _fetch_te_series(cls, slug: str, category: str) -> dict[str, float]:
+        """
+        Dynamically and autonomously fetches historical published data directly from TradingEconomics.
+        Strictly official points from the live CloudFront JSON stream.
+        """
+        url = f"https://tradingeconomics.com/{slug}/{category}"
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9"
+        })
+        with urllib.request.urlopen(req, timeout=15) as r:
+            html = r.read().decode("utf-8")
+
+        m_sym = re.search(r"TESymbol\s*=\s*'([^']+)'", html)
+        m_tok = re.search(r"TEChartsToken\s*=\s*'([^']+)'", html)
+        if not m_sym:
+            raise ValueError(f"Could not extract TESymbol from {url}")
+        sym = m_sym.group(1)
+        tok = m_tok.group(1) if m_tok else "20260324:loboantunes"
+
+        cf_url = f"https://d3ii0wo49og5mi.cloudfront.net/economics/{urllib.parse.quote(sym.lower())}?span=5y"
+        req_cf = urllib.request.Request(cf_url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "x-api-key": tok,
+            "Referer": url
+        })
+        with urllib.request.urlopen(req_cf, timeout=15) as r_cf:
+            raw = json.loads(r_cf.read().decode("utf-8"))
+
+        enc = base64.b64decode(raw)
+        dec = bytearray(b ^ TE_OBFUSCATION_KEY[i % len(TE_OBFUSCATION_KEY)] for i, b in enumerate(enc))
+        json_data = json.loads(gzip.decompress(dec).decode("utf-8"))
+        pts = json_data[0]["series"][0]["serie"]["data"]
+
+        return {p[3][:10]: float(p[0]) for p in pts}
+
+    @classmethod
     def _sync_gdp(cls) -> tuple[int, Optional[str]]:
-        """Syncs GDP Annual Growth Rate — strictly official publications, no forecasts."""
+        """Syncs GDP Annual Growth Rate autonomously from TradingEconomics — strictly official publications."""
         indicator = MacroIndicator.objects.get(slug="gdp")
+        countries = Country.objects.filter(is_active=True)
+        saved = 0
         skipped = None
-        # Purge all forecast records — unreleased periods are left empty or manual
+
         with disable_macro_signals(), transaction.atomic():
             MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
 
-            # 1. Enforce correct official values for Euro Area Q3 (1.3) and UK Q1 (0.8), Q2 (1.4)
-            euro_obj = Country.objects.filter(name="Euro Area").first()
-            if euro_obj:
-                MacroDataPoint.objects.filter(
-                    country=euro_obj, indicator=indicator, month__in=[date(2026, 7, 1), date(2026, 8, 1), date(2026, 9, 1)]
-                ).update(value=1.3, status=MacroDataPoint.Status.PUBLISHED, is_active_value=True)
+            for country in countries:
+                slug = TE_COUNTRY_SLUGS.get(country.iso_code.upper(), country.trading_economics_slug)
+                if not slug:
+                    continue
 
-            uk_obj = Country.objects.filter(name="United Kingdom").first()
-            if uk_obj:
-                MacroDataPoint.objects.filter(
-                    country=uk_obj, indicator=indicator, month__in=[date(2026, 1, 1), date(2026, 2, 1), date(2026, 3, 1)]
-                ).update(value=0.8, status=MacroDataPoint.Status.PUBLISHED, is_active_value=True)
-                MacroDataPoint.objects.filter(
-                    country=uk_obj, indicator=indicator, month__in=[date(2026, 4, 1), date(2026, 5, 1), date(2026, 6, 1)]
-                ).update(value=1.4, status=MacroDataPoint.Status.PUBLISHED, is_active_value=True)
+                try:
+                    pts = cls._fetch_te_series(slug, "gdp-growth-annual")
+                except Exception as e:
+                    logger.warning(f"Could not fetch live TE GDP for {country.name}: {e}")
+                    continue
 
-            # 2. Only Euro Area, Sweden, and USA have officially published Q3 2026 (through 2026-09)
-            # The remaining 7 economies have NOT published Q3 yet -> purge any non-manual points beyond 2026-06
-            q3_published_countries = ["Euro Area", "Sweden", "United States"]
-            MacroDataPoint.objects.filter(
-                indicator=indicator,
-                month__gt=date(2026, 6, 1)
-            ).exclude(
-                country__name__in=q3_published_countries
-            ).exclude(
-                status=MacroDataPoint.Status.MANUAL
-            ).delete()
+                quarterly_map = {}
+                for dt_str, val in pts.items():
+                    yr = int(dt_str[:4])
+                    mo = int(dt_str[5:7])
+                    if yr >= 2023:
+                        quarterly_map[(yr, mo)] = val
 
-            # For all countries, purge any non-manual points beyond Q3 (2026-10..12)
-            MacroDataPoint.objects.filter(
-                indicator=indicator,
-                month__gt=date(2026, 9, 1)
-            ).exclude(
-                status=MacroDataPoint.Status.MANUAL
-            ).delete()
+                max_pub_date = None
+                quarters_def = [
+                    (3, [1, 2, 3]),
+                    (6, [4, 5, 6]),
+                    (9, [7, 8, 9]),
+                    (12, [10, 11, 12]),
+                ]
 
-            # Ensure settled official prints are marked PUBLISHED
-            # Up to 2026-06 for all active countries:
-            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 6, 1)).exclude(
-                status=MacroDataPoint.Status.MANUAL
-            ).update(
-                status=MacroDataPoint.Status.PUBLISHED,
-                is_active_value=True
-            )
-            # 2026-07..09 for Euro Area, Sweden, USA:
-            MacroDataPoint.objects.filter(
-                country__name__in=q3_published_countries,
-                indicator=indicator,
-                month__gt=date(2026, 6, 1),
-                month__lte=date(2026, 9, 1)
-            ).exclude(
-                status=MacroDataPoint.Status.MANUAL
-            ).update(
-                status=MacroDataPoint.Status.PUBLISHED,
-                is_active_value=True
-            )
+                for (yr, q_mo), val in quarterly_map.items():
+                    sub_months = dict(quarters_def).get(q_mo, [q_mo])
+                    for m in sub_months:
+                        dt = date(yr, m, 1)
+                        if max_pub_date is None or dt > max_pub_date:
+                            max_pub_date = dt
+                        MacroDataPoint.objects.update_or_create(
+                            country=country,
+                            indicator=indicator,
+                            month=dt,
+                            defaults={
+                                "value": val,
+                                "status": MacroDataPoint.Status.PUBLISHED,
+                                "source": "TradingEconomics Official Release (Autonomous Live Scraper)",
+                                "is_active_value": True,
+                            }
+                        )
+                        saved += 1
 
-            # Remove any temporary manual overrides for periods that are now officially published
-            published_points = MacroDataPoint.objects.filter(
-                indicator=indicator,
-                status=MacroDataPoint.Status.PUBLISHED,
-                is_active_value=True
-            )
-            for pub in published_points:
-                MacroDataPoint.objects.filter(
-                    country=pub.country,
-                    indicator=indicator,
-                    month=pub.month,
-                    status=MacroDataPoint.Status.MANUAL
-                ).delete()
+                # Clean up any unreleased future periods beyond latest official quarter
+                if max_pub_date:
+                    MacroDataPoint.objects.filter(
+                        country=country,
+                        indicator=indicator,
+                        month__gt=max_pub_date
+                    ).exclude(status=MacroDataPoint.Status.MANUAL).delete()
 
-        saved = MacroDataPoint.objects.filter(indicator=indicator, is_active_value=True).count()
         return saved, skipped
 
     @classmethod
     def _sync_cpi(cls) -> tuple[int, Optional[str]]:
-        """Syncs CPI Inflation Rate — strictly official publications, no forecasts."""
+        """Syncs CPI Inflation Rate autonomously from TradingEconomics — strictly official publications."""
         indicator = MacroIndicator.objects.get(slug="cpi")
+        countries = Country.objects.filter(is_active=True)
+        saved = 0
         skipped = None
-        # Purge all forecast records — unreleased periods are left empty or manual
+
         with disable_macro_signals(), transaction.atomic():
             MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
-            # Official prints through September 2026 (2026-09) for all economies
-            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 9, 1)).exclude(
-                status=MacroDataPoint.Status.MANUAL
-            ).update(
-                status=MacroDataPoint.Status.PUBLISHED,
-                is_active_value=True
-            )
-            # Remove any temporary manual overrides for periods that are now officially published
-            published_months = MacroDataPoint.objects.filter(
-                indicator=indicator,
-                status=MacroDataPoint.Status.PUBLISHED,
-                is_active_value=True
-            ).values_list("month", flat=True)
-            MacroDataPoint.objects.filter(
-                indicator=indicator,
-                month__in=published_months,
-                status=MacroDataPoint.Status.MANUAL
-            ).delete()
 
-        saved = MacroDataPoint.objects.filter(indicator=indicator, is_active_value=True).count()
+            for country in countries:
+                slug = TE_COUNTRY_SLUGS.get(country.iso_code.upper(), country.trading_economics_slug)
+                if not slug:
+                    continue
+
+                try:
+                    pts = cls._fetch_te_series(slug, "inflation-cpi")
+                except Exception as e:
+                    logger.warning(f"Could not fetch live TE CPI for {country.name}: {e}")
+                    continue
+
+                max_pub_date = None
+                for dt_str, val in pts.items():
+                    yr = int(dt_str[:4])
+                    if yr >= 2023:
+                        dt = date.fromisoformat(dt_str)
+                        if max_pub_date is None or dt > max_pub_date:
+                            max_pub_date = dt
+                        MacroDataPoint.objects.update_or_create(
+                            country=country,
+                            indicator=indicator,
+                            month=dt,
+                            defaults={
+                                "value": val,
+                                "status": MacroDataPoint.Status.PUBLISHED,
+                                "source": "TradingEconomics Official Release (Autonomous Live Scraper)",
+                                "is_active_value": True,
+                            }
+                        )
+                        saved += 1
+
+                # Clean up unreleased future prints beyond latest official publication
+                if max_pub_date:
+                    MacroDataPoint.objects.filter(
+                        country=country,
+                        indicator=indicator,
+                        month__gt=max_pub_date
+                    ).exclude(status=MacroDataPoint.Status.MANUAL).delete()
+
         return saved, skipped
 
     @classmethod
     def _sync_interest_rates(cls) -> tuple[int, Optional[str]]:
-        """Syncs Central Bank Interest Rates — strictly official publications, no forecasts."""
+        """Syncs Central Bank Interest Rates autonomously from TradingEconomics — strictly official publications."""
         indicator = MacroIndicator.objects.get(slug="interest_rate")
+        countries = Country.objects.filter(is_active=True)
+        saved = 0
         skipped = None
-        # Purge all forecast records — unreleased periods are left empty or manual
+
         with disable_macro_signals(), transaction.atomic():
             MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
-            # Official central bank policy rates through October 2026 as published
-            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 10, 1)).exclude(
-                status=MacroDataPoint.Status.MANUAL
-            ).update(
-                status=MacroDataPoint.Status.PUBLISHED,
-                is_active_value=True
-            )
-            # Remove any temporary manual overrides for periods that are now officially published
-            published_months = MacroDataPoint.objects.filter(
-                indicator=indicator,
-                status=MacroDataPoint.Status.PUBLISHED,
-                is_active_value=True
-            ).values_list("month", flat=True)
-            MacroDataPoint.objects.filter(
-                indicator=indicator,
-                month__in=published_months,
-                status=MacroDataPoint.Status.MANUAL
-            ).delete()
 
-        saved = MacroDataPoint.objects.filter(indicator=indicator, is_active_value=True).count()
+            for country in countries:
+                slug = TE_COUNTRY_SLUGS.get(country.iso_code.upper(), country.trading_economics_slug)
+                if not slug:
+                    continue
+
+                try:
+                    pts = cls._fetch_te_series(slug, "interest-rate")
+                except Exception as e:
+                    logger.warning(f"Could not fetch live TE Interest Rate for {country.name}: {e}")
+                    continue
+
+                max_pub_date = None
+                for dt_str, val in pts.items():
+                    yr = int(dt_str[:4])
+                    if yr >= 2023:
+                        dt = date.fromisoformat(dt_str)
+                        if max_pub_date is None or dt > max_pub_date:
+                            max_pub_date = dt
+                        MacroDataPoint.objects.update_or_create(
+                            country=country,
+                            indicator=indicator,
+                            month=dt,
+                            defaults={
+                                "value": val,
+                                "status": MacroDataPoint.Status.PUBLISHED,
+                                "source": "TradingEconomics Official Release (Autonomous Live Scraper)",
+                                "is_active_value": True,
+                            }
+                        )
+                        saved += 1
+
+                if max_pub_date:
+                    MacroDataPoint.objects.filter(
+                        country=country,
+                        indicator=indicator,
+                        month__gt=max_pub_date
+                    ).exclude(status=MacroDataPoint.Status.MANUAL).delete()
+
         return saved, skipped

@@ -728,18 +728,9 @@ class WariScraperApp(ctk.CTk):
                                         "Is_Forecast": False
                                     })
 
-                                # If 2026 upcoming forecasts exist, append them
-                                if forecasts_val and len(te_pts) > 0:
-                                    last_tf = te_pts[-1]["Timeframe"]
-                                    l_yr, l_mo, _ = [int(x) for x in last_tf.split("-")]
-                                    if l_mo == 6:
-                                        if len(forecasts_val) > 0:
-                                            te_pts.append({"Country": formatted_country_name, "Timeframe": f"{l_yr}-09-01", "Value": float(forecasts_val[0]), "Is_Forecast": True})
-                                        if len(forecasts_val) > 1:
-                                            te_pts.append({"Country": formatted_country_name, "Timeframe": f"{l_yr}-12-01", "Value": float(forecasts_val[1]), "Is_Forecast": True})
-
+                                # Strictly official published observations only — never append forecast data
                                 all_extracted_data.extend(te_pts)
-                                self.log(f"     ✅ Extracted {len(te_pts)} high-precision points for {formatted_country_name}")
+                                self.log(f"     ✅ Extracted {len(te_pts)} high-precision published points for {formatted_country_name}")
                                 extracted_for_country = True
                         except Exception as e_direct:
                             self.log(f"     ℹ️ Direct extraction note: {e_direct}. Falling back to browser...")
@@ -749,19 +740,13 @@ class WariScraperApp(ctk.CTk):
                             driver.get(url)
                             time.sleep(4)
                             
-                            try:
-                                driver.execute_script("var el = document.querySelector('a[href=\"#forecast\"]'); if(el) el.click();")
-                                time.sleep(3)
-                            except Exception:
-                                pass
-                            
-                            # JavaScript Highcharts extraction fallback
+                            # JavaScript Highcharts extraction — strictly published historical points
                             js_code = """
                             try {
                                 var charts = Highcharts.charts.filter(c => !!c && c.series && c.series.length > 0);
                                 if (charts.length === 0) return { error: "No chart found" };
 
-                                var chart = charts[charts.length - 1];
+                                var chart = charts[0]; // Settled historical chart (never forecast)
                                 var pts = [];
 
                                 for (var s = 0; s < chart.series.length; s++) {
@@ -799,7 +784,9 @@ class WariScraperApp(ctk.CTk):
                                             }
 
                                             var isForecast = (s > 0 || ptColor.includes('205') || ptColor.includes('cdcdcd') || ptColor.includes('ccc') || ptColor.includes('d9d9d9'));
-                                            pts.push({ "Timeframe": dateStr, "Value": p.y, "Is_Forecast": isForecast });
+                                            if (!isForecast) {
+                                                pts.push({ "Timeframe": dateStr, "Value": p.y, "Is_Forecast": false });
+                                            }
                                         }
                                     }
                                 }

@@ -188,18 +188,11 @@ class Command(BaseCommand):
                     for q_mo, sub_months in quarters_def:
                         val = quarterly_map.get((y, q_mo))
 
-                        # If not published yet (e.g. Q3/Q4 2026), use the forecast if available
-                        if val is None:
-                            if y == 2026 and q_mo == 9 and len(forecasts) > 0:
-                                val = float(forecasts[0])
-                            elif y == 2026 and q_mo == 12 and len(forecasts) > 1:
-                                val = float(forecasts[1])
-
+                        # Only process officially published quarters — do NOT integrate forecast data
                         if val is not None:
                             for m in sub_months:
                                 ref_date = date(y, m, 1)
                                 dt_pub = datetime(y, m, 1, 0, 0, 0, tzinfo=timezone.utc)
-                                is_pub = (y < 2026) or (y == 2026 and m <= 9)
                                 all_records.append({
                                     "country": country,
                                     "indicator": indicator,
@@ -207,7 +200,7 @@ class Command(BaseCommand):
                                     "value": val,
                                     "source": "TradingEconomics Official Release",
                                     "period_type": "quarterly_expanded",
-                                    "status": MacroDataPoint.Status.PUBLISHED if is_pub else MacroDataPoint.Status.FORECAST,
+                                    "status": MacroDataPoint.Status.PUBLISHED,
                                     "published_at": dt_pub
                                 })
                                 country_records += 1
@@ -225,7 +218,18 @@ class Command(BaseCommand):
         from apps.macro.signals import disable_macro_signals
         from apps.macro.services.calculator import recalculate_full_matrix
         with disable_macro_signals(), transaction.atomic():
+            # Purge lingering forecast points
+            MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
+
             for rec in all_records:
+                # Remove any temporary manual override for periods that are now officially published
+                MacroDataPoint.objects.filter(
+                    country=rec["country"],
+                    indicator=rec["indicator"],
+                    month=rec["month"],
+                    status=MacroDataPoint.Status.MANUAL
+                ).delete()
+
                 MacroDataPoint.objects.update_or_create(
                     country=rec["country"],
                     indicator=rec["indicator"],

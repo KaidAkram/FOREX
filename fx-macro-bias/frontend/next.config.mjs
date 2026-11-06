@@ -37,7 +37,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
       "font-src 'self' https://cdn.fontshare.com https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https://hatscripts.github.io",
-      "connect-src 'self' http://localhost:8001 http://127.0.0.1:8001 http://localhost:3000 http://localhost:3002 https://*.onrender.com https://api.imf.org https://stats.oecd.org https://api.worldbank.org",
+      "connect-src 'self' http://localhost:8001 http://127.0.0.1:8001 http://localhost:3000 http://localhost:3001 http://localhost:3002 https://*.onrender.com https://api.imf.org https://stats.oecd.org https://api.worldbank.org",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -360,52 +360,90 @@ class ScraperOrchestrator:
 
     @classmethod
     def _sync_gdp(cls) -> tuple[int, Optional[str]]:
-        """Syncs GDP Annual Growth Rate."""
+        """Syncs GDP Annual Growth Rate — strictly official publications, no forecasts."""
         indicator = MacroIndicator.objects.get(slug="gdp")
-        saved = MacroDataPoint.objects.filter(indicator=indicator).count()
         skipped = None
-        # Q1-Q3 (<= 2026-09) is published, Q4 (2026-10..12) is forecast
+        # Purge all forecast records — unreleased periods are left empty or manual
         with disable_macro_signals(), transaction.atomic():
-            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 9, 1)).update(
-                status=MacroDataPoint.Status.PUBLISHED
+            MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
+            # Ensure settled official prints are marked PUBLISHED
+            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 9, 1)).exclude(
+                status=MacroDataPoint.Status.MANUAL
+            ).update(
+                status=MacroDataPoint.Status.PUBLISHED,
+                is_active_value=True
             )
-            MacroDataPoint.objects.filter(indicator=indicator, month__gt=date(2026, 9, 1)).update(
-                status=MacroDataPoint.Status.FORECAST
-            )
+            # Remove any temporary manual overrides for periods that are now officially published
+            published_months = MacroDataPoint.objects.filter(
+                indicator=indicator,
+                status=MacroDataPoint.Status.PUBLISHED,
+                is_active_value=True
+            ).values_list("month", flat=True)
+            MacroDataPoint.objects.filter(
+                indicator=indicator,
+                month__in=published_months,
+                status=MacroDataPoint.Status.MANUAL
+            ).delete()
 
+        saved = MacroDataPoint.objects.filter(indicator=indicator, is_active_value=True).count()
         return saved, skipped
 
     @classmethod
     def _sync_cpi(cls) -> tuple[int, Optional[str]]:
-        """Syncs CPI Inflation Rate."""
+        """Syncs CPI Inflation Rate — strictly official publications, no forecasts."""
         indicator = MacroIndicator.objects.get(slug="cpi")
-        saved = MacroDataPoint.objects.filter(indicator=indicator).count()
         skipped = None
-        # Official prints through September 2026 (2026-09) for all economies
-        # October, November, December 2026 are forward forecasts
+        # Purge all forecast records — unreleased periods are left empty or manual
         with disable_macro_signals(), transaction.atomic():
-            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 9, 1)).update(
-                status=MacroDataPoint.Status.PUBLISHED
+            MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
+            # Official prints through September 2026 (2026-09) for all economies
+            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 9, 1)).exclude(
+                status=MacroDataPoint.Status.MANUAL
+            ).update(
+                status=MacroDataPoint.Status.PUBLISHED,
+                is_active_value=True
             )
-            MacroDataPoint.objects.filter(indicator=indicator, month__gt=date(2026, 9, 1)).update(
-                status=MacroDataPoint.Status.FORECAST
-            )
+            # Remove any temporary manual overrides for periods that are now officially published
+            published_months = MacroDataPoint.objects.filter(
+                indicator=indicator,
+                status=MacroDataPoint.Status.PUBLISHED,
+                is_active_value=True
+            ).values_list("month", flat=True)
+            MacroDataPoint.objects.filter(
+                indicator=indicator,
+                month__in=published_months,
+                status=MacroDataPoint.Status.MANUAL
+            ).delete()
 
+        saved = MacroDataPoint.objects.filter(indicator=indicator, is_active_value=True).count()
         return saved, skipped
 
     @classmethod
     def _sync_interest_rates(cls) -> tuple[int, Optional[str]]:
-        """Syncs Central Bank Interest Rates."""
+        """Syncs Central Bank Interest Rates — strictly official publications, no forecasts."""
         indicator = MacroIndicator.objects.get(slug="interest_rate")
-        saved = MacroDataPoint.objects.filter(indicator=indicator).count()
         skipped = None
-        # Mark all interest rates through October 2026 as published, future as forecast
+        # Purge all forecast records — unreleased periods are left empty or manual
         with disable_macro_signals(), transaction.atomic():
-            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 10, 1)).update(
-                status=MacroDataPoint.Status.PUBLISHED
+            MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
+            # Official central bank policy rates through October 2026 as published
+            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 10, 1)).exclude(
+                status=MacroDataPoint.Status.MANUAL
+            ).update(
+                status=MacroDataPoint.Status.PUBLISHED,
+                is_active_value=True
             )
-            MacroDataPoint.objects.filter(indicator=indicator, month__gt=date(2026, 10, 1)).update(
-                status=MacroDataPoint.Status.FORECAST
-            )
+            # Remove any temporary manual overrides for periods that are now officially published
+            published_months = MacroDataPoint.objects.filter(
+                indicator=indicator,
+                status=MacroDataPoint.Status.PUBLISHED,
+                is_active_value=True
+            ).values_list("month", flat=True)
+            MacroDataPoint.objects.filter(
+                indicator=indicator,
+                month__in=published_months,
+                status=MacroDataPoint.Status.MANUAL
+            ).delete()
 
+        saved = MacroDataPoint.objects.filter(indicator=indicator, is_active_value=True).count()
         return saved, skipped

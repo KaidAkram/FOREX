@@ -66,7 +66,10 @@ const OFFICIAL_RATING_RULES: Record<string, any[]> = OFFICIAL_RATING_RULES_DATA;
 const fetchRules = async (indicator: string) => {
   const slug = INDICATOR_SLUG_MAP[indicator] || "gdp";
   try {
-    const res = await fetch(`http://localhost:8000/api/rating-rules/${slug}`);
+    const apiUrl = typeof window !== "undefined"
+      ? `/api/admin/rating-rules/${slug}`
+      : `http://127.0.0.1:8001/api/admin/rating-rules/${slug}`;
+    const res = await fetch(apiUrl);
     if (res.ok) {
       const data = await res.json();
       if (data.rules && data.rules.length > 0) {

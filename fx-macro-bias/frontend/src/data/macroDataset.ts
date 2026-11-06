@@ -161,9 +161,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 3.4,
       "2026-08": 3.4,
       "2026-09": 3.4,
-      "2026-10": 2.3,
-      "2026-11": 2.3,
-      "2026-12": 2.3
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Euro Area": {
       "2023-01": 1.2,
@@ -211,9 +211,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 0.7,
       "2026-08": 0.7,
       "2026-09": 0.7,
-      "2026-10": 0.8,
-      "2026-11": 0.8,
-      "2026-12": 0.8
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Japan": {
       "2023-01": 2.1,
@@ -261,9 +261,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 1.1,
       "2026-08": 1.1,
       "2026-09": 1.1,
-      "2026-10": 1.5,
-      "2026-11": 1.5,
-      "2026-12": 1.5
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "United Kingdom": {
       "2023-01": 1.0,
@@ -311,9 +311,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 1.7,
       "2026-08": 1.7,
       "2026-09": 1.7,
-      "2026-10": 1.4,
-      "2026-11": 1.4,
-      "2026-12": 1.4
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Australia": {
       "2023-01": 2.8,
@@ -361,9 +361,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 1.5,
       "2026-08": 1.5,
       "2026-09": 1.5,
-      "2026-10": 1.7,
-      "2026-11": 1.7,
-      "2026-12": 1.7
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Canada": {
       "2023-01": 3.1,
@@ -411,9 +411,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 1.5,
       "2026-08": 1.5,
       "2026-09": 1.5,
-      "2026-10": 1.8,
-      "2026-11": 1.8,
-      "2026-12": 1.8
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Switzerland": {
       "2023-01": 2.0,
@@ -461,9 +461,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 1.7,
       "2026-08": 1.7,
       "2026-09": 1.7,
-      "2026-10": 1.3,
-      "2026-11": 1.3,
-      "2026-12": 1.3
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "New Zealand": {
       "2023-01": 3.1,
@@ -511,9 +511,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 2.1,
       "2026-08": 2.1,
       "2026-09": 2.1,
-      "2026-10": 2.2,
-      "2026-11": 2.2,
-      "2026-12": 2.2
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Sweden": {
       "2023-01": 0.8,
@@ -561,9 +561,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 2.8,
       "2026-08": 2.8,
       "2026-09": 2.8,
-      "2026-10": 2.9,
-      "2026-11": 2.9,
-      "2026-12": 2.9
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Norway": {
       "2023-01": 3.4,
@@ -611,9 +611,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 1.2,
       "2026-08": 1.2,
       "2026-09": 1.2,
-      "2026-10": 0.9,
-      "2026-11": 0.9,
-      "2026-12": 0.9
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     }
   },
   "CPI": {
@@ -663,9 +663,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 3.4,
       "2026-08": 3.4,
       "2026-09": 3.7,
-      "2026-10": 3.4,
-      "2026-11": 3.1,
-      "2026-12": 2.9
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Euro Area": {
       "2023-01": 8.7,
@@ -713,9 +713,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 2.9,
       "2026-08": 3.2,
       "2026-09": 3.8,
-      "2026-10": 3.6,
-      "2026-11": 3.3,
-      "2026-12": 3.1
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Japan": {
       "2023-01": 4.3,
@@ -763,9 +763,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 1.9,
       "2026-08": 1.9,
       "2026-09": 2.1,
-      "2026-10": 2.1,
-      "2026-11": 1.8,
-      "2026-12": 1.9
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "United Kingdom": {
       "2023-01": 10.1,
@@ -813,9 +813,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 2.9,
       "2026-08": 3.1,
       "2026-09": 3.5,
-      "2026-10": 3.7,
-      "2026-11": 4.0,
-      "2026-12": 3.7
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Australia": {
       "2023-01": 7.5,
@@ -863,9 +863,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 3.5,
       "2026-08": 3.5,
       "2026-09": 4.3,
-      "2026-10": 3.7,
-      "2026-11": 3.0,
-      "2026-12": 3.0
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Canada": {
       "2023-01": 5.9,
@@ -913,9 +913,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 3.0,
       "2026-08": 3.0,
       "2026-09": 3.1,
-      "2026-10": 3.3,
-      "2026-11": 3.1,
-      "2026-12": 3.0
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Switzerland": {
       "2023-01": 3.3,
@@ -963,9 +963,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 0.4,
       "2026-08": 0.8,
       "2026-09": 1.0,
-      "2026-10": 1.2,
-      "2026-11": 1.1,
-      "2026-12": 0.6
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "New Zealand": {
       "2023-01": 6.7,
@@ -1013,9 +1013,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 3.7,
       "2026-08": 3.7,
       "2026-09": 3.7,
-      "2026-10": 3.7,
-      "2026-11": 3.2,
-      "2026-12": 2.1
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Sweden": {
       "2023-01": 11.7,
@@ -1063,9 +1063,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 0.2,
       "2026-08": 0.3,
       "2026-09": 1.1,
-      "2026-10": 2.1,
-      "2026-11": 2.1,
-      "2026-12": 2.0
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     },
     "Norway": {
       "2023-01": 7.0,
@@ -1113,9 +1113,9 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 3.0,
       "2026-08": 3.3,
       "2026-09": 3.4,
-      "2026-10": 2.8,
-      "2026-11": 2.8,
-      "2026-12": 2.7
+      "2026-10": null,
+      "2026-11": null,
+      "2026-12": null
     }
   },
   "Interest Rate": {
@@ -1166,8 +1166,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 3.75,
       "2026-09": 4.0,
       "2026-10": 4.0,
-      "2026-11": 4.0,
-      "2026-12": 4.25
+      "2026-11": null,
+      "2026-12": null
     },
     "Euro Area": {
       "2023-01": 2.5,
@@ -1216,8 +1216,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 2.4,
       "2026-09": 2.65,
       "2026-10": 2.65,
-      "2026-11": 2.65,
-      "2026-12": 3.15
+      "2026-11": null,
+      "2026-12": null
     },
     "Japan": {
       "2023-01": -0.1,
@@ -1266,8 +1266,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 1.0,
       "2026-09": 1.25,
       "2026-10": 1.25,
-      "2026-11": 1.25,
-      "2026-12": 1.5
+      "2026-11": null,
+      "2026-12": null
     },
     "United Kingdom": {
       "2023-01": 3.5,
@@ -1316,8 +1316,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 3.75,
       "2026-09": 3.75,
       "2026-10": 3.75,
-      "2026-11": 3.75,
-      "2026-12": 4.25
+      "2026-11": null,
+      "2026-12": null
     },
     "Australia": {
       "2023-01": 3.1,
@@ -1366,8 +1366,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 4.35,
       "2026-09": 4.6,
       "2026-10": 4.6,
-      "2026-11": 4.6,
-      "2026-12": 4.85
+      "2026-11": null,
+      "2026-12": null
     },
     "Canada": {
       "2023-01": 4.5,
@@ -1416,8 +1416,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 2.25,
       "2026-09": 2.25,
       "2026-10": 2.5,
-      "2026-11": 2.5,
-      "2026-12": 2.75
+      "2026-11": null,
+      "2026-12": null
     },
     "Switzerland": {
       "2023-01": 1.0,
@@ -1466,8 +1466,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 0.0,
       "2026-09": 0.0,
       "2026-10": 0.0,
-      "2026-11": 0.0,
-      "2026-12": 0.25
+      "2026-11": null,
+      "2026-12": null
     },
     "New Zealand": {
       "2023-01": 4.25,
@@ -1516,8 +1516,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 2.5,
       "2026-09": 2.75,
       "2026-10": 2.75,
-      "2026-11": 2.75,
-      "2026-12": 3.5
+      "2026-11": null,
+      "2026-12": null
     },
     "Sweden": {
       "2023-01": 2.5,
@@ -1566,8 +1566,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 1.75,
       "2026-09": 1.75,
       "2026-10": 2.25,
-      "2026-11": 2.25,
-      "2026-12": 2.25
+      "2026-11": null,
+      "2026-12": null
     },
     "Norway": {
       "2023-01": 2.75,
@@ -1616,8 +1616,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 4.25,
       "2026-09": 4.5,
       "2026-10": 3.5,
-      "2026-11": 3.5,
-      "2026-12": 3.5
+      "2026-11": null,
+      "2026-12": null
     }
   },
   "FX Reserves": {
@@ -3183,12 +3183,20 @@ export function getMacroMatrixData(indicator: string, year: number) {
 
         // For live system year (2026):
         // If release month is before or on cutoff, it is officially published!
-        // If release month is beyond cutoff, it is a Trading Economics forecast!
+        // If release month is beyond cutoff, it is an unreleased period:
+        // Do NOT integrate Forecast data — leave the cell empty (null) with status 'missing'
         const isOfficial = m <= cutoff;
+
+        if (!isOfficial) {
+          return {
+            value: null,
+            status: "missing" as const
+          };
+        }
 
         return {
           value: formattedVal,
-          status: isOfficial ? ("published" as const) : ("forecast" as const)
+          status: "published" as const
         };
       })
     };

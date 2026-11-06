@@ -29,6 +29,10 @@ def macro_matrix(request):
     # Build {country_iso: {month_str: {value, status}}}
     matrix: dict = {}
     months_set: set = set()
+    # Ensure all 12 months of live year (2026) are present
+    for m_idx in range(1, 13):
+        months_set.add(f"2026-{m_idx:02d}")
+
     for p in points:
         iso = p.country.iso_code
         month_str = p.month.strftime("%Y-%m")
@@ -63,23 +67,31 @@ def macro_matrix(request):
 @throttle_classes([ScopedRateThrottle])
 def manual_entry(request):
     """
-    Admin manually enters a value for (country, indicator, month).
+    Admin manually enters or clears a value for (country, indicator, month).
     Rate-limited to 30 requests per minute to prevent abuse.
     """
-    from apps.macro.models import MacroDataPoint, Country, MacroIndicator
-    from django.utils import timezone
+    from apps.macro.models import MacroDataPoint, Country, MacroIndicator, FXPair
+    from apps.macro.services.calculator import recalculate_all_for_month
+    from datetime import date
 
     data = request.data
     try:
-        country = Country.objects.get(iso_code=data["country_iso"])
-        indicator = MacroIndicator.objects.get(slug=data["indicator_slug"])
-        from datetime import date
-        month = date.fromisoformat(data["month"])
-        value = float(data["value"])
+        c_code = data.get("country_iso") or data.get("country")
+        country = Country.objects.filter(iso_code__iexact=c_code).first() or Country.objects.filter(name__iexact=c_code).first()
+        if not country:
+            return Response({"error": f"Country '{c_code}' not found."}, status=404)
+
+        indicator_slug = data.get("indicator_slug") or data.get("indicator")
+        indicator = MacroIndicator.objects.filter(slug__iexact=indicator_slug).first()
+        if not indicator:
+            return Response({"error": f"Indicator '{indicator_slug}' not found."}, status=404)
+
+        month_str = str(data.get("month", "")).strip()
+        if len(month_str) == 7:  # YYYY-MM
+            month_str += "-01"
+        month = date.fromisoformat(month_str)
     except (KeyError, ValueError) as e:
         return Response({"error": str(e)}, status=400)
-    except (Country.DoesNotExist, MacroIndicator.DoesNotExist):
-        return Response({"error": "Country or indicator not found."}, status=404)
 
     # Check if published value already exists — don't override it
     existing_published = MacroDataPoint.objects.filter(
@@ -96,25 +108,70 @@ def manual_entry(request):
             status=409,
         )
 
-    # Deactivate any existing manual entry
-    MacroDataPoint.objects.filter(
-        country=country, indicator=indicator, month=month, is_active_value=True
-    ).update(is_active_value=False)
+    # Check if this is a request to clear/delete the manual entry
+    if data.get("clear") is True or data.get("value") is None or str(data.get("value")).strip() == "":
+        MacroDataPoint.objects.filter(
+            country=country, indicator=indicator, month=month, status="manual"
+        ).delete()
 
-    dp = MacroDataPoint.objects.create(
-        country=country,
-        indicator=indicator,
-        month=month,
-        value=value,
-        status="manual",
-        source=f"Manual entry by {getattr(request.user, 'username', 'admin')}",
-        is_active_value=True,
-        notes=data.get("notes", ""),
-    )
+        affected_pairs = FXPair.objects.filter(
+            is_active=True
+        ).filter(
+            base_currency=country
+        ) | FXPair.objects.filter(
+            is_active=True, quote_currency=country
+        )
+        for pair in affected_pairs.distinct():
+            recalculate_all_for_month(pair.pk, month)
+
+        return Response({
+            "country": country.name,
+            "iso": country.iso_code,
+            "indicator": indicator.name,
+            "month": month.strftime("%Y-%m"),
+            "value": None,
+            "status": "missing",
+            "cleared": True,
+        }, status=200)
+
+    try:
+        value = float(data["value"])
+    except (ValueError, TypeError):
+        return Response({"error": "Invalid numeric value."}, status=400)
+
+    # Check if a manual entry already exists for this (country, indicator, month)
+    existing_manual = MacroDataPoint.objects.filter(
+        country=country, indicator=indicator, month=month, status="manual"
+    ).first()
+
+    if existing_manual:
+        existing_manual.value = value
+        existing_manual.is_active_value = True
+        existing_manual.source = f"Manual entry by {getattr(request.user, 'username', 'admin')}"
+        existing_manual.notes = data.get("notes", "")
+        existing_manual.save()
+        dp = existing_manual
+    else:
+        # Purge any lingering non-published/inactive rows to prevent constraint collision
+        MacroDataPoint.objects.filter(
+            country=country, indicator=indicator, month=month
+        ).exclude(status="published").delete()
+
+        dp = MacroDataPoint.objects.create(
+            country=country,
+            indicator=indicator,
+            month=month,
+            value=value,
+            status="manual",
+            source=f"Manual entry by {getattr(request.user, 'username', 'admin')}",
+            is_active_value=True,
+            notes=data.get("notes", ""),
+        )
 
     return Response({
         "id": dp.pk,
         "country": country.name,
+        "iso": country.iso_code,
         "indicator": indicator.name,
         "month": dp.month.strftime("%Y-%m"),
         "value": dp.value,

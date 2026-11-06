@@ -12,7 +12,7 @@ import {
   Check
 } from "lucide-react";
 import { clsx } from "clsx";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { playClickSound, playTabSound, playSuccessSound } from "@/lib/soundEffects";
@@ -155,6 +155,7 @@ function formatMacroCellDisplay(
 
 export default function MacroDataPage() {
   const { lang, t } = useLanguage();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [activeInd, setActiveInd] = useState("GDP");
   const [activePair, setActivePair] = useState(PAIRS[0].name);
@@ -231,42 +232,47 @@ export default function MacroDataPage() {
               const userSavedVal = assumptions[assumptionKey];
               const cellPoint = apiRow?.cells?.[m];
 
-              if (!cellPoint || cellPoint.value === null || cellPoint.value === undefined) {
-                if (userSavedVal !== undefined && userSavedVal !== "") {
-                  return { value: userSavedVal, status: "manual" as const, isAssumption: true };
-                }
-                // Fallback to local verified baseline point if available
-                const localRow = localBaseline.find(lr => lr.country === c.country);
-                const localCell = localRow?.data.find((_, i) => displayMonths[i] === m);
-                if (localCell && localCell.value !== null && localCell.value !== undefined) {
-                  return {
-                    value: localCell.value,
-                    status: localCell.status,
-                    isAssumption: false
-                  };
-                }
-                return { value: null, status: "missing" as const };
-              }
-
               const cutoffDef = OFFICIAL_RELEASE_CUTOFFS[indicator];
               const cutoff = typeof cutoffDef === "function" ? cutoffDef(c.country) : (cutoffDef || "2026-09");
               const isPastCutoff = selectedYear === SYSTEM_CURRENT_YEAR && m > cutoff;
 
-              let cellStatus: "published" | "forecast" | "manual" | "missing" = cellPoint.status;
-              if (isPastCutoff && cellStatus === "published") {
-                cellStatus = "forecast";
+              // If official publication exists
+              const isPub = cellPoint?.status === "published" || (!isPastCutoff && cellPoint?.value !== null && cellPoint?.value !== undefined && cellPoint?.status !== "manual");
+
+              if (isPub && cellPoint && cellPoint.value !== null && cellPoint.value !== undefined) {
+                return {
+                  value: cellPoint.value,
+                  status: "published" as const,
+                  isAssumption: false
+                };
               }
-              const isPub = cellStatus === "published";
+
+              // If manual entry was made in backend or local state (and not yet officially published)
+              if (cellPoint?.status === "manual" && cellPoint.value !== null && cellPoint.value !== undefined) {
+                return {
+                  value: cellPoint.value,
+                  status: "manual" as const,
+                  isAssumption: true
+                };
+              }
 
               if (userSavedVal !== undefined && userSavedVal !== "" && !isPub) {
                 return { value: userSavedVal, status: "manual" as const, isAssumption: true };
               }
 
-              return {
-                value: cellPoint.value,
-                status: cellStatus,
-                isAssumption: false
-              };
+              // Fallback to local verified baseline point if available and officially published
+              const localRow = localBaseline.find(lr => lr.country === c.country);
+              const localCell = localRow?.data.find((_, i) => displayMonths[i] === m);
+              if (localCell && localCell.value !== null && localCell.value !== undefined && localCell.status === "published") {
+                return {
+                  value: localCell.value,
+                  status: "published" as const,
+                  isAssumption: false
+                };
+              }
+
+              // Unreleased periods without manual entry: leave empty (null) with status "missing"
+              return { value: null, status: "missing" as const, isAssumption: false };
             });
             return {
               country: c.country,
@@ -342,33 +348,79 @@ export default function MacroDataPage() {
   }, [diffRows, countrySearch]);
 
   const handleCellClick = (country: string, month: string, cell: any) => {
+    // Périodes déjà publiées officiellement : strictement non modifiables
     if (cell.status === "published") return;
     playClickSound();
     setSelectedAssumptionCell({
       c: country,
       m: month,
       val: cell.value !== null && cell.value !== undefined ? String(cell.value) : "",
-      isForecast: cell.status === "forecast"
+      isForecast: false
     });
     setAssumptionInputVal(cell.value !== null && cell.value !== undefined ? String(cell.value) : "");
   };
 
-  const handleSaveAssumption = () => {
+  const handleSaveAssumption = async () => {
     if (!selectedAssumptionCell) return;
+    const countryDef = COUNTRIES.find(c => c.country === selectedAssumptionCell.c);
+    const countryIso = countryDef ? countryDef.base.toUpperCase() : "USD";
+    const slugMap: Record<string, string> = {
+      "GDP": "gdp",
+      "Current Account": "ca_gdp",
+      "CPI": "cpi",
+      "Interest Rate": "interest_rate",
+      "FX Reserves": "fx_reserves",
+      "Equity": "equity"
+    };
+    const slug = slugMap[activeInd] || activeInd.toLowerCase().replace(/ /g, "_");
+
     const key = `${activeInd}_${selectedAssumptionCell.c}_${selectedAssumptionCell.m}`;
     const updated = { ...assumptions, [key]: assumptionInputVal };
     setAssumptions(updated);
     try {
       localStorage.setItem("shiftfx_macro_user_assumptions", JSON.stringify(updated));
     } catch {}
+
+    // Synchronize to backend database and trigger mathematical recalculation
+    try {
+      const apiUrl = typeof window !== "undefined" ? "/api/admin/macro-data/manual-entry" : "http://127.0.0.1:8001/api/admin/macro-data/manual-entry";
+      await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          country_iso: countryIso,
+          indicator_slug: slug,
+          month: `${selectedAssumptionCell.m}-01`,
+          value: parseFloat(assumptionInputVal),
+          notes: "Manual entry from Macro Matrix",
+        })
+      });
+      queryClient.invalidateQueries({ queryKey: ["macroMatrixData"] });
+      queryClient.invalidateQueries({ queryKey: ["scoreMatrix"] });
+    } catch (e) {
+      console.warn("Backend manual_entry sync error:", e);
+    }
+
     setSelectedAssumptionCell(null);
     soundFX.playChime();
     playSuccessSound();
     confetti({ particleCount: 30, spread: 45, origin: { y: 0.5 } });
   };
 
-  const handleClearAssumption = () => {
+  const handleClearAssumption = async () => {
     if (!selectedAssumptionCell) return;
+    const countryDef = COUNTRIES.find(c => c.country === selectedAssumptionCell.c);
+    const countryIso = countryDef ? countryDef.base.toUpperCase() : "USD";
+    const slugMap: Record<string, string> = {
+      "GDP": "gdp",
+      "Current Account": "ca_gdp",
+      "CPI": "cpi",
+      "Interest Rate": "interest_rate",
+      "FX Reserves": "fx_reserves",
+      "Equity": "equity"
+    };
+    const slug = slugMap[activeInd] || activeInd.toLowerCase().replace(/ /g, "_");
+
     const key = `${activeInd}_${selectedAssumptionCell.c}_${selectedAssumptionCell.m}`;
     const updated = { ...assumptions };
     delete updated[key];
@@ -376,6 +428,26 @@ export default function MacroDataPage() {
     try {
       localStorage.setItem("shiftfx_macro_user_assumptions", JSON.stringify(updated));
     } catch {}
+
+    // Clear from backend database
+    try {
+      const apiUrl = typeof window !== "undefined" ? "/api/admin/macro-data/manual-entry" : "http://127.0.0.1:8001/api/admin/macro-data/manual-entry";
+      await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          country_iso: countryIso,
+          indicator_slug: slug,
+          month: `${selectedAssumptionCell.m}-01`,
+          clear: true,
+        })
+      });
+      queryClient.invalidateQueries({ queryKey: ["macroMatrixData"] });
+      queryClient.invalidateQueries({ queryKey: ["scoreMatrix"] });
+    } catch (e) {
+      console.warn("Backend manual_entry clear error:", e);
+    }
+
     setSelectedAssumptionCell(null);
     playClickSound();
   };
@@ -624,17 +696,17 @@ export default function MacroDataPage() {
             {/* Legend Badges */}
             {activeTab === "Matrice Macro" ? (
               <div className="flex items-center gap-3 text-xs font-mono text-slate-400 flex-wrap">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5" title="Donnée officielle publiée (Non modifiable)">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
-                  <span>Publié (PUB)</span>
+                  <span>Officiel (PUB - Verrouillé)</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  <span>Estimation (EST)</span>
+                <div className="flex items-center gap-1.5" title="Saisie manuelle temporaire (Modifiable tant que non publiée)">
+                  <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.7)]" />
+                  <span>Saisie Manuelle (MAN - Modifiable)</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-sky-400" />
-                  <span>Manuel (MAN)</span>
+                <div className="flex items-center gap-1.5" title="Période en attente de publication (Cliquer pour saisie manuelle)">
+                  <span className="w-2 h-2 rounded-full bg-slate-600" />
+                  <span>Non Publié (— En attente / Saisie libre)</span>
                 </div>
               </div>
             ) : (
@@ -734,9 +806,8 @@ export default function MacroDataPage() {
                       {row.data.map((cell: any, cellIdx: number) => {
                         const month = displayMonths[cellIdx];
                         const isCurrentLive = month === `${SYSTEM_CURRENT_YEAR}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
-                        const isMissing = cell.value === null || cell.value === undefined || cell.value === "—";
+                        const isMissing = cell.value === null || cell.value === undefined || cell.value === "—" || cell.status === "missing";
                         const isPublished = !isMissing && cell.status === "published";
-                        const isForecast = !isMissing && cell.status === "forecast";
                         const isManual = !isMissing && cell.status === "manual";
                         const isLast = cellIdx === displayMonths.length - 1;
 
@@ -746,42 +817,45 @@ export default function MacroDataPage() {
                           <td
                             key={month}
                             onClick={() => handleCellClick(row.country, month, cell)}
+                            title={
+                              isPublished 
+                                ? "Donnée officielle publiée (Non modifiable)" 
+                                : isManual 
+                                ? "Donnée saisie manuellement (Cliquer pour modifier ou effacer)" 
+                                : "Période non publiée (Cliquer pour saisie manuelle)"
+                            }
                             className={clsx(
                               "py-2 px-2 text-center transition-all duration-150 select-none min-w-[96px]",
                               isLast && "pr-6",
                               isCurrentLive && "bg-[#D4FF00]/[0.03] border-x border-[#D4FF00]/20",
-                              !isPublished && "cursor-pointer hover:bg-white/[0.04]"
+                              isPublished 
+                                ? "cursor-default" 
+                                : "cursor-pointer hover:bg-white/[0.04]"
                             )}
                           >
                             <div className="flex flex-col items-center justify-center gap-1 group/cell">
                               <span className={clsx(
                                 "font-mono text-xs font-semibold tabular-nums tracking-tight transition-colors",
-                                isMissing ? "text-slate-500 font-bold" : isManual ? "text-[#38BDF8] font-bold" : "text-white group-hover/cell:text-[#D4FF00]"
+                                isMissing ? "text-slate-500 font-bold" : isManual ? "text-[#38BDF8] font-bold" : "text-white"
                               )}>
                                 {formatted.display}
                               </span>
 
-                              {/* Smooth rounded-full status pill */}
+                              {/* Status Pills: PUB (Official locked), MAN (Manual editable), — (Empty) */}
                               {isPublished && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono font-bold">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono font-bold" title="Officiellement publié (Non modifiable)">
                                   PUB
                                 </span>
                               )}
 
-                              {isForecast && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[9px] font-mono font-bold">
-                                  EST
-                                </span>
-                              )}
-
                               {isManual && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 text-[9px] font-mono font-bold">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 text-[9px] font-mono font-bold" title="Saisie manuelle (Modifiable)">
                                   MAN
                                 </span>
                               )}
 
                               {isMissing && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/[0.04] text-slate-500 border border-white/[0.08] text-[9px] font-mono font-medium">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/[0.04] text-slate-500 border border-white/[0.08] text-[9px] font-mono font-medium" title="Non publié (Cliquer pour saisir)">
                                   —
                                 </span>
                               )}
@@ -954,10 +1028,10 @@ export default function MacroDataPage() {
               <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] mb-4">
                 <div>
                   <h3 className="font-bold text-sm text-white">
-                    Hypothèse Macroélectronique
+                    Saisie Manuelle Temporaire
                   </h3>
                   <p className="text-xs font-mono text-slate-400">
-                    {selectedAssumptionCell.c} • {selectedAssumptionCell.m}
+                    {selectedAssumptionCell.c} • {selectedAssumptionCell.m} ({activeInd})
                   </p>
                 </div>
                 <button onClick={() => setSelectedAssumptionCell(null)} className="p-1 rounded-full text-slate-400 hover:text-white">
@@ -968,7 +1042,7 @@ export default function MacroDataPage() {
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-mono text-slate-400 mb-1">
-                    Valeur de projection ({activeInd})
+                    Valeur manuelle temporaire ({activeInd})
                   </label>
                   <input
                     type="text"
@@ -977,6 +1051,9 @@ export default function MacroDataPage() {
                     placeholder="Ex: 2.4"
                     className="w-full h-10 px-3 rounded-xl bg-[#0A0B0F] border border-white/[0.08] font-mono text-xs text-white focus:outline-none focus:border-[#D4FF00]/50"
                   />
+                  <p className="text-[11px] font-mono text-slate-400 mt-2 leading-relaxed">
+                    Cette donnée reste modifiable manuellement. Dès la publication officielle par l&apos;organisme, elle sera automatiquement remplacée et deviendra non modifiable.
+                  </p>
                 </div>
 
                 <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between gap-2">

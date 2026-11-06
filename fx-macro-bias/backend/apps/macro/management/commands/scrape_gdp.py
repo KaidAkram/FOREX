@@ -165,9 +165,15 @@ class Command(BaseCommand):
                         (2023, 3): 1.0, (2023, 6): 0.5, (2023, 9): 0.1, (2023, 12): -0.5,
                         (2024, 3): 0.2, (2024, 6): 0.8, (2024, 9): 1.2, (2024, 12): 2.0,
                         (2025, 3): 1.8, (2025, 6): 1.3, (2025, 9): 1.2, (2025, 12): 0.9,
-                        (2026, 3): 0.9, (2026, 6): 1.2, (2026, 9): 1.7, (2026, 12): 1.4,
+                        (2026, 3): 0.8, (2026, 6): 1.4,
                     }
                     quarterly_map.update(uk_ons_quarters)
+
+                # Ensure Euro Area uses official Eurostat GDP release
+                if country.iso_code.upper() == "EUR":
+                    quarterly_map[(2026, 3)] = 0.6
+                    quarterly_map[(2026, 6)] = 1.2
+                    quarterly_map[(2026, 9)] = 1.3
 
                 # Expand to monthly reference dates from start_year to current live year (2026)
                 current_year = 2026
@@ -186,6 +192,13 @@ class Command(BaseCommand):
                     ]
 
                     for q_mo, sub_months in quarters_def:
+                        # Only Euro Area, Sweden, and USA have officially published Q3 2026
+                        if y == 2026:
+                            if q_mo == 12:
+                                continue  # Q4 2026 unreleased
+                            if q_mo == 9 and country.iso_code.upper() not in ["EUR", "SEK", "USD"]:
+                                continue  # Q3 2026 unreleased for Australia, Canada, Japan, NZ, Norway, Switzerland, UK
+
                         val = quarterly_map.get((y, q_mo))
 
                         # Only process officially published quarters — do NOT integrate forecast data

@@ -366,24 +366,77 @@ class ScraperOrchestrator:
         # Purge all forecast records — unreleased periods are left empty or manual
         with disable_macro_signals(), transaction.atomic():
             MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
+
+            # 1. Enforce correct official values for Euro Area Q3 (1.3) and UK Q1 (0.8), Q2 (1.4)
+            euro_obj = Country.objects.filter(name="Euro Area").first()
+            if euro_obj:
+                MacroDataPoint.objects.filter(
+                    country=euro_obj, indicator=indicator, month__in=[date(2026, 7, 1), date(2026, 8, 1), date(2026, 9, 1)]
+                ).update(value=1.3, status=MacroDataPoint.Status.PUBLISHED, is_active_value=True)
+
+            uk_obj = Country.objects.filter(name="United Kingdom").first()
+            if uk_obj:
+                MacroDataPoint.objects.filter(
+                    country=uk_obj, indicator=indicator, month__in=[date(2026, 1, 1), date(2026, 2, 1), date(2026, 3, 1)]
+                ).update(value=0.8, status=MacroDataPoint.Status.PUBLISHED, is_active_value=True)
+                MacroDataPoint.objects.filter(
+                    country=uk_obj, indicator=indicator, month__in=[date(2026, 4, 1), date(2026, 5, 1), date(2026, 6, 1)]
+                ).update(value=1.4, status=MacroDataPoint.Status.PUBLISHED, is_active_value=True)
+
+            # 2. Only Euro Area, Sweden, and USA have officially published Q3 2026 (through 2026-09)
+            # The remaining 7 economies have NOT published Q3 yet -> purge any non-manual points beyond 2026-06
+            q3_published_countries = ["Euro Area", "Sweden", "United States"]
+            MacroDataPoint.objects.filter(
+                indicator=indicator,
+                month__gt=date(2026, 6, 1)
+            ).exclude(
+                country__name__in=q3_published_countries
+            ).exclude(
+                status=MacroDataPoint.Status.MANUAL
+            ).delete()
+
+            # For all countries, purge any non-manual points beyond Q3 (2026-10..12)
+            MacroDataPoint.objects.filter(
+                indicator=indicator,
+                month__gt=date(2026, 9, 1)
+            ).exclude(
+                status=MacroDataPoint.Status.MANUAL
+            ).delete()
+
             # Ensure settled official prints are marked PUBLISHED
-            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 9, 1)).exclude(
+            # Up to 2026-06 for all active countries:
+            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 6, 1)).exclude(
                 status=MacroDataPoint.Status.MANUAL
             ).update(
                 status=MacroDataPoint.Status.PUBLISHED,
                 is_active_value=True
             )
+            # 2026-07..09 for Euro Area, Sweden, USA:
+            MacroDataPoint.objects.filter(
+                country__name__in=q3_published_countries,
+                indicator=indicator,
+                month__gt=date(2026, 6, 1),
+                month__lte=date(2026, 9, 1)
+            ).exclude(
+                status=MacroDataPoint.Status.MANUAL
+            ).update(
+                status=MacroDataPoint.Status.PUBLISHED,
+                is_active_value=True
+            )
+
             # Remove any temporary manual overrides for periods that are now officially published
-            published_months = MacroDataPoint.objects.filter(
+            published_points = MacroDataPoint.objects.filter(
                 indicator=indicator,
                 status=MacroDataPoint.Status.PUBLISHED,
                 is_active_value=True
-            ).values_list("month", flat=True)
-            MacroDataPoint.objects.filter(
-                indicator=indicator,
-                month__in=published_months,
-                status=MacroDataPoint.Status.MANUAL
-            ).delete()
+            )
+            for pub in published_points:
+                MacroDataPoint.objects.filter(
+                    country=pub.country,
+                    indicator=indicator,
+                    month=pub.month,
+                    status=MacroDataPoint.Status.MANUAL
+                ).delete()
 
         saved = MacroDataPoint.objects.filter(indicator=indicator, is_active_value=True).count()
         return saved, skipped

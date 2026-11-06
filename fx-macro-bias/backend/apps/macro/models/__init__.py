@@ -171,6 +171,20 @@ class MacroDataPoint(TimestampedModel):
         # Only one active value per (country, indicator, month)
         unique_together = [["country", "indicator", "month", "is_active_value"]]
 
+    def save(self, *args, **kwargs):
+        # When an official published value is saved, immediately purge any other temporary manual entries for this cell
+        if self.status == self.Status.PUBLISHED and self.is_active_value and self.country_id and self.indicator_id and self.month:
+            qs = MacroDataPoint.objects.filter(
+                country_id=self.country_id,
+                indicator_id=self.indicator_id,
+                month=self.month,
+                status=self.Status.MANUAL,
+            )
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            qs.delete()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return (
             f"{self.country.iso_code} | {self.indicator.slug} | "

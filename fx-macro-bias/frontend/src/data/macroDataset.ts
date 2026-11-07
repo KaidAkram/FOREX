@@ -107,8 +107,15 @@ export const OFFICIAL_RELEASE_CUTOFFS: Record<string, string | ((country: string
     return "2026-09";
   },
 
-  // Interest Rate: Official central bank policy prints through October 2026 (2026-10). November/December are forecasts.
-  "Interest Rate": "2026-10",
+  // Interest Rate: Official central bank policy prints through November 2026 (2026-11) for Australia, Norway, Sweden, UK.
+  // Other economies published through October 2026 (2026-10).
+  "Interest Rate": (country: string) => {
+    const c = country.toLowerCase();
+    if (c.includes("australia") || c.includes("norway") || c.includes("sweden") || c.includes("united kingdom") || c.includes("uk")) {
+      return "2026-11";
+    }
+    return "2026-10";
+  },
 
   // FX Reserves:
   // Euro Area: Last published is 2026-01. Following months not yet published.
@@ -1332,7 +1339,7 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 3.75,
       "2026-09": 3.75,
       "2026-10": 3.75,
-      "2026-11": null,
+      "2026-11": 4.0,
       "2026-12": null
     },
     "Australia": {
@@ -1382,7 +1389,7 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-08": 4.35,
       "2026-09": 4.6,
       "2026-10": 4.6,
-      "2026-11": null,
+      "2026-11": 4.85,
       "2026-12": null
     },
     "Canada": {
@@ -1581,8 +1588,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 1.75,
       "2026-08": 1.75,
       "2026-09": 1.75,
-      "2026-10": 2.25,
-      "2026-11": null,
+      "2026-10": 1.75,
+      "2026-11": 2.0,
       "2026-12": null
     },
     "Norway": {
@@ -1631,8 +1638,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
       "2026-07": 4.25,
       "2026-08": 4.25,
       "2026-09": 4.5,
-      "2026-10": 3.5,
-      "2026-11": null,
+      "2026-10": 4.5,
+      "2026-11": 4.5,
       "2026-12": null
     }
   },

@@ -557,24 +557,37 @@ class ScraperOrchestrator:
                     continue
 
                 max_pub_date = None
-                for dt_str, val in pts.items():
-                    yr = int(dt_str[:4])
-                    if yr >= 2023:
-                        dt = date.fromisoformat(dt_str)
-                        if max_pub_date is None or dt > max_pub_date:
-                            max_pub_date = dt
+                sorted_pts = sorted([(date.fromisoformat(k), float(v)) for k, v in pts.items() if int(k[:4]) >= 2023])
+                if sorted_pts:
+                    min_dt = sorted_pts[0][0]
+                    max_dt = sorted_pts[-1][0]
+                    max_pub_date = max_dt
+
+                    cur_val = sorted_pts[0][1]
+                    cur_dt = min_dt
+                    pt_dict = dict(sorted_pts)
+
+                    while cur_dt <= max_dt:
+                        if cur_dt in pt_dict:
+                            cur_val = pt_dict[cur_dt]
+
                         MacroDataPoint.objects.update_or_create(
                             country=country,
                             indicator=indicator,
-                            month=dt,
+                            month=cur_dt,
                             defaults={
-                                "value": val,
+                                "value": cur_val,
                                 "status": MacroDataPoint.Status.PUBLISHED,
                                 "source": "TradingEconomics Official Release (Autonomous Live Scraper)",
                                 "is_active_value": True,
                             }
                         )
                         saved += 1
+
+                        if cur_dt.month == 12:
+                            cur_dt = date(cur_dt.year + 1, 1, 1)
+                        else:
+                            cur_dt = date(cur_dt.year, cur_dt.month + 1, 1)
 
                 if max_pub_date:
                     MacroDataPoint.objects.filter(

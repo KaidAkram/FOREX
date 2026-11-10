@@ -48,12 +48,16 @@ export function fxRows(
   snapshot: FxSnapshot,
   countries: Country[],
   year: number,
-  assumptions: Record<string, string>
+  assumptions: Record<string, string>,
+  months?: string[]
 ) {
+  const displayMonths =
+    months && months.length > 0
+      ? months
+      : Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, "0")}`);
   return countries.map((country) => ({
     ...country,
-    data: Array.from({ length: 12 }, (_, index) => {
-      const month = `${year}-${String(index + 1).padStart(2, "0")}`;
+    data: displayMonths.map((month) => {
       const point = findRow(snapshot, country)?.cells[month];
       const present =
         point?.value !== null && point?.value !== undefined && Number.isFinite(Number(point.value));

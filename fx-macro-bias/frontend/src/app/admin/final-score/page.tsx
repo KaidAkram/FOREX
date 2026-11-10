@@ -46,8 +46,10 @@ import { useLanguage } from "@/context/LanguageContext";
 import { 
   INDICATORS, 
   getCombinedDifferentialData, 
+  getCurrentLiveMonthKey,
+  getDisplayMonthsForYear,
+  getForwardMonths,
   SYSTEM_CURRENT_YEAR, 
-  SYSTEM_CURRENT_MONTH, 
   MACRO_YEARS 
 } from "@/data/macroDataset";
 
@@ -112,16 +114,16 @@ const matteCard = "bg-[#101218] border border-white/[0.08] shadow-[inset_0_1px_0
 
 // Function to fetch and compute scores across all 28 pairs with client overrides support
 const fetchFinalScores = async (year: number, userOverrides: Record<string, any>) => {
-  // All 12 calendar months: 1-9 historical settled, 10-12 forward 3-month forecast
-  const displayMonths = Array.from({ length: 12 }).map((_, i) => `${year}-${(i + 1).toString().padStart(2, '0')}`);
-  const forecastMonthsSet = new Set([`${year}-10`, `${year}-11`, `${year}-12`]);
+  // Evaluate active year calendar months plus N+3 forward forecast columns
+  const displayMonths = getDisplayMonthsForYear(year);
+  const forecastMonthsSet = year === SYSTEM_CURRENT_YEAR ? new Set(getForwardMonths(3)) : new Set<string>();
 
   // Compute differential ratings for all 28 pairs across 6 indicators
   const pairIndicatorData: Record<string, Record<string, Record<string, number>>> = {};
   for (const p of ALL_G10_PAIRS) {
     pairIndicatorData[p.name] = {};
     for (const ind of INDICATORS) {
-      const diffList = getCombinedDifferentialData(p.name, ind, year);
+      const diffList = getCombinedDifferentialData(p.name, ind, year, undefined, undefined, displayMonths);
       pairIndicatorData[p.name][ind] = {};
       for (const d of diffList) {
         pairIndicatorData[p.name][ind][d.month] = d.rating;
@@ -248,7 +250,7 @@ export default function FinalScorePage() {
   });
 
   const { lang, t } = useLanguage();
-  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const [selectedYear, setSelectedYear] = useState<number>(SYSTEM_CURRENT_YEAR);
   const [viewMode, setViewMode] = useState<"matrix" | "cards">("matrix");
   const [currencyGroup, setCurrencyGroup] = useState<"ALL" | "EUR" | "GBP" | "USD" | "JPY" | "CROSS">("ALL");
   const [regimeFilter, setRegimeFilter] = useState<"ALL" | "BULLISH" | "BEARISH" | "NEUTRAL">("ALL");
@@ -262,13 +264,17 @@ export default function FinalScorePage() {
     placeholderData: (previousData) => previousData,
   });
 
-  const displayMonths = useMemo(() => {
-    return Array.from({ length: 12 }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, '0')}`);
-  }, [selectedYear]);
+  const displayMonths = useMemo(() => getDisplayMonthsForYear(selectedYear), [selectedYear]);
 
-  const latestSettledMonth = `${selectedYear}-09`;
-  const forecastMonthsList = [`${selectedYear}-10`, `${selectedYear}-11`, `${selectedYear}-12`];
-  const forecastMonthsSet = useMemo(() => new Set(forecastMonthsList), [selectedYear]);
+  const latestSettledMonth =
+    selectedYear === SYSTEM_CURRENT_YEAR
+      ? getCurrentLiveMonthKey()
+      : `${selectedYear}-12`;
+  const forecastMonthsList = useMemo(
+    () => (selectedYear === SYSTEM_CURRENT_YEAR ? getForwardMonths(3) : []),
+    [selectedYear]
+  );
+  const forecastMonthsSet = useMemo(() => new Set(forecastMonthsList), [forecastMonthsList]);
 
   // High-Level Executive Summary Statistics across all 28 pairs
   const stats = useMemo(() => {
@@ -1015,13 +1021,23 @@ export default function FinalScorePage() {
             <div className="flex items-center gap-2 text-slate-400">
               <Activity size={14} className="text-[#D4FF00]" />
               <span>
-                Affichage de <strong className="text-white">{filteredScores.length} sur 28 Combinaisons G10</strong> (9 Publiées + 3 Estimations Prévisionnelles).
+                Affichage de <strong className="text-white">{filteredScores.length} sur 28 Combinaisons G10</strong> (
+                {Math.max(0, displayMonths.length - forecastMonthsList.length)} {lang === "fr" ? "Mois" : "Months"}
+                {forecastMonthsList.length > 0
+                  ? ` + ${forecastMonthsList.length} ${lang === "fr" ? "Estimations Prévisionnelles N+3" : "N+3 Forward Forecasts"}`
+                  : ""}
+                ).
               </span>
             </div>
             <div className="flex items-center gap-4 text-xs font-mono">
-              <span className="text-purple-300 flex items-center gap-1 font-semibold">
-                <Sparkles size={12} /> Cliquez sur Oct, Nov ou Déc pour ajuster l'estimation
-              </span>
+              {forecastMonthsList.length > 0 && (
+                <span className="text-purple-300 flex items-center gap-1 font-semibold">
+                  <Sparkles size={12} />{" "}
+                  {lang === "fr"
+                    ? `Cliquez sur ${forecastMonthsList.join(", ")} pour ajuster l'estimation`
+                    : `Click ${forecastMonthsList.join(", ")} to adjust forecast`}
+                </span>
+              )}
               <span className="text-[#D4FF00] font-bold flex items-center gap-1.5 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] animate-pulse" />
                 Moteur Synchronisé

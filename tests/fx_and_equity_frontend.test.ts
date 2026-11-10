@@ -2,7 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fxRows, fxHistory, validateFxSnapshot } from '../fx-macro-bias/frontend/src/lib/fxReservesLive.ts';
 import { equitySnapshotToPairMap, validateEquitySnapshot } from '../fx-macro-bias/frontend/src/lib/equityLive.ts';
-import { getCombinedDifferentialData, getMacroMatrixData, PAIR_EQUITY_DATA } from '../fx-macro-bias/frontend/src/data/macroDataset.ts';
+import {
+  getCombinedDifferentialData,
+  getCurrentLiveMonthKey,
+  getDisplayMonthsForYear,
+  getForwardMonths,
+  getMacroMatrixData,
+  PAIR_EQUITY_DATA,
+  SYSTEM_CURRENT_MONTH,
+  SYSTEM_CURRENT_YEAR,
+} from '../fx-macro-bias/frontend/src/data/macroDataset.ts';
 
 const countries = [
   { country: 'USA', base: 'us' },
@@ -114,4 +123,40 @@ test('Equity uses synthetic-minus-index sign, covers all 28 canonical pairs, and
   )!;
   assert.equal(liveOct.diffNum, -7.5);
   assert.equal(liveOct.rating, -7);
+});
+
+test('Note 3: active UTC month becomes LIVE and N+3 forward columns extend the active year matrix', () => {
+  const expectedLive = `${SYSTEM_CURRENT_YEAR}-${String(SYSTEM_CURRENT_MONTH).padStart(2, '0')}`;
+  assert.equal(getCurrentLiveMonthKey(), expectedLive);
+  assert.equal(getCurrentLiveMonthKey(2026, 11), '2026-11');
+
+  // Nov 2026 => next 3 months are Dec 2026, Jan 2027, Feb 2027
+  assert.deepEqual(getForwardMonths(3, 2026, 11), ['2026-12', '2027-01', '2027-02']);
+  // Year boundary Dec 2026 => Jan, Feb, Mar 2027
+  assert.deepEqual(getForwardMonths(3, 2026, 12), ['2027-01', '2027-02', '2027-03']);
+
+  const nov2026Months = getDisplayMonthsForYear(2026, 3, 2026, 11);
+  assert.equal(nov2026Months.length, 14);
+  assert.equal(nov2026Months[0], '2026-01');
+  assert.equal(nov2026Months[10], '2026-11');
+  assert.deepEqual(nov2026Months.slice(-3), ['2026-12', '2027-01', '2027-02']);
+
+  // Historical year stays 12 months
+  const hist2025 = getDisplayMonthsForYear(2025, 3, 2026, 11);
+  assert.equal(hist2025.length, 12);
+  assert.equal(hist2025[11], '2025-12');
+
+  const activeMonths = getDisplayMonthsForYear(SYSTEM_CURRENT_YEAR);
+  const matrixRows = getMacroMatrixData('GDP', SYSTEM_CURRENT_YEAR);
+  assert.equal(matrixRows[0].data.length, activeMonths.length);
+
+  const diffRows = getCombinedDifferentialData('EUR/USD', 'CPI', SYSTEM_CURRENT_YEAR);
+  assert.equal(diffRows.length, activeMonths.length);
+  assert.deepEqual(diffRows.slice(-3).map((r) => r.month), getForwardMonths(3));
+
+  const fxExtended = fxRows(fxSnapshot, countries, 2026, { 'FX Reserves_USA_2027-01': '1234' }, nov2026Months);
+  assert.equal(fxExtended[0].data.length, 14);
+  assert.equal(fxExtended[0].data[12].value, '1234');
+  assert.equal(fxExtended[0].data[12].status, 'manual');
+  assert.equal(fxExtended[0].data[13].status, 'missing');
 });

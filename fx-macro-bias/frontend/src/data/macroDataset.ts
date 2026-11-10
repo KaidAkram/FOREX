@@ -70,6 +70,48 @@ export const SYSTEM_CURRENT_YEAR = new Date().getUTCFullYear();
 export const SYSTEM_CURRENT_MONTH = new Date().getUTCMonth() + 1;
 export const MACRO_YEARS = Array.from({ length: Math.max(1, SYSTEM_CURRENT_YEAR - 2019) }, (_, i) => SYSTEM_CURRENT_YEAR - i);
 
+export function addMonthsYM(year: number, month: number, offset: number): string {
+  const total = year * 12 + (month - 1) + offset;
+  const targetYear = Math.floor(total / 12);
+  const targetMonth = (total % 12) + 1;
+  return `${targetYear}-${targetMonth.toString().padStart(2, "0")}`;
+}
+
+export function getCurrentLiveMonthKey(
+  currentYear: number = SYSTEM_CURRENT_YEAR,
+  currentMonth: number = SYSTEM_CURRENT_MONTH
+): string {
+  return addMonthsYM(currentYear, currentMonth, 0);
+}
+
+export function getForwardMonths(
+  count: number = 3,
+  currentYear: number = SYSTEM_CURRENT_YEAR,
+  currentMonth: number = SYSTEM_CURRENT_MONTH
+): string[] {
+  return Array.from({ length: count }, (_, i) => addMonthsYM(currentYear, currentMonth, i + 1));
+}
+
+export function getDisplayMonthsForYear(
+  year: number,
+  forwardCount: number = 3,
+  currentYear: number = SYSTEM_CURRENT_YEAR,
+  currentMonth: number = SYSTEM_CURRENT_MONTH
+): string[] {
+  const baseMonths = Array.from({ length: 12 }, (_, i) => `${year}-${(i + 1).toString().padStart(2, "0")}`);
+  if (year !== currentYear || forwardCount <= 0) {
+    return baseMonths;
+  }
+  const seen = new Set(baseMonths);
+  for (const month of getForwardMonths(forwardCount, currentYear, currentMonth)) {
+    if (!seen.has(month)) {
+      baseMonths.push(month);
+      seen.add(month);
+    }
+  }
+  return baseMonths;
+}
+
 // Official Macro Release Cutoffs for 2026 Live Calendar:
 // Data up to cutoff is officially published (Read-only).
 // Future / unreleased periods with estimates are flagged as "forecast" (Editable).
@@ -2564,8 +2606,8 @@ export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string,
 };
 
 export function getMacroMatrixData(indicator: string, year: number) {
-  // Always evaluate all 12 calendar months for standard annual cycle matrix
-  const months = Array.from({ length: 12 }).map((_, i) => `${year}-${(i + 1).toString().padStart(2, '0')}`);
+  // Evaluate calendar months plus N+3 forward horizon for the active system year
+  const months = getDisplayMonthsForYear(year);
 
   const indData = MASTER_MACRO_DATABASE[indicator] || {};
 
@@ -36606,11 +36648,12 @@ export function getCombinedDifferentialData(
     base_cur?: number | null;
     as_of_date?: string | null;
     is_provisional?: boolean;
-  }>>
+  }>>,
+  monthsOverride?: string[]
 ) {
   const pair = PAIRS.find(p => p.name === pairName || p.name.replace('/', ' ') === pairName.replace('/', ' ')) || PAIRS[0];
-  // Standard annual cycle (all 12 calendar months)
-  const months = Array.from({ length: 12 }).map((_, i) => `${year}-${(i + 1).toString().padStart(2, '0')}`);
+  // Annual cycle plus N+3 forward horizon for the active system year
+  const months = monthsOverride ?? getDisplayMonthsForYear(year);
 
   const indData = indicator === "FX Reserves" && liveFxData ? liveFxData : (MASTER_MACRO_DATABASE[indicator] || {});
   let baseMap = indData[pair.baseCountry] || {};

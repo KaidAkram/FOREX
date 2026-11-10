@@ -10,6 +10,7 @@ def score_matrix(request):
     Returns all active pairs and all months that have FinalScore data.
     """
     from apps.macro.models import FinalScore, FXPair
+    from apps.macro.services.calendar import get_active_horizon_months
 
     pairs = FXPair.objects.filter(is_active=True).order_by("symbol")
     scores = (
@@ -18,8 +19,8 @@ def score_matrix(request):
         .order_by("pair__symbol", "month")
     )
 
-    # Collect all months
-    months_set = set()
+    # Collect active horizon months (including N+3 forward columns) plus stored months
+    months_set = get_active_horizon_months(forward_count=3)
     score_map: dict = {}
     for s in scores:
         key = s.pair.symbol

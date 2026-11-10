@@ -20,6 +20,7 @@ from apps.macro.models import (
     SystemSetting,
 )
 from apps.macro.services.calculator import calculate_differential, recalculate_full_matrix
+from apps.macro.services.calendar import get_active_horizon_months, get_forward_months
 from apps.macro.services.equity import REFRESH_KEY as EQ_REFRESH_KEY, refresh_equity
 from apps.macro.services.fx_reserves import REFRESH_KEY as FX_REFRESH_KEY, refresh_fx_reserves
 from apps.macro.signals import disable_macro_signals
@@ -259,3 +260,27 @@ class FXReserveAndEquityTests(TestCase):
         self.client.force_authenticate(trader)
         self.assertEqual(self.client.post("/api/admin/macro-data/fx-reserves/refresh").status_code, 403)
         self.assertEqual(self.client.post("/api/admin/macro-data/equity/refresh").status_code, 403)
+
+    def test_calendar_horizon_adds_n_plus_3_months_to_matrix_endpoints(self):
+        self.assertEqual(get_forward_months(3, date(2026, 11, 7)), ["2026-12", "2027-01", "2027-02"])
+        horizon = sorted(get_active_horizon_months(3, date(2026, 11, 7)))
+        self.assertEqual(len(horizon), 14)
+        self.assertEqual(horizon[-3:], ["2026-12", "2027-01", "2027-02"])
+
+        expected_forward = get_forward_months(3)
+        fx_resp = self.client.get("/api/admin/macro-data/matrix?indicator=fx_reserves")
+        self.assertEqual(fx_resp.status_code, 200)
+        for m in expected_forward:
+            self.assertIn(m, fx_resp.data["months"])
+
+        eq_resp = self.client.get("/api/admin/macro-data/matrix?indicator=equity")
+        self.assertEqual(eq_resp.status_code, 200)
+        for m in expected_forward:
+            self.assertIn(m, eq_resp.data["months"])
+
+        score_resp = self.client.get("/api/admin/final-score/matrix")
+        self.assertEqual(score_resp.status_code, 200)
+        for m in expected_forward:
+            self.assertIn(m, score_resp.data["months"])
+
+

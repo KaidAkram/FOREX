@@ -11,10 +11,10 @@ def macro_matrix(request):
     Country × Month matrix for a given indicator (or pair-level matrix for Equity).
     ?indicator=gdp  (default: gdp)
     """
-    from datetime import date
     import json
     from pathlib import Path
     from apps.macro.models import MacroDataPoint, MacroIndicator, Country, Differential, FXPair, SystemSetting
+    from apps.macro.services.calendar import get_active_horizon_months
 
     indicator_slug = request.query_params.get("indicator", "gdp")
     try:
@@ -22,10 +22,8 @@ def macro_matrix(request):
     except MacroIndicator.DoesNotExist:
         return Response({"error": "Indicator not found."}, status=404)
 
-    months_set: set = set()
-    # The calendar must advance without editing source each year.
-    for m_idx in range(1, 13):
-        months_set.add(f"{date.today().year}-{m_idx:02d}")
+    # Include active year calendar months plus the N+3 forward horizon automatically.
+    months_set: set = get_active_horizon_months(forward_count=3)
 
     if indicator.slug == "equity":
         # Per Equity Indicator2.pdf, Equity is calculated directly per FX pair (no country table).

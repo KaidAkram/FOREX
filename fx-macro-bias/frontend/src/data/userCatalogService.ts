@@ -4,8 +4,9 @@ import {
   PAIRS, 
   INDICATORS, 
   getCombinedDifferentialData, 
+  getCurrentLiveMonthKey,
+  getForwardMonths,
   SYSTEM_CURRENT_YEAR, 
-  SYSTEM_CURRENT_MONTH,
   MASTER_MACRO_DATABASE
 } from "./macroDataset";
 
@@ -327,8 +328,14 @@ export function toggleUserWatchlist(pair: string): string[] {
 // ----------------------------------------------------------------------------
 export function getTraderSignals(year: number = SYSTEM_CURRENT_YEAR): TraderSignal[] {
   const config = getCatalogConfig();
-  const currentMonthKey = `${year}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
-  const forecastMonths = [`${year}-10`, `${year}-11`, `${year}-12`];
+  const currentMonthKey =
+    year === SYSTEM_CURRENT_YEAR
+      ? getCurrentLiveMonthKey()
+      : `${year}-12`;
+  const forecastMonths =
+    year === SYSTEM_CURRENT_YEAR
+      ? getForwardMonths(3)
+      : [];
 
   // Load client forecast overrides if any
   let overrides: Record<string, any> = {};

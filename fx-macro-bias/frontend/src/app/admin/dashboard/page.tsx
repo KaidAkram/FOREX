@@ -16,7 +16,7 @@ import {
 } from "@primer/octicons-react";
 import { clsx } from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
-import { PAIRS } from "@/data/macroDataset";
+import { PAIRS, getCurrentLiveMonthKey } from "@/data/macroDataset";
 import macroDataJson from "@/data/macroDataset.json";
 import {
   AdminPageHeader,
@@ -67,7 +67,7 @@ const LATEST_PUBLISHED_FEED = [
 
 export default function DashboardPage() {
   const { lang, t } = useLanguage();
-  const [selectedMonth, setSelectedMonth] = useState("2026-10");
+  const [selectedMonth, setSelectedMonth] = useState(() => getCurrentLiveMonthKey());
   const [activeFilterTab, setActiveFilterTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -272,8 +272,9 @@ export default function DashboardPage() {
             {/* UTC Telemetry Clock Pill */}
             <div className="hidden lg:flex items-center gap-2 h-10 px-3.5 rounded-full bg-[#10131A] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] text-xs text-slate-300">
               <ClockIcon size={14} className="text-[#D4FF00] shrink-0" />
-              <span className="font-sans font-medium text-slate-300">
-                Oct <span className="font-mono tabular-nums">26</span>, <span className="font-mono tabular-nums">18:45</span> UTC
+              <span className="font-sans font-medium text-slate-300" suppressHydrationWarning>
+                {new Intl.DateTimeFormat("en-US", { month: "short", day: "2-digit", timeZone: "UTC" }).format(new Date())} •{" "}
+                <span className="font-mono tabular-nums">{getCurrentLiveMonthKey()}</span> UTC
               </span>
             </div>
 

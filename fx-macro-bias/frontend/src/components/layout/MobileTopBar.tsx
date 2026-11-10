@@ -9,11 +9,12 @@ import {
 import { ShiftFXMark } from "@/components/brand/ShiftFXLogo";
 import { PeriodSelectorPopover } from "@/components/shell/PeriodSelectorPopover";
 import { QuickThemePaletteButton } from "@/components/theme/WorkspaceThemeSwitcher";
+import { getCurrentLiveMonthKey } from "@/data/macroDataset";
 
 export function MobileTopBar({
   onOpenMobileMenu,
   onOpenSearch,
-  selectedPeriod = "2026-10",
+  selectedPeriod = getCurrentLiveMonthKey(),
   onSelectPeriod,
 }: {
   onOpenMobileMenu?: () => void;

@@ -21,10 +21,12 @@ import {
   PAIRS, 
   INDICATORS, 
   SYSTEM_CURRENT_YEAR, 
-  SYSTEM_CURRENT_MONTH,
   MACRO_YEARS,
   OFFICIAL_RELEASE_CUTOFFS,
   getCombinedDifferentialData,
+  getCurrentLiveMonthKey,
+  getDisplayMonthsForYear,
+  getForwardMonths,
   getMacroMatrixData
 } from "@/data/macroDataset";
 import { 
@@ -194,20 +196,26 @@ export default function MacroDataPage() {
   } | null>(null);
   const [assumptionInputVal, setAssumptionInputVal] = useState<string>("");
 
-  const displayMonths = Array.from({ length: 12 }).map((_, i) => `${selectedYear}-${(i + 1).toString().padStart(2, "0")}`);
+  const displayMonths = useMemo(() => getDisplayMonthsForYear(selectedYear), [selectedYear]);
+  const currentLiveMonth = getCurrentLiveMonthKey();
+  const forwardMonthsSet = useMemo(
+    () => (selectedYear === SYSTEM_CURRENT_YEAR ? new Set(getForwardMonths(3)) : new Set<string>()),
+    [selectedYear]
+  );
 
   // User Precision Preference: "exact" (Full Precision) vs "approx" (Formatted)
   const [displayPrecision, setDisplayPrecision] = useState<"exact" | "approx">("exact");
 
   // Fetch Matrix Data with authoritative fallback to verified MASTER_MACRO_DATABASE
   const fetchMatrixData = async (indicator: string, year: number) => {
+    const targetMonths = getDisplayMonthsForYear(year);
     // 1. Preload local verified dataset from MASTER_MACRO_DATABASE (100% matched to EXCEL8EXAMPLE.xlsx & Official APIs)
     const localBaseline = getMacroMatrixData(indicator, year);
     if (indicator === "FX Reserves") {
       const response = await macroDataApi.matrix("fx_reserves");
       const snapshot = validateFxSnapshot(response.data);
       setFxSnapshot(snapshot);
-      return fxRows(snapshot, COUNTRIES, year, assumptions);
+      return fxRows(snapshot, COUNTRIES, year, assumptions, targetMonths);
     }
     if (indicator === "Equity") {
       const response = await macroDataApi.matrix("equity");
@@ -248,14 +256,14 @@ export default function MacroDataPage() {
               (c.country === "Euro Area" && (r.country === "Euro Area" || r.country === "Zone Euro")) ||
               r.iso.toLowerCase() === c.base
             );
-            const cells = displayMonths.map((m: string) => {
+            const cells = targetMonths.map((m: string) => {
               const assumptionKey = `${indicator}_${c.country}_${m}`;
               const userSavedVal = assumptions[assumptionKey];
               const cellPoint = apiRow?.cells?.[m];
 
               const cutoffDef = OFFICIAL_RELEASE_CUTOFFS[indicator];
               const cutoff = typeof cutoffDef === "function" ? cutoffDef(c.country) : (cutoffDef || "2026-09");
-              const isPastCutoff = selectedYear === SYSTEM_CURRENT_YEAR && m > cutoff;
+              const isPastCutoff = year === SYSTEM_CURRENT_YEAR && m > cutoff;
 
               // If official publication exists
               const isPub = cellPoint?.status === "published" || (!isPastCutoff && cellPoint?.value !== null && cellPoint?.value !== undefined && cellPoint?.status !== "manual");
@@ -283,7 +291,7 @@ export default function MacroDataPage() {
 
               // Fallback to local verified baseline point if available and officially published
               const localRow = localBaseline.find(lr => lr.country === c.country);
-              const localCell = localRow?.data.find((_, i) => displayMonths[i] === m);
+              const localCell = localRow?.data.find((_, i) => targetMonths[i] === m);
               if (localCell && localCell.value !== null && localCell.value !== undefined && localCell.status === "published") {
                 return {
                   value: localCell.value,
@@ -312,7 +320,7 @@ export default function MacroDataPage() {
       country: row.country,
       base: row.base,
       data: row.data.map((cell, idx) => {
-        const m = displayMonths[idx];
+        const m = targetMonths[idx];
         const assumptionKey = `${indicator}_${row.country}_${m}`;
         const userSavedVal = assumptions[assumptionKey];
         if (userSavedVal !== undefined && userSavedVal !== "" && cell.status !== "published") {
@@ -388,7 +396,8 @@ export default function MacroDataPage() {
         activeInd,
         selectedYear,
         activeInd === "FX Reserves" && fxSnapshot ? fxHistory(fxSnapshot, COUNTRIES) : undefined,
-        liveEquityMap
+        liveEquityMap,
+        displayMonths
       );
       return {
         pair: pairName,
@@ -399,7 +408,7 @@ export default function MacroDataPage() {
         data: diffList
       };
     });
-  }, [activeInd, selectedYear, fxSnapshot, liveEquityMap]);
+  }, [activeInd, selectedYear, displayMonths, fxSnapshot, liveEquityMap]);
 
   const filteredDiffRows = useMemo(() => {
     if (!countrySearch.trim()) return diffRows;
@@ -714,9 +723,9 @@ export default function MacroDataPage() {
           unit={lang === "fr" ? "Points Macro" : "Data Points"}
           subtitle={
             isFx
-              ? `${fxCells.length - fxMissing} / ${COUNTRIES.length * 12} cells available (${selectedYear})`
+              ? `${fxCells.length - fxMissing} / ${COUNTRIES.length * displayMonths.length} cells available (${selectedYear})`
               : isEquity
-              ? `${eqAvailable} / ${CANONICAL_28_PAIRS.length * 12} pair-months (${selectedYear})`
+              ? `${eqAvailable} / ${CANONICAL_28_PAIRS.length * displayMonths.length} pair-months (${selectedYear})`
               : t("macro.kpi_observations_sub")
           }
           variant="sky"
@@ -973,7 +982,8 @@ export default function MacroDataPage() {
                     PAYS / SOUVERAIN
                   </th>
                   {displayMonths.map((m, idx) => {
-                    const isCurrentLive = m === `${SYSTEM_CURRENT_YEAR}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
+                    const isCurrentLive = m === currentLiveMonth;
+                    const isForward = forwardMonthsSet.has(m);
                     const isLast = idx === displayMonths.length - 1;
 
                     return (
@@ -982,8 +992,10 @@ export default function MacroDataPage() {
                         className={clsx(
                           "py-2 px-2 text-center font-mono min-w-[88px] transition-colors",
                           isLast && "pr-6",
-                          isCurrentLive 
-                            ? "bg-[#D4FF00]/[0.05] text-[#D4FF00] font-bold border-x border-[#D4FF00]/25" 
+                          isCurrentLive
+                            ? "bg-[#D4FF00]/[0.05] text-[#D4FF00] font-bold border-x border-[#D4FF00]/25"
+                            : isForward
+                            ? "bg-purple-500/[0.04] text-purple-300 border-x border-purple-500/15"
                             : "text-slate-400"
                         )}
                       >
@@ -992,6 +1004,11 @@ export default function MacroDataPage() {
                           {isCurrentLive && (
                             <span className="text-[8px] font-mono font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-[#D4FF00]/20 text-[#D4FF00] border border-[#D4FF00]/40 shadow-[0_0_8px_rgba(212,255,0,0.3)]">
                               LIVE
+                            </span>
+                          )}
+                          {!isCurrentLive && isForward && (
+                            <span className="text-[8px] font-mono font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/35">
+                              {lang === "fr" ? "PRÉV." : "FWD"}
                             </span>
                           )}
                         </div>
@@ -1004,7 +1021,7 @@ export default function MacroDataPage() {
               <tbody className="divide-y divide-white/[0.03]">
                 {matrixLoading ? (
                   <tr>
-                    <td colSpan={13} className="py-16 text-center">
+                    <td colSpan={displayMonths.length + 1} className="py-16 text-center">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <div className="w-8 h-8 rounded-full border-2 border-[#D4FF00] border-t-transparent animate-spin" />
                         <span className="text-xs font-mono text-slate-400">Chargement de la matrice macroéconomique...</span>
@@ -1013,7 +1030,7 @@ export default function MacroDataPage() {
                   </tr>
                 ) : filteredMatrixRows.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="py-12 text-center text-xs font-mono text-slate-400">
+                    <td colSpan={displayMonths.length + 1} className="py-12 text-center text-xs font-mono text-slate-400">
                       Aucune économie ne correspond à &ldquo;{countrySearch}&rdquo;.
                     </td>
                   </tr>
@@ -1034,10 +1051,11 @@ export default function MacroDataPage() {
                         </div>
                       </td>
 
-                      {/* 12 Monthly Value Cells */}
+                      {/* Monthly Value Cells */}
                       {row.data.map((cell: any, cellIdx: number) => {
                         const month = displayMonths[cellIdx];
-                        const isCurrentLive = month === `${SYSTEM_CURRENT_YEAR}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
+                        const isCurrentLive = month === currentLiveMonth;
+                        const isForward = forwardMonthsSet.has(month);
                         const isMissing = cell.value === null || cell.value === undefined || cell.value === "—" || cell.status === "missing";
                         const isPublished = !isMissing && cell.status === "published";
                         const isManual = !isMissing && cell.status === "manual";
@@ -1060,6 +1078,7 @@ export default function MacroDataPage() {
                               "py-2 px-2 text-center transition-all duration-150 select-none min-w-[96px]",
                               isLast && "pr-6",
                               isCurrentLive && "bg-[#D4FF00]/[0.03] border-x border-[#D4FF00]/20",
+                              !isCurrentLive && isForward && "bg-purple-500/[0.03] border-x border-purple-500/10",
                               isPublished 
                                 ? "cursor-default" 
                                 : "cursor-pointer hover:bg-white/[0.04]"
@@ -1113,7 +1132,8 @@ export default function MacroDataPage() {
                     PAIRE FX / SOUVERAINS
                   </th>
                   {displayMonths.map((m, idx) => {
-                    const isCurrentLive = m === `${SYSTEM_CURRENT_YEAR}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
+                    const isCurrentLive = m === currentLiveMonth;
+                    const isForward = forwardMonthsSet.has(m);
                     const isLast = idx === displayMonths.length - 1;
 
                     return (
@@ -1122,8 +1142,10 @@ export default function MacroDataPage() {
                         className={clsx(
                           "py-2 px-2 text-center font-mono min-w-[88px] transition-colors",
                           isLast && "pr-6",
-                          isCurrentLive 
-                            ? "bg-[#D4FF00]/[0.05] text-[#D4FF00] font-bold border-x border-[#D4FF00]/25" 
+                          isCurrentLive
+                            ? "bg-[#D4FF00]/[0.05] text-[#D4FF00] font-bold border-x border-[#D4FF00]/25"
+                            : isForward
+                            ? "bg-purple-500/[0.04] text-purple-300 border-x border-purple-500/15"
                             : "text-slate-400"
                         )}
                       >
@@ -1132,6 +1154,11 @@ export default function MacroDataPage() {
                           {isCurrentLive && (
                             <span className="text-[8px] font-mono font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-[#D4FF00]/20 text-[#D4FF00] border border-[#D4FF00]/40 shadow-[0_0_8px_rgba(212,255,0,0.3)]">
                               LIVE
+                            </span>
+                          )}
+                          {!isCurrentLive && isForward && (
+                            <span className="text-[8px] font-mono font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/35">
+                              {lang === "fr" ? "PRÉV." : "FWD"}
                             </span>
                           )}
                         </div>
@@ -1144,7 +1171,7 @@ export default function MacroDataPage() {
               <tbody className="divide-y divide-white/[0.03]">
                 {filteredDiffRows.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="py-12 text-center text-xs font-mono text-slate-400">
+                    <td colSpan={displayMonths.length + 1} className="py-12 text-center text-xs font-mono text-slate-400">
                       Aucune paire ne correspond à &ldquo;{countrySearch}&rdquo;.
                     </td>
                   </tr>
@@ -1166,10 +1193,11 @@ export default function MacroDataPage() {
                         </div>
                       </td>
 
-                      {/* 12 Monthly Differential & Rating Cells */}
+                      {/* Monthly Differential & Rating Cells */}
                       {row.data.map((cell: any, cellIdx: number) => {
                         const month = displayMonths[cellIdx];
-                        const isCurrentLive = month === `${SYSTEM_CURRENT_YEAR}-${SYSTEM_CURRENT_MONTH.toString().padStart(2, "0")}`;
+                        const isCurrentLive = month === currentLiveMonth;
+                        const isForward = forwardMonthsSet.has(month);
                         const isLast = cellIdx === displayMonths.length - 1;
                         const rating = cell.rating;
 
@@ -1189,7 +1217,8 @@ export default function MacroDataPage() {
                             className={clsx(
                               "py-2 px-2 text-center transition-all duration-150 select-none min-w-[88px] cursor-pointer hover:bg-white/[0.04]",
                               isLast && "pr-6",
-                              isCurrentLive && "bg-[#D4FF00]/[0.03] border-x border-[#D4FF00]/20"
+                              isCurrentLive && "bg-[#D4FF00]/[0.03] border-x border-[#D4FF00]/20",
+                              !isCurrentLive && isForward && "bg-purple-500/[0.03] border-x border-purple-500/10"
                             )}
                             title={`Cliquer pour inspecter le calcul différentiel de ${row.pair} (${month})`}
                           >

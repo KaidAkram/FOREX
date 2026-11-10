@@ -14,6 +14,7 @@ import { XIcon, SyncIcon } from "@primer/octicons-react";
 import { SPRING_WEIGHTLESS } from "@/lib/uxEngineeringStandards";
 import { GlobalThemeToast } from "@/components/theme/WorkspaceThemeSwitcher";
 import { CosmosPreloader } from "@/components/motion/CosmosPreloader";
+import { getCurrentLiveMonthKey } from "@/data/macroDataset";
 
 // Self-contained page views for instant sub-millisecond workspace toggling
 import DashboardPage from "./dashboard/page";
@@ -78,7 +79,7 @@ export default function AdminLayout({
 
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState("2026-10");
+  const [selectedPeriod, setSelectedPeriod] = useState(() => getCurrentLiveMonthKey());
   const [undoToast, setUndoToast] = useState<UndoToastData | null>(null);
 
   // Secure Auth Guard

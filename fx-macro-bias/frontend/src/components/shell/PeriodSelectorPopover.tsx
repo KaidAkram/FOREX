@@ -9,6 +9,13 @@ import {
   SyncIcon,
 } from "@primer/octicons-react";
 import { SPRING_WEIGHTLESS } from "@/lib/uxEngineeringStandards";
+import {
+  addMonthsYM,
+  getCurrentLiveMonthKey,
+  getForwardMonths,
+  SYSTEM_CURRENT_MONTH,
+  SYSTEM_CURRENT_YEAR,
+} from "@/data/macroDataset";
 
 export interface PeriodOption {
   id: string;
@@ -17,15 +24,61 @@ export interface PeriodOption {
   pairs: string;
 }
 
-export const MACRO_PERIODS: PeriodOption[] = [
-  { id: "2026-10", label: "Octobre 2026", status: "LIVE", pairs: "28/28" },
-  { id: "2026-09", label: "Septembre 2026", status: "PUBLIÉ", pairs: "28/28" },
-  { id: "2026-08", label: "Août 2026", status: "PUBLIÉ", pairs: "28/28" },
-  { id: "2026-07", label: "Juillet 2026", status: "ARCHIVE", pairs: "28/28" },
+const FR_MONTHS = [
+  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
 ];
 
+const FR_MONTHS_SHORT = [
+  "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
+  "Juil", "Août", "Sep", "Oct", "Nov", "Déc",
+];
+
+export function formatFrenchMonthLabel(ym: string): string {
+  const [yStr, mStr] = ym.split("-");
+  const mIdx = Number(mStr) - 1;
+  if (!Number.isFinite(mIdx) || mIdx < 0 || mIdx >= 12) return ym;
+  return `${FR_MONTHS[mIdx]} ${yStr}`;
+}
+
+export function formatCompactPeriodLabel(ym: string): string {
+  const [yStr, mStr] = ym.split("-");
+  const mIdx = Number(mStr) - 1;
+  if (!Number.isFinite(mIdx) || mIdx < 0 || mIdx >= 12) return ym;
+  return `${FR_MONTHS_SHORT[mIdx]} ${yStr.slice(-2)}`;
+}
+
+const CURRENT_LIVE_PERIOD = getCurrentLiveMonthKey();
+const FORWARD_HORIZON_PERIODS = getForwardMonths(3);
+
+export const MACRO_PERIODS: PeriodOption[] = [
+  { id: CURRENT_LIVE_PERIOD, label: formatFrenchMonthLabel(CURRENT_LIVE_PERIOD), status: "LIVE", pairs: "28/28" },
+  ...FORWARD_HORIZON_PERIODS.map((id) => ({
+    id,
+    label: formatFrenchMonthLabel(id),
+    status: "PRÉVISION" as const,
+    pairs: "28/28",
+  })),
+  ...[1, 2, 3].map((offset) => {
+    const id = addMonthsYM(SYSTEM_CURRENT_YEAR, SYSTEM_CURRENT_MONTH, -offset);
+    return {
+      id,
+      label: formatFrenchMonthLabel(id),
+      status: (offset === 3 ? "ARCHIVE" : "PUBLIÉ") as "ARCHIVE" | "PUBLIÉ",
+      pairs: "28/28",
+    };
+  }),
+];
+
+const PREVIOUS_YEAR = String(SYSTEM_CURRENT_YEAR - 1);
+const CURRENT_YEAR_STR = String(SYSTEM_CURRENT_YEAR);
+const PREVIOUS_YEAR_PERIODS: PeriodOption[] = [12, 11, 10, 9].map((m) => {
+  const id = `${PREVIOUS_YEAR}-${String(m).padStart(2, "0")}`;
+  return { id, label: formatFrenchMonthLabel(id), status: "ARCHIVE", pairs: "28/28" };
+});
+
 export function PeriodSelectorPopover({
-  selected = "2026-10",
+  selected = CURRENT_LIVE_PERIOD,
   onSelect,
   onSyncMacro,
   compact = false,
@@ -38,7 +91,7 @@ export function PeriodSelectorPopover({
   align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
-  const [activeYear, setActiveYear] = useState("2026");
+  const [activeYear, setActiveYear] = useState(CURRENT_YEAR_STR);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,12 +104,19 @@ export function PeriodSelectorPopover({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const currentPeriod = MACRO_PERIODS.find((p) => p.id === selected) || {
+  const forwardSet = new Set(FORWARD_HORIZON_PERIODS);
+  const allPeriods = [...MACRO_PERIODS, ...PREVIOUS_YEAR_PERIODS];
+  const currentPeriod = allPeriods.find((p) => p.id === selected) || {
     id: selected,
-    label: selected,
-    status: "LIVE" as const,
+    label: formatFrenchMonthLabel(selected),
+    status: (selected === CURRENT_LIVE_PERIOD
+      ? "LIVE"
+      : forwardSet.has(selected)
+      ? "PRÉVISION"
+      : "PUBLIÉ") as PeriodOption["status"],
     pairs: "28/28",
   };
+  const visiblePeriods = activeYear === CURRENT_YEAR_STR ? MACRO_PERIODS : PREVIOUS_YEAR_PERIODS;
 
   return (
     <div ref={ref} className="relative z-40">
@@ -69,12 +129,14 @@ export function PeriodSelectorPopover({
       >
         <CalendarIcon size={15} className="text-[#D4FF00] shrink-0" />
         <span className="font-sans font-semibold">
-          {compact ? "Oct 26" : currentPeriod.label}
+          {compact ? formatCompactPeriodLabel(currentPeriod.id) : currentPeriod.label}
         </span>
         <span
           className={`px-1.5 py-0.5 rounded font-sans text-[9px] font-bold uppercase tracking-wider ${
             currentPeriod.status === "LIVE"
               ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+              : currentPeriod.status === "PRÉVISION"
+              ? "bg-purple-500/20 text-purple-300 border border-purple-400/35"
               : "bg-white/[0.06] text-slate-300"
           }`}
         >
@@ -105,31 +167,31 @@ export function PeriodSelectorPopover({
               </span>
               <div className="flex items-center gap-1 bg-white/[0.04] p-0.5 rounded-full border border-white/[0.06] font-mono text-[10px] tabular-nums">
                 <button
-                  onClick={() => setActiveYear("2025")}
+                  onClick={() => setActiveYear(PREVIOUS_YEAR)}
                   className={`px-2 py-0.5 rounded-full transition-colors ${
-                    activeYear === "2025"
+                    activeYear === PREVIOUS_YEAR
                       ? "bg-white/[0.1] text-white font-bold"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  2025
+                  {PREVIOUS_YEAR}
                 </button>
                 <button
-                  onClick={() => setActiveYear("2026")}
+                  onClick={() => setActiveYear(CURRENT_YEAR_STR)}
                   className={`px-2 py-0.5 rounded-full transition-colors ${
-                    activeYear === "2026"
+                    activeYear === CURRENT_YEAR_STR
                       ? "bg-[#D4FF00]/15 text-[#D4FF00] font-bold border border-[#D4FF00]/30"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  2026
+                  {CURRENT_YEAR_STR}
                 </button>
               </div>
             </div>
 
             {/* Periods List */}
             <div className="space-y-1">
-              {MACRO_PERIODS.map((p) => {
+              {visiblePeriods.map((p) => {
                 const isSelected = p.id === selected;
 
                 return (
@@ -166,6 +228,8 @@ export function PeriodSelectorPopover({
                         className={`font-sans text-[9px] px-2 py-0.5 rounded-full font-bold ${
                           p.status === "LIVE"
                             ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                            : p.status === "PRÉVISION"
+                            ? "bg-purple-500/20 text-purple-300 border border-purple-400/35"
                             : p.status === "PUBLIÉ"
                             ? "bg-white/[0.06] text-slate-300"
                             : "bg-slate-800 text-slate-500"

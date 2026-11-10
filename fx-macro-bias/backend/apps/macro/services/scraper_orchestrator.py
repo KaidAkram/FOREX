@@ -278,83 +278,19 @@ class ScraperOrchestrator:
 
     @classmethod
     def _sync_fx_reserves(cls) -> tuple[int, Optional[str]]:
-        """Syncs IMF FX Reserves excluding gold."""
-        import fx_reserves_engine
-        indicator = MacroIndicator.objects.get(slug="fx_reserves")
-        df_raw, df_avg12, pair_results, country_raw, country_flow = fx_reserves_engine.build_fx_dataset()
-
-        active_countries = {c.name: c for c in Country.objects.filter(is_active=True)}
-        saved = 0
-        skipped = None
-
-        with disable_macro_signals(), transaction.atomic():
-            # Purge fake estimates beyond official publication cutoffs:
-            # Euro Area: > 2026-01-01
-            MacroDataPoint.objects.filter(country__name="Euro Area", indicator=indicator, month__gt=date(2026, 1, 1)).delete()
-            # Switzerland: > 2026-08-01
-            MacroDataPoint.objects.filter(country__name="Switzerland", indicator=indicator, month__gt=date(2026, 8, 1)).delete()
-            # Other countries: > 2026-09-01
-            MacroDataPoint.objects.filter(indicator=indicator, month__gt=date(2026, 9, 1)).delete()
-
-            for c_name, pts in country_raw.items():
-                c_obj = active_countries.get(c_name)
-                if not c_obj:
-                    continue
-                for ym, val in pts.items():
-                    if val is not None and not (isinstance(val, float) and (val != val)):  # check not None and not NaN
-                        y, m = ym.split("-")
-                        dt = date(int(y), int(m), 1)
-                        # All released IMF SDMX points are officially published (never EST)
-                        MacroDataPoint.objects.update_or_create(
-                            country=c_obj,
-                            indicator=indicator,
-                            month=dt,
-                            defaults={
-                                "value": float(val),
-                                "source": "Official IMF SDMX 3.0 (RXF11FX_REVS)",
-                                "status": MacroDataPoint.Status.PUBLISHED,
-                                "is_active_value": True,
-                            }
-                        )
-                        saved += 1
-
-        return saved, skipped
+        """Use the same non-destructive live sync as the dedicated command/API."""
+        from apps.macro.services.fx_reserves import refresh_fx_reserves
+        result = refresh_fx_reserves(recalculate=False)
+        missing = result.get("missing_countries", [])
+        return result["points_saved"], ("No observations returned for: " + ", ".join(missing)) if missing else None
 
     @classmethod
     def _sync_equity(cls) -> tuple[int, Optional[str]]:
-        """Syncs Yahoo Finance Benchmark Sovereign Equity Indexes."""
-        import equity_engine
-        indicator = MacroIndicator.objects.get(slug="equity")
-        pair_results, country_results = equity_engine.build_equity_dataset(use_cache=True, live_update=True)
-
-        active_countries = {c.name: c for c in Country.objects.filter(is_active=True)}
-        saved = 0
-        skipped = None
-
-        with disable_macro_signals(), transaction.atomic():
-            for c_name, pts in country_results.items():
-                c_obj = active_countries.get(c_name)
-                if not c_obj:
-                    continue
-                for ym, val in pts.items():
-                    if val is not None:
-                        y, m = ym.split("-")
-                        dt = date(int(y), int(m), 1)
-                        is_pub = (int(y) < 2026) or (int(y) == 2026 and int(m) <= 10)
-                        MacroDataPoint.objects.update_or_create(
-                            country=c_obj,
-                            indicator=indicator,
-                            month=dt,
-                            defaults={
-                                "value": float(val),
-                                "source": "Yahoo Finance ATH Model (1.docx)",
-                                "status": MacroDataPoint.Status.PUBLISHED if is_pub else MacroDataPoint.Status.FORECAST,
-                                "is_active_value": True,
-                            }
-                        )
-                        saved += 1
-
-        return saved, skipped
+        """Use the shared pair-level Equity live sync."""
+        from apps.macro.services.equity import refresh_equity
+        result = refresh_equity(recalculate=False)
+        missing = result.get("missing_pairs", [])
+        return result["points_saved"], ("No observations returned for: " + ", ".join(missing)) if missing else None
 
     @classmethod
     def _sync_current_account(cls) -> tuple[int, Optional[str]]:

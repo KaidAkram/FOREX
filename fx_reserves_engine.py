@@ -20,6 +20,8 @@ PAIRS = [
     ('USD/CAD', 'United States', 'Canada'),
     ('USD/CHF', 'United States', 'Switzerland'),
     ('NZD/USD', 'New Zealand', 'United States'),
+    ('USD/AUD', 'United States', 'Australia'),
+    ('USD/NZD', 'United States', 'New Zealand'),
     ('EUR/JPY', 'Euro Area', 'Japan'),
     ('GBP/JPY', 'United Kingdom', 'Japan'),
     ('EUR/GBP', 'Euro Area', 'United Kingdom'),
@@ -27,6 +29,7 @@ PAIRS = [
     ('AUD/JPY', 'Australia', 'Japan'),
     ('CAD/JPY', 'Canada', 'Japan'),
     ('CHF/JPY', 'Switzerland', 'Japan'),
+    ('NZD/JPY', 'New Zealand', 'Japan'),
     ('EUR/AUD', 'Euro Area', 'Australia'),
     ('EUR/CAD', 'Euro Area', 'Canada'),
     ('EUR/NZD', 'Euro Area', 'New Zealand'),
@@ -37,6 +40,9 @@ PAIRS = [
     ('AUD/CAD', 'Australia', 'Canada'),
     ('AUD/CHF', 'Australia', 'Switzerland'),
     ('AUD/NZD', 'Australia', 'New Zealand'),
+    ('CAD/CHF', 'Canada', 'Switzerland'),
+    ('NZD/CAD', 'New Zealand', 'Canada'),
+    ('NZD/CHF', 'New Zealand', 'Switzerland'),
 ]
 
 # Rating lookup grid from EXCEL8EXAMPLE.xlsx (Cols BK & BL)
@@ -50,140 +56,39 @@ def rate_fx_spread(spread):
     idx = min(range(len(BK_SPREAD)), key=lambda i: abs(BK_SPREAD[i] - clamped))
     return int(BL_RATING[idx])
 
-def build_fx_dataset():
+def build_fx_dataset(start_year=2022):
+    """Fetch official observations and keep the existing differential/rating math.
+
+    A transport/parse failure is an error, never a successful Excel refresh.
+    The calendar expands automatically; releases are determined by IMF values.
     """
-    Builds authoritative FX Reserves dataset:
-    - Reads raw data from EXCEL8EXAMPLE.xlsx (Cols B to BI, 2022-01 to 2026-12)
-    - Enriches with official live IMF SDMX API data preserving full floating-point precision (NO ceil/floor/round)
-    - Executes the 3-step calculation per 'Calcul du différentiel — FX Reserves Exchange.docx'
-    """
-    print("--- 1. Reading raw FX Reserves from EXCEL8EXAMPLE.xlsx ---")
-    excel_path = Path(__file__).resolve().parent / "EXCEL8EXAMPLE.xlsx"
-    wb = openpyxl.load_workbook(str(excel_path), data_only=True)
-    ws = wb['FX RESERVE DATA']
+    from imf_fx_reserves import fetch_observations
 
-    excel_name_map = {
-        'Australia': 'Australia',
-        'Canada': 'Canada',
-        'Japan': 'Japan',
-        'Switzerland': 'Switzerland',
-        'New Zealand': 'New Zealand',
-        'United Kingdom': 'United Kingdom',
-        'United States': 'United States',
-        'EURO AREA': 'Euro Area',
-    }
-
-    dates = [ws.cell(row=2, column=c).value for c in range(2, 62)]
-    date_strs = [d.strftime('%Y-%m') if hasattr(d, 'strftime') else str(d)[:7] for d in dates]
-
-    country_series = {}
-    for r in range(3, 11):
-        raw_name = ws.cell(row=r, column=1).value
-        std_name = excel_name_map.get(raw_name, raw_name)
-        vals = [ws.cell(row=r, column=c).value for c in range(2, 62)]
-        country_series[std_name] = pd.Series(vals, index=date_strs, dtype=float)
-
-    # Fetch live IMF SDMX API data for exact precision where available
-    print("--- 2. Querying Live IMF SDMX API (unrounded float data) ---")
-    imf_code_map = {
-        'USA': 'United States',
-        'EA20': 'Euro Area',
-        'G163': 'Euro Area',
-        'JPN': 'Japan',
-        'GBR': 'United Kingdom',
-        'AUS': 'Australia',
-        'CAN': 'Canada',
-        'CHE': 'Switzerland',
-        'NZL': 'New Zealand',
-        'SWE': 'Sweden',
-        'NOR': 'Norway',
-    }
-    try:
-        codes = '+'.join(['USA', 'EA20', 'JPN', 'GBR', 'AUS', 'CAN', 'CHE', 'NZL', 'SWE', 'NOR'])
-        url = f'https://api.imf.org/external/sdmx/3.0/data/dataflow/IMF.STA/IL/13.0.1/{codes}.RXF11FX_REVS.USD.M?c%5BTIME_PERIOD%5D=ge:2022-01-01&attributes=all&detail=full'
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode('utf-8'))
-        s0 = data['data']['structures'][0]
-        c_list = [c['id'] for c in s0['dimensions']['series'][0]['values']]
-        periods = [t['value'] for t in s0['dimensions']['observation'][0]['values']]
-        series = data['data']['dataSets'][0]['series']
-
-        for s_key, s_data in series.items():
-            code = c_list[int(s_key.split(':')[0])]
-            std_name = imf_code_map.get(code)
-            if not std_name: continue
-            if std_name not in country_series:
-                country_series[std_name] = pd.Series(index=date_strs, dtype=float)
-            obs = s_data.get('observations', {})
-            for k, v in obs.items():
-                p_str = periods[int(k)].replace('-M', '-')
-                if p_str in country_series[std_name].index and v[0] is not None:
-                    # Exact float: USD Millions without floor or ceil
-                    country_series[std_name].loc[p_str] = float(v[0]) / 1e6
-        print("  -> Live IMF SDMX API data successfully incorporated.")
-    except Exception as e:
-        print(f"  -> Note: IMF SDMX API query ({e}). Using Excel baseline.")
-
-    df_raw = pd.DataFrame(country_series)
-    
-    # Enforce authoritative official IMF publication cutoffs:
-    # Euro Area: published only through 2026-01
-    if 'Euro Area' in df_raw.columns:
-        df_raw.loc[df_raw.index > '2026-01', 'Euro Area'] = np.nan
-    # Switzerland: published only through 2026-08
-    if 'Switzerland' in df_raw.columns:
-        df_raw.loc[df_raw.index > '2026-08', 'Switzerland'] = np.nan
-    # All other countries: published only through 2026-09 (no forecasts exist on IMF)
-    for col in df_raw.columns:
-        if col not in ['Euro Area', 'Switzerland']:
-            df_raw.loc[df_raw.index > '2026-09', col] = np.nan
-
-    print("--- 3. Executing 3-Step FX Reserves Math ---")
-    # Étape 1: Variation mensuelle (Reserves(N) - Reserves(N-1))
-    df_delta = df_raw.diff()
-
-    # Étape 2: Moyenne glissante sur 12 mois
-    df_avg12 = df_delta.rolling(window=12, min_periods=12).mean()
-
-    # Étape 3: Différentiel entre les pays (Base - Quote) & Rating
+    country_raw, metadata = fetch_observations(start_year)
+    last_month = datetime.date.today().strftime('%Y-%m')
+    date_strs = pd.period_range(f'{start_year}-01', last_month, freq='M').astype(str).tolist()
+    df_raw = pd.DataFrame({name: pd.Series(points, dtype=float) for name, points in country_raw.items()}).reindex(date_strs)
+    df_raw.attrs['imf_refresh'] = metadata
+    df_avg12 = df_raw.diff().rolling(window=12, min_periods=12).mean()
     pair_results = {}
     for pair_name, base_c, quote_c in PAIRS:
-        if base_c in df_avg12.columns and quote_c in df_avg12.columns:
-            base_flows = df_avg12[base_c]
-            quote_flows = df_avg12[quote_c]
-            spreads = base_flows - quote_flows
-            ratings = spreads.apply(rate_fx_spread)
-
-            pair_res = {}
-            for ym in date_strs:
-                if ym >= '2023-01': # 48 months from 2023-01 to 2026-12
-                    b_f = base_flows.loc[ym] if ym in base_flows.index else None
-                    q_f = quote_flows.loc[ym] if ym in quote_flows.index else None
-                    sp = spreads.loc[ym] if ym in spreads.index else None
-                    rt = ratings.loc[ym] if ym in ratings.index else None
-                    pair_res[ym] = {
-                        'base_flow': float(b_f) if pd.notna(b_f) else None,
-                        'quote_flow': float(q_f) if pd.notna(q_f) else None,
-                        'spread': float(sp) if pd.notna(sp) else None,
-                        'rating': int(rt) if pd.notna(rt) else 0,
-                    }
-            pair_results[pair_name] = pair_res
-
-    country_results = {}
-    country_flow_results = {}
-    for c_name in df_raw.columns:
-        c_raw = {}
-        c_flow = {}
-        for ym in date_strs:
-            v = df_raw.loc[ym, c_name]
-            f = df_avg12.loc[ym, c_name]
-            c_raw[ym] = float(v) if pd.notna(v) else None
-            c_flow[ym] = float(f) if pd.notna(f) else None
-        country_results[c_name] = c_raw
-        country_flow_results[c_name] = c_flow
-
-    return df_raw, df_avg12, pair_results, country_results, country_flow_results
+        if base_c not in df_avg12 or quote_c not in df_avg12:
+            continue
+        spreads = df_avg12[base_c] - df_avg12[quote_c]
+        pair_results[pair_name] = {
+            month: {
+                'base_flow': float(df_avg12.at[month, base_c]) if pd.notna(df_avg12.at[month, base_c]) else None,
+                'quote_flow': float(df_avg12.at[month, quote_c]) if pd.notna(df_avg12.at[month, quote_c]) else None,
+                'spread': float(spreads.at[month]) if pd.notna(spreads.at[month]) else None,
+                'rating': rate_fx_spread(spreads.at[month]),
+            }
+            for month in date_strs if month >= f'{start_year + 1}-01'
+        }
+    country_flow = {
+        name: {month: float(value) if pd.notna(value) else None for month, value in column.items()}
+        for name, column in df_avg12.items()
+    }
+    return df_raw, df_avg12, pair_results, country_raw, country_flow
 
 if __name__ == "__main__":
     df_raw, df_avg12, pair_res, c_raw, c_flow = build_fx_dataset()

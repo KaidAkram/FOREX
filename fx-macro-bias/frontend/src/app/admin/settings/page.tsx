@@ -37,6 +37,8 @@ import {
 import { clsx } from "clsx";
 import confetti from "canvas-confetti";
 import { useLanguage } from "@/context/LanguageContext";
+import { settingsApi } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { playClickSound, playSuccessSound, playTabSound } from "@/lib/soundEffects";
 import { soundFX } from "@/lib/soundEngine";
@@ -67,6 +69,8 @@ const DATA_SOURCES = [
 ];
 
 export default function AdminSettingsPage() {
+  const queryClient = useQueryClient();
+  const [scraperError, setScraperError] = useState("");
   const { lang, setLang, t } = useLanguage();
   const { admin2FAEnabled, setAdmin2FAEnabled } = useAuth();
 
@@ -134,18 +138,40 @@ export default function AdminSettingsPage() {
     }, 350);
   };
 
-  const handleRunScraper = () => {
+  const handleRunScraper = async () => {
     playClickSound();
     setIsScrapingNow(true);
     setScrapeSuccess(false);
+    setScraperError("");
 
-    setTimeout(() => {
-      setIsScrapingNow(false);
+    try {
+      const response = await settingsApi.runScraper();
+      const indicators = response.data?.indicators || {};
+      if (
+        !response.data?.success ||
+        response.data?.status !== "SUCCESS" ||
+        indicators.fx_reserves?.status === "ERROR" ||
+        indicators.equity?.status === "ERROR"
+      ) {
+        throw new Error(
+          indicators.fx_reserves?.error ||
+            indicators.equity?.error ||
+            response.data?.message ||
+            "The scraper did not complete successfully."
+        );
+      }
+      await queryClient.invalidateQueries({ queryKey: ["macroMatrixData"] });
+      await queryClient.invalidateQueries({ queryKey: ["scoreMatrix"] });
+      await queryClient.invalidateQueries({ queryKey: ["final-scores"] });
       setScrapeSuccess(true);
       playSuccessSound();
       confetti({ particleCount: 35, spread: 60, origin: { y: 0.3 } });
       setTimeout(() => setScrapeSuccess(false), 4000);
-    }, 1800);
+    } catch (error) {
+      setScraperError(error instanceof Error ? error.message : "The scraper request failed.");
+    } finally {
+      setIsScrapingNow(false);
+    }
   };
 
   const handlePingTelemetry = () => {
@@ -193,6 +219,11 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-fadeIn pb-24">
+      {scraperError && (
+        <p role="alert" className="rounded-xl border border-amber-400/30 p-4 text-sm text-amber-300">
+          {scraperError}
+        </p>
+      )}
       {/* ───────────────────────────────────────────────────────────────── */}
       {/* HEADER SECTION & ACTION BAR                                       */}
       {/* ───────────────────────────────────────────────────────────────── */}

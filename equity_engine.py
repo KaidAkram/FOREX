@@ -1,347 +1,320 @@
-import os
-import yfinance as yf
-import pandas as pd
-import numpy as np
+"""Equity Indicator calculation engine following Equity Indicator2.pdf.
+
+Methodology (3 steps per FX pair, daily OHLC candles):
+  1. Étape 1 — Base-currency primary equity index:
+       X = current / month-end close
+       Y = all-time high among green candles (Close > Open) up to that month
+       Change_Index = (X - Y) / Y
+  2. Étape 2 — Synthetic series (FX Pair * Base-Currency Equity Index):
+       Synthetic_Open  = Index_Open  * FX_Open
+       Synthetic_Close = Index_Close * FX_Close
+       Synthetic_High  = Index_High  * FX_High
+       Green synthetic candle: Synthetic_Close > Synthetic_Open
+       Change_{FXxIndex} = (X_synth - Y_synth) / Y_synth
+  3. Étape 3 — Final Equity Change:
+       Final = Change_{FXxIndex} - Change_Index   (Étape 2 - Étape 1)
+       Rating = rate_equity(Final)
+"""
+from __future__ import annotations
+
 import datetime
+import json
+import os
+from pathlib import Path
+
+import pandas as pd
+import yfinance as yf
+
+CACHE_VERSION = 2
 
 INDEX_TICKERS = {
     'USD': '^GSPC',       # S&P 500
     'EUR': '^STOXX50E',   # EURO STOXX 50
-    'CAD': '^GSPTSE',     # S&P/TSX
+    'CAD': '^GSPTSE',     # S&P/TSX Composite
     'JPY': '^N225',       # Nikkei 225
     'GBP': '^FTSE',       # FTSE 100
     'AUD': '^AXJO',       # S&P/ASX 200
     'CHF': '^SSMI',       # SMI
     'NZD': '^NZ50',       # S&P/NZX 50
-    'NOK': 'OSEBX.OL',    # OSEBX
+    'NOK': 'OSEBX.OL',    # Norway proxy (OBX.OL has only 1 day on Yahoo Finance)
     'SEK': '^OMX',        # OMXS30
 }
 
+# Canonical 28 G10 pairs + 2 legacy inverted aliases (AUD/USD, NZD/USD)
 FX_TICKERS = {
-    'USD JPY': ('USD', 'JPY=X'),
-    'USD CHF': ('USD', 'CHF=X'),
-    'USD CAD': ('USD', 'CAD=X'),
-    'EUR USD': ('EUR', 'EURUSD=X'),
-    'EUR JPY': ('EUR', 'EURJPY=X'),
-    'EUR CHF': ('EUR', 'EURCHF=X'),
-    'EUR GBP': ('EUR', 'EURGBP=X'),
-    'EUR CAD': ('EUR', 'EURCAD=X'),
-    'EUR AUD': ('EUR', 'EURAUD=X'),
-    'EUR NZD': ('EUR', 'EURNZD=X'),
-    'GBP USD': ('GBP', 'GBPUSD=X'),
-    'GBP JPY': ('GBP', 'GBPJPY=X'),
-    'GBP CHF': ('GBP', 'GBPCHF=X'),
-    'GBP CAD': ('GBP', 'GBPCAD=X'),
-    'GBP AUD': ('GBP', 'GBPAUD=X'),
-    'GBP NZD': ('GBP', 'GBPNZD=X'),
-    'CHF JPY': ('CHF', 'CHFJPY=X'),
-    'AUD USD': ('AUD', 'AUDUSD=X'),
-    'AUD CHF': ('AUD', 'AUDCHF=X'),
-    'AUD JPY': ('AUD', 'AUDJPY=X'),
-    'AUD NZD': ('AUD', 'AUDNZD=X'),
-    'AUD CAD': ('AUD', 'AUDCAD=X'),
-    'CAD JPY': ('CAD', 'CADJPY=X'),
-    'NZD USD': ('NZD', 'NZDUSD=X'),
+    'EUR/USD': ('EUR', 'EURUSD=X'),
+    'EUR/GBP': ('EUR', 'EURGBP=X'),
+    'EUR/JPY': ('EUR', 'EURJPY=X'),
+    'EUR/CHF': ('EUR', 'EURCHF=X'),
+    'EUR/CAD': ('EUR', 'EURCAD=X'),
+    'EUR/AUD': ('EUR', 'EURAUD=X'),
+    'EUR/NZD': ('EUR', 'EURNZD=X'),
+    'GBP/USD': ('GBP', 'GBPUSD=X'),
+    'GBP/JPY': ('GBP', 'GBPJPY=X'),
+    'GBP/CHF': ('GBP', 'GBPCHF=X'),
+    'GBP/CAD': ('GBP', 'GBPCAD=X'),
+    'GBP/AUD': ('GBP', 'GBPAUD=X'),
+    'GBP/NZD': ('GBP', 'GBPNZD=X'),
+    'USD/JPY': ('USD', 'JPY=X'),
+    'USD/CHF': ('USD', 'CHF=X'),
+    'USD/CAD': ('USD', 'CAD=X'),
+    'USD/AUD': ('USD', 'USDAUD=X'),
+    'USD/NZD': ('USD', 'USDNZD=X'),
+    'CHF/JPY': ('CHF', 'CHFJPY=X'),
+    'CAD/JPY': ('CAD', 'CADJPY=X'),
+    'AUD/JPY': ('AUD', 'AUDJPY=X'),
+    'NZD/JPY': ('NZD', 'NZDJPY=X'),
+    'CAD/CHF': ('CAD', 'CADCHF=X'),
+    'AUD/CHF': ('AUD', 'AUDCHF=X'),
+    'NZD/CHF': ('NZD', 'NZDCHF=X'),
+    'AUD/CAD': ('AUD', 'AUDCAD=X'),
+    'NZD/CAD': ('NZD', 'NZDCAD=X'),
+    'AUD/NZD': ('AUD', 'AUDNZD=X'),
+    'AUD/USD': ('AUD', 'AUDUSD=X'),
+    'NZD/USD': ('NZD', 'NZDUSD=X'),
 }
 
-BJ_GRID = [0.25, 0.20, 0.18, 0.16, 0.14, 0.12, 0.10, 0.08, 0.06, 0.04, 0.02, 0.00,
-           -0.02, -0.04, -0.06, -0.08, -0.10, -0.12, -0.14, -0.16, -0.18, -0.20, -0.25]
-BK_GRID = [2, 3, 5, 7, 9, 10, 9, 7, 5, 3, 2, 0,
-           -2, -3, -5, -7, -9, -10, -9, -7, -5, -3, -2]
+COUNTRY_INDEX_MAP = {
+    'United States': 'USD',
+    'Euro Area': 'EUR',
+    'Japan': 'JPY',
+    'United Kingdom': 'GBP',
+    'Canada': 'CAD',
+    'Australia': 'AUD',
+    'Switzerland': 'CHF',
+    'New Zealand': 'NZD',
+    'Norway': 'NOK',
+    'Sweden': 'SEK',
+}
+
+BJ_GRID = [
+    0.25, 0.20, 0.18, 0.16, 0.14, 0.12, 0.10, 0.08, 0.06, 0.04, 0.02, 0.00,
+    -0.02, -0.04, -0.06, -0.08, -0.10, -0.12, -0.14, -0.16, -0.18, -0.20, -0.25,
+]
+BK_GRID = [
+    2, 3, 5, 7, 9, 10, 9, 7, 5, 3, 2, 0,
+    -2, -3, -5, -7, -9, -10, -9, -7, -5, -3, -2,
+]
+
+
+class EquityFetchError(RuntimeError):
+    """Raised when live Equity/FX market data cannot be retrieved or validated."""
+
 
 def rate_equity(diff):
-    if pd.isna(diff):
+    if diff is None or pd.isna(diff):
         return 0
     clamped = max(-0.25, min(0.25, float(diff)))
     idx = min(range(len(BJ_GRID)), key=lambda i: abs(BJ_GRID[i] - clamped))
     return int(BK_GRID[idx])
 
-def build_equity_dataset(use_cache=False, live_update=True):
-    import json
-    cache_path = os.path.join(os.path.dirname(__file__), 'equity_dataset_cache.json')
-    if use_cache and os.path.exists(cache_path):
-        if not live_update:
-            print(f"Loading cached Equity Dataset from {cache_path}...")
-            with open(cache_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return data['pairs'], data['countries']
 
-        print(f"Loading cached Equity Dataset and updating continuous live market candles...")
-        try:
-            with open(cache_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            pairs_data = data['pairs']
-            countries_data = data['countries']
+def _clean_ohlc_frame(df):
+    if df is None or df.empty:
+        return pd.DataFrame(columns=['Open', 'High', 'Close'])
+    sub = df[['Open', 'High', 'Close']].copy()
+    sub = sub.dropna(subset=['Open', 'High', 'Close'])
+    sub = sub[(sub['Open'] > 0) & (sub['High'] > 0) & (sub['Close'] > 0)]
+    if sub.empty:
+        return sub
+    idx = pd.to_datetime(sub.index)
+    if getattr(idx, 'tz', None) is not None:
+        idx = idx.tz_localize(None)
+    sub.index = idx.strftime('%Y-%m-%d')
+    sub = sub[~sub.index.duplicated(keep='last')].sort_index()
+    return sub
 
-            all_symbols = list(set(list(INDEX_TICKERS.values()) + [t[1] for t in FX_TICKERS.values()]))
-            df_recent = yf.download(all_symbols, period='2mo', interval='1d', group_by='ticker', progress=False)
 
-            index_dfs = {}
-            for code, ticker in INDEX_TICKERS.items():
-                if ticker in df_recent:
-                    sub = df_recent[ticker].dropna(how='all').copy()
-                    sub.index = pd.to_datetime(sub.index).tz_localize(None).strftime('%Y-%m-%d')
-                    sub['is_green'] = sub['Close'] > sub['Open']
-                    index_dfs[code] = sub
-
-            fx_dfs = {}
-            for pair, (base, fx_ticker) in FX_TICKERS.items():
-                if fx_ticker in df_recent:
-                    sub = df_recent[fx_ticker].dropna(how='all').copy()
-                    sub.index = pd.to_datetime(sub.index).tz_localize(None).strftime('%Y-%m-%d')
-                    fx_dfs[pair] = sub
-
-            cur_ym = "2026-10"
-
-            # 1. Update Pairs continuously with live market candles
-            for pair, (base_code, fx_ticker) in FX_TICKERS.items():
-                if base_code not in index_dfs or pair not in fx_dfs:
-                    continue
-                i_sub = index_dfs[base_code]
-                f_sub = fx_dfs[pair]
-                common_dates = sorted(list(set(i_sub.index).intersection(set(f_sub.index))))
-                if not common_dates:
-                    continue
-                oct_dates = [d for d in common_dates if d.startswith(cur_ym)]
-                if not oct_dates:
-                    continue
-
-                latest_date = oct_dates[-1]
-                s_close = float(i_sub.loc[latest_date, 'Close'] * f_sub.loc[latest_date, 'Close'])
-
-                prev_pt = pairs_data.get(pair, {}).get("2026-09", {})
-                base_ath = prev_pt.get('base_ath', float(i_sub.loc[latest_date, 'Close']))
-                synth_ath = prev_pt.get('synth_ath', float(s_close))
-
-                for d in oct_dates:
-                    if i_sub.loc[d, 'is_green'] and i_sub.loc[d, 'High'] > base_ath:
-                        base_ath = float(i_sub.loc[d, 'High'])
-                    d_s_open = i_sub.loc[d, 'Open'] * f_sub.loc[d, 'Open']
-                    d_s_close = i_sub.loc[d, 'Close'] * f_sub.loc[d, 'Close']
-                    d_s_high = i_sub.loc[d, 'High'] * f_sub.loc[d, 'High']
-                    if d_s_close > d_s_open and d_s_high > synth_ath:
-                        synth_ath = float(d_s_high)
-
-                base_cur = float(i_sub.loc[latest_date, 'Close'])
-                synth_cur = float(s_close)
-
-                change_index = (base_cur - base_ath) / base_ath
-                change_synth = (synth_cur - synth_ath) / synth_ath
-                final_change = change_index - change_synth
-                rating = rate_equity(final_change)
-
-                new_pt = {
-                    'synth_ath': synth_ath,
-                    'synth_cur': synth_cur,
-                    'change_synth': change_synth,
-                    'base_ath': base_ath,
-                    'base_cur': base_cur,
-                    'change_index': change_index,
-                    'final_change': final_change,
-                    'rating': rating,
-                }
-                if pair not in pairs_data:
-                    pairs_data[pair] = {}
-                pairs_data[pair][cur_ym] = new_pt
-                pairs_data[pair]["2026-11"] = dict(new_pt)
-                pairs_data[pair]["2026-12"] = dict(new_pt)
-
-            # 2. Update Countries continuously
-            country_index_map = {
-                'United States': 'USD',
-                'Euro Area': 'EUR',
-                'Japan': 'JPY',
-                'United Kingdom': 'GBP',
-                'Canada': 'CAD',
-                'Australia': 'AUD',
-                'Switzerland': 'CHF',
-                'New Zealand': 'NZD',
-                'Norway': 'NOK',
-                'Sweden': 'SEK',
-            }
-            for c_name, code in country_index_map.items():
-                if code not in index_dfs:
-                    continue
-                i_sub = index_dfs[code]
-                oct_dates = [d for d in i_sub.index if d.startswith(cur_ym)]
-                if not oct_dates:
-                    continue
-                latest_date = oct_dates[-1]
-                cur = float(i_sub.loc[latest_date, 'Close'])
-                ath = cur
-                for d in oct_dates:
-                    if i_sub.loc[d, 'is_green'] and i_sub.loc[d, 'High'] > ath:
-                        ath = float(i_sub.loc[d, 'High'])
-                val = round((cur - ath) / ath * 100, 4) if ath > 0 else 0.0
-                if c_name not in countries_data:
-                    countries_data[c_name] = {}
-                countries_data[c_name][cur_ym] = val
-                countries_data[c_name]["2026-11"] = val
-                countries_data[c_name]["2026-12"] = val
-
-            with open(cache_path, 'w', encoding='utf-8') as f:
-                json.dump({'pairs': pairs_data, 'countries': countries_data}, f, indent=2)
-
-            return pairs_data, countries_data
-        except Exception as e:
-            print(f"Warning: live continuous update failed, falling back to cached: {e}")
-            with open(cache_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return data['pairs'], data['countries']
-
-    print("Fetching historical daily candles for all Equity indices and FX pairs (per 1.docx)...")
-    all_symbols = list(set(list(INDEX_TICKERS.values()) + [t[1] for t in FX_TICKERS.values()]))
-    df_all = yf.download(all_symbols, start='2000-01-01', interval='1d', group_by='ticker', threads=True)
-
+def fetch_market_data():
+    """Fetch full daily OHLC history for all indices and FX pairs from Yahoo Finance."""
     index_dfs = {}
     for code, ticker in INDEX_TICKERS.items():
-        sub = df_all[ticker].dropna(how='all').copy()
-        sub.index = pd.to_datetime(sub.index).tz_localize(None).strftime('%Y-%m-%d')
-        sub['is_green'] = sub['Close'] > sub['Open']
-        index_dfs[code] = sub
+        try:
+            hist = yf.Ticker(ticker).history(period='max', interval='1d')
+            cleaned = _clean_ohlc_frame(hist)
+        except Exception as exc:
+            raise EquityFetchError(f"Failed to download index {code} ({ticker})") from exc
+        if cleaned.empty:
+            raise EquityFetchError(f"No historical OHLC candles returned for index {code} ({ticker})")
+        index_dfs[code] = cleaned
+
+    fx_symbols = sorted({t[1] for t in FX_TICKERS.values()})
+    try:
+        df_fx_all = yf.download(
+            fx_symbols,
+            start='1995-01-01',
+            interval='1d',
+            group_by='ticker',
+            progress=False,
+            threads=False,
+        )
+    except Exception as exc:
+        raise EquityFetchError("Failed to download FX daily OHLC candles") from exc
 
     fx_dfs = {}
-    for pair, (base, fx_ticker) in FX_TICKERS.items():
-        sub = df_all[fx_ticker].dropna(how='all').copy()
-        sub.index = pd.to_datetime(sub.index).tz_localize(None).strftime('%Y-%m-%d')
-        fx_dfs[pair] = sub
+    for pair, (_, fx_ticker) in FX_TICKERS.items():
+        try:
+            raw_fx = df_fx_all[fx_ticker] if len(fx_symbols) > 1 else df_fx_all
+            cleaned = _clean_ohlc_frame(raw_fx)
+        except Exception as exc:
+            raise EquityFetchError(f"Missing FX series {pair} ({fx_ticker})") from exc
+        if cleaned.empty:
+            raise EquityFetchError(f"No historical OHLC candles returned for FX pair {pair} ({fx_ticker})")
+        fx_dfs[pair] = cleaned
 
-    # Months to evaluate
-    all_months = []
-    for y in range(2023, 2027):
-        for m in range(1, 13):
-            all_months.append(f"{y}-{m:02d}")
+    return index_dfs, fx_dfs
 
-    # Result structure per pair
+
+def compute_equity_from_frames(index_dfs, fx_dfs, *, start_year=2023, today=None):
+    """Compute pair-level Equity indicators from clean daily OHLC DataFrames."""
+    today = today or datetime.datetime.now(datetime.timezone.utc).date()
+    current_ym = today.strftime('%Y-%m')
+    all_months = pd.period_range(f'{start_year}-01', current_ym, freq='M').astype(str).tolist()
+
+    prepared_indices = {}
+    for code, i_raw in index_dfs.items():
+        i_df = i_raw.copy()
+        i_df['is_green'] = i_df['Close'] > i_df['Open']
+        prepared_indices[code] = i_df
+
     results = {}
-    for pair, (base_code, fx_ticker) in FX_TICKERS.items():
-        i_df = index_dfs[base_code]
+    for pair, (base_code, _) in FX_TICKERS.items():
+        if base_code not in prepared_indices or pair not in fx_dfs:
+            continue
+        i_df = prepared_indices[base_code]
         f_df = fx_dfs[pair]
 
-        common_dates = sorted(list(set(i_df.index).intersection(set(f_df.index))))
+        common_dates = sorted(set(i_df.index).intersection(set(f_df.index)))
         if not common_dates:
             continue
 
         i_sub = i_df.loc[common_dates]
         f_sub = f_df.loc[common_dates]
 
-        # Synthetic Daily OHLC per 1.docx:
-        # SyntheticOpen = EquityOpen * FXOpen
-        # SyntheticClose = EquityClose * FXClose
-        # SyntheticHigh ≈ EquityHigh * FXHigh
-        # Green Synthetic Candle: SyntheticClose > SyntheticOpen
         s_open = i_sub['Open'] * f_sub['Open']
         s_close = i_sub['Close'] * f_sub['Close']
         s_high = i_sub['High'] * f_sub['High']
-        s_green = s_close > s_open
+        s_df = pd.DataFrame(
+            {
+                'Open': s_open,
+                'Close': s_close,
+                'High': s_high,
+                'is_green': s_close > s_open,
+            },
+            index=common_dates,
+        )
 
-        s_df = pd.DataFrame({
-            'Open': s_open,
-            'Close': s_close,
-            'High': s_high,
-            'is_green': s_green
-        }, index=common_dates)
+        i_months = i_df.index.str.slice(0, 7)
+        s_months = s_df.index.str.slice(0, 7)
 
         pair_data = {}
-        last_valid_data = None
-
         for ym in all_months:
-            past_days = [d for d in common_dates if d <= f"{ym}-31"]
-            cur_m_days = [d for d in common_dates if d.startswith(ym)]
+            i_cur_m = i_df.loc[i_months == ym]
+            i_past = i_df.loc[i_months <= ym]
+            s_cur_m = s_df.loc[s_months == ym]
+            s_past = s_df.loc[s_months <= ym]
 
-            if cur_m_days and past_days:
-                # Base index: last day Close and ATH over past green candles
-                base_cur = float(i_sub.loc[cur_m_days[-1], 'Close'])
-                past_i_green = i_sub.loc[past_days][i_sub.loc[past_days, 'is_green']]
-                base_ath = float(past_i_green['High'].max()) if not past_i_green.empty else base_cur
-                change_index = (base_cur - base_ath) / base_ath
+            if i_cur_m.empty or s_cur_m.empty:
+                continue
 
-                # Synthetic: last day Close and ATH over past green synthetic candles
-                synth_cur = float(s_df.loc[cur_m_days[-1], 'Close'])
-                past_s_green = s_df.loc[past_days][s_df.loc[past_days, 'is_green']]
-                synth_ath = float(past_s_green['High'].max()) if not past_s_green.empty else synth_cur
-                change_synth = (synth_cur - synth_ath) / synth_ath
+            past_i_green = i_past[i_past['is_green']]
+            past_s_green = s_past[s_past['is_green']]
+            if past_i_green.empty or past_s_green.empty:
+                continue
 
-                # Final Equity Change & Rating: %a (Table 2: Base Index) - %b (Table 1: Synthetic)
-                final_change = change_index - change_synth
-                rating = rate_equity(final_change)
+            # Étape 1 — Base currency equity index vs accepted green-candle ATH
+            base_cur = float(i_cur_m['Close'].iloc[-1])
+            base_ath = float(past_i_green['High'].max())
+            if base_ath <= 0:
+                continue
+            change_index = (base_cur - base_ath) / base_ath
 
-                pt = {
-                    'synth_ath': synth_ath,
-                    'synth_cur': synth_cur,
-                    'change_synth': change_synth,
-                    'base_ath': base_ath,
-                    'base_cur': base_cur,
-                    'change_index': change_index,
-                    'final_change': final_change,
-                    'rating': rating,
-                }
-                pair_data[ym] = pt
-                last_valid_data = pt
-            else:
-                # Carry forward latest available data for future months (e.g. 2026-10..12)
-                if last_valid_data:
-                    pair_data[ym] = dict(last_valid_data)
+            # Étape 2 — Synthetic FX × Index vs accepted green-candle ATH
+            synth_cur = float(s_cur_m['Close'].iloc[-1])
+            synth_ath = float(past_s_green['High'].max())
+            if synth_ath <= 0:
+                continue
+            change_synth = (synth_cur - synth_ath) / synth_ath
+
+            # Étape 3 — Final Equity Change = Étape 2 − Étape 1 (Synthetic − Index)
+            final_change = change_synth - change_index
+            rating = rate_equity(final_change)
+
+            pair_data[ym] = {
+                'synth_ath': synth_ath,
+                'synth_cur': synth_cur,
+                'change_synth': change_synth,
+                'base_ath': base_ath,
+                'base_cur': base_cur,
+                'change_index': change_index,
+                'final_change': final_change,
+                'rating': rating,
+                'as_of_date': str(s_cur_m.index[-1]),
+                'is_provisional': ym == current_ym,
+            }
 
         results[pair] = pair_data
 
-    # Also compute Country-Level Index Change vs ATH
-    country_index_map = {
-        'United States': 'USD',
-        'Euro Area': 'EUR',
-        'Japan': 'JPY',
-        'United Kingdom': 'GBP',
-        'Canada': 'CAD',
-        'Australia': 'AUD',
-        'Switzerland': 'CHF',
-        'New Zealand': 'NZD',
-        'Norway': 'NOK',
-        'Sweden': 'SEK',
-    }
     country_results = {}
-    for c_name, code in country_index_map.items():
-        if code not in index_dfs:
+    for c_name, code in COUNTRY_INDEX_MAP.items():
+        if code not in prepared_indices:
             continue
-        i_df = index_dfs[code]
-        c_dates = list(i_df.index)
+        i_df = prepared_indices[code]
+        i_months = i_df.index.str.slice(0, 7)
         c_series = {}
-        last_val = None
         for ym in all_months:
-            past_days = [d for d in c_dates if d <= f"{ym}-31"]
-            cur_m_days = [d for d in c_dates if d.startswith(ym)]
-            if cur_m_days and past_days:
-                cur = float(i_df.loc[cur_m_days[-1], 'Close'])
-                past_green = i_df.loc[past_days][i_df.loc[past_days, 'is_green']]
-                ath = float(past_green['High'].max()) if not past_green.empty else cur
-                val = round((cur - ath) / ath * 100, 4)
-                c_series[ym] = val
-                last_val = val
-            elif last_val is not None:
-                c_series[ym] = last_val
+            i_cur_m = i_df.loc[i_months == ym]
+            i_past = i_df.loc[i_months <= ym]
+            past_green = i_past[i_past['is_green']]
+            if i_cur_m.empty or past_green.empty:
+                continue
+            cur = float(i_cur_m['Close'].iloc[-1])
+            ath = float(past_green['High'].max())
+            if ath > 0:
+                c_series[ym] = round((cur - ath) / ath * 100, 4)
         country_results[c_name] = c_series
-
-    # Save cache
-    try:
-        with open(cache_path, 'w', encoding='utf-8') as f:
-            json.dump({'pairs': results, 'countries': country_results}, f, indent=2)
-    except Exception as e:
-        print(f"Warning: could not write cache: {e}")
 
     return results, country_results
 
+
+def build_equity_dataset(use_cache=False, live_update=True, *, start_year=2023, today=None):
+    cache_path = Path(__file__).resolve().parent / 'equity_dataset_cache.json'
+    if use_cache and not live_update and cache_path.exists():
+        with open(cache_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if data.get('version') == CACHE_VERSION and 'pairs' in data:
+            return data['pairs'], data.get('countries', {})
+
+    index_dfs, fx_dfs = fetch_market_data()
+    results, country_results = compute_equity_from_frames(
+        index_dfs, fx_dfs, start_year=start_year, today=today
+    )
+    if not results:
+        raise EquityFetchError("Computed empty Equity pair dataset")
+
+    payload = {
+        'version': CACHE_VERSION,
+        'fetched_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'latest_month': max((max(m) for m in results.values() if m), default=None),
+        'pairs': results,
+        'countries': country_results,
+    }
+    with open(cache_path, 'w', encoding='utf-8') as f:
+        json.dump(payload, f, indent=2)
+
+    return results, country_results
+
+
 if __name__ == "__main__":
-    res, c_res = build_equity_dataset()
-    import json
-    with open('equity_frontend.json', 'w') as f:
-        json.dump({'pairs': res, 'countries': c_res}, f, indent=2)
-    print("   -> Successfully saved equity_frontend.json")
-
-    print("\n--- SAMPLE CALCULATED RESULTS FOR 2026-06 ---")
-    for p in ['EUR USD', 'USD JPY', 'GBP USD', 'USD CAD', 'AUD USD']:
-        pt = res[p]['2026-06']
-        print(f"{p:<10}: Base Index Chg={pt['change_index']*100:+.2f}% | Synth Chg={pt['change_synth']*100:+.2f}% | Final Chg={pt['final_change']*100:+.2f}% | Rating={pt['rating']:+d}")
-
-    print("\n--- SAMPLE CALCULATED RESULTS FOR 2026-09 ---")
-    for p in ['EUR USD', 'USD JPY', 'GBP USD', 'USD CAD', 'AUD USD']:
-        pt = res[p]['2026-09']
-        print(f"{p:<10}: Base Index Chg={pt['change_index']*100:+.2f}% | Synth Chg={pt['change_synth']*100:+.2f}% | Final Chg={pt['final_change']*100:+.2f}% | Rating={pt['rating']:+d}")
+    res, _ = build_equity_dataset(use_cache=False, live_update=True)
+    with open('equity_frontend.json', 'w', encoding='utf-8') as f:
+        json.dump({'pairs': res, 'countries': {}}, f, indent=2)
+    print(f"Computed {len(res)} FX pairs. Latest samples:")
+    for p in ['EUR/USD', 'USD/JPY', 'GBP/USD', 'USD/CAD', 'USD/AUD']:
+        months = sorted(res.get(p, {}))
+        for ym in months[-2:]:
+            pt = res[p][ym]
+            print(
+                f"  {p:<8} {ym}: Index={pt['change_index']*100:+.2f}% | "
+                f"Synth={pt['change_synth']*100:+.2f}% | Final={pt['final_change']*100:+.2f}% | R={pt['rating']:+d}"
+            )

@@ -1,11 +1,15 @@
 import axios from "axios";
 
-// In development, Next.js rewrites /api/* → http://localhost:8000/api/*
+// In development, Next.js rewrites /api/* → http://localhost:8001/api/*
 // In production, set NEXT_PUBLIC_API_URL
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const configuredBase = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+const BASE_URL = configuredBase.endsWith("/api") ? configuredBase : `${configuredBase}/api`;
 
 export const api = axios.create({
-  baseURL: `${BASE_URL}/api/admin`,
+  baseURL: `${BASE_URL}/admin`,
+  withCredentials: true,
+  xsrfCookieName: "csrftoken",
+  xsrfHeaderName: "X-CSRFToken",
   headers: {
     "Content-Type": "application/json",
     // Dev bypass: no Authorization header required
@@ -45,6 +49,8 @@ export const rulesApi = {
 
 export const macroDataApi = {
   matrix: (indicator: string) => api.get(`/macro-data/matrix?indicator=${indicator}`),
+  refreshFxReserves: () => api.post("/macro-data/fx-reserves/refresh", {}, { timeout: 180_000 }),
+  refreshEquity: () => api.post("/macro-data/equity/refresh", {}, { timeout: 180_000 }),
   manualEntry: (data: object) => api.post("/macro-data/manual-entry", data),
   differential: (pair: string, indicator: string) =>
     api.get(`/macro-data/differential?pair=${pair}&indicator=${indicator}`),

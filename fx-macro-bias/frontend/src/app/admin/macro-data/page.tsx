@@ -35,6 +35,9 @@ import { getCountryFlagUrl, formatCleanMacroPercent } from "@/lib/macroFormatter
 import { soundFX } from "@/lib/soundEngine";
 import { AnimatedMetricValue, GhostWireframeDissolve } from "@/components/motion/AnimatedNumberAndMorphChart";
 import { useLanguage } from "@/context/LanguageContext";
+import { macroDataApi } from "@/lib/api";
+import { fxRows, fxHistory, validateFxSnapshot, type FxSnapshot } from "@/lib/fxReservesLive";
+import { equitySnapshotToPairMap, validateEquitySnapshot, type EquitySnapshot } from "@/lib/equityLive";
 
 const TABS = ["Matrice Macro", "Différentiels & Notes"];
 const YEARS = MACRO_YEARS;
@@ -156,10 +159,16 @@ function formatMacroCellDisplay(
 export default function MacroDataPage() {
   const { lang, t } = useLanguage();
   const queryClient = useQueryClient();
+  const [fxSnapshot, setFxSnapshot] = useState<FxSnapshot | null>(null);
+  const [fxRefreshing, setFxRefreshing] = useState(false);
+  const [fxRefreshError, setFxRefreshError] = useState("");
+  const [equitySnapshot, setEquitySnapshot] = useState<EquitySnapshot | null>(null);
+  const [equityRefreshing, setEquityRefreshing] = useState(false);
+  const [equityRefreshError, setEquityRefreshError] = useState("");
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [activeInd, setActiveInd] = useState("GDP");
   const [activePair, setActivePair] = useState(PAIRS[0].name);
-  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const [selectedYear, setSelectedYear] = useState<number>(SYSTEM_CURRENT_YEAR);
   const [countrySearch, setCountrySearch] = useState("");
   const [headerSearch, setHeaderSearch] = useState("");
 
@@ -194,6 +203,18 @@ export default function MacroDataPage() {
   const fetchMatrixData = async (indicator: string, year: number) => {
     // 1. Preload local verified dataset from MASTER_MACRO_DATABASE (100% matched to EXCEL8EXAMPLE.xlsx & Official APIs)
     const localBaseline = getMacroMatrixData(indicator, year);
+    if (indicator === "FX Reserves") {
+      const response = await macroDataApi.matrix("fx_reserves");
+      const snapshot = validateFxSnapshot(response.data);
+      setFxSnapshot(snapshot);
+      return fxRows(snapshot, COUNTRIES, year, assumptions);
+    }
+    if (indicator === "Equity") {
+      const response = await macroDataApi.matrix("equity");
+      const snapshot = validateEquitySnapshot(response.data);
+      setEquitySnapshot(snapshot);
+      return [];
+    }
 
     try {
       const slugMap: Record<string, string> = {
@@ -302,19 +323,56 @@ export default function MacroDataPage() {
     }));
   };
 
-  const { data: matrixData, isLoading: matrixLoading } = useQuery({
+  const { data: matrixData, isLoading: matrixLoading, error: matrixError } = useQuery({
     queryKey: ["macroMatrixData", activeInd, selectedYear, assumptions],
     queryFn: () => fetchMatrixData(activeInd, selectedYear),
     staleTime: 120_000,
-    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: activeInd === "FX Reserves" || activeInd === "Equity",
+    refetchInterval: activeInd === "FX Reserves" || activeInd === "Equity" ? 60_000 : false,
+    placeholderData: activeInd === "FX Reserves" || activeInd === "Equity" ? undefined : (previousData) => previousData,
   });
 
-  const allMatrixRows = matrixData || [];
+  const allMatrixRows = matrixData || (activeInd === "FX Reserves" ? getMacroMatrixData(activeInd, selectedYear) : []);
+  const refreshFx = async () => {
+    setFxRefreshing(true);
+    setFxRefreshError("");
+    try {
+      const response = await macroDataApi.refreshFxReserves();
+      if (!response.data.success) throw new Error(response.data.error || "The IMF refresh failed.");
+      await queryClient.invalidateQueries({ queryKey: ["macroMatrixData"] });
+      await queryClient.invalidateQueries({ queryKey: ["scoreMatrix"] });
+      await queryClient.invalidateQueries({ queryKey: ["final-scores"] });
+    } catch (error) {
+      setFxRefreshError(error instanceof Error ? error.message : "The IMF refresh failed.");
+    } finally {
+      setFxRefreshing(false);
+    }
+  };
+  const refreshEquity = async () => {
+    setEquityRefreshing(true);
+    setEquityRefreshError("");
+    try {
+      const response = await macroDataApi.refreshEquity();
+      if (!response.data.success) throw new Error(response.data.error || "The live Equity refresh failed.");
+      await queryClient.invalidateQueries({ queryKey: ["macroMatrixData"] });
+      await queryClient.invalidateQueries({ queryKey: ["scoreMatrix"] });
+      await queryClient.invalidateQueries({ queryKey: ["final-scores"] });
+    } catch (error) {
+      setEquityRefreshError(error instanceof Error ? error.message : "The live Equity refresh failed.");
+    } finally {
+      setEquityRefreshing(false);
+    }
+  };
   const filteredMatrixRows = useMemo(() => {
     if (!countrySearch.trim()) return allMatrixRows;
     const q = countrySearch.toLowerCase();
     return allMatrixRows.filter(r => r.country.toLowerCase().includes(q));
   }, [allMatrixRows, countrySearch]);
+
+  const liveEquityMap = useMemo(
+    () => (activeInd === "Equity" && equitySnapshot ? equitySnapshotToPairMap(equitySnapshot) : undefined),
+    [activeInd, equitySnapshot]
+  );
 
   const diffRows = useMemo(() => {
     return CANONICAL_28_PAIRS.map(pairName => {
@@ -325,7 +383,13 @@ export default function MacroDataPage() {
         baseCountry: "",
         quoteCountry: ""
       };
-      const diffList = getCombinedDifferentialData(pairName, activeInd, selectedYear);
+      const diffList = getCombinedDifferentialData(
+        pairName,
+        activeInd,
+        selectedYear,
+        activeInd === "FX Reserves" && fxSnapshot ? fxHistory(fxSnapshot, COUNTRIES) : undefined,
+        liveEquityMap
+      );
       return {
         pair: pairName,
         base: pairDef.base,
@@ -335,7 +399,7 @@ export default function MacroDataPage() {
         data: diffList
       };
     });
-  }, [activeInd, selectedYear]);
+  }, [activeInd, selectedYear, fxSnapshot, liveEquityMap]);
 
   const filteredDiffRows = useMemo(() => {
     if (!countrySearch.trim()) return diffRows;
@@ -452,6 +516,61 @@ export default function MacroDataPage() {
     playClickSound();
   };
 
+  const isFx = activeInd === "FX Reserves";
+  const isEquity = activeInd === "Equity";
+  type MatrixCell = { value: number | string | null; status: "published" | "manual" | "missing"; isAssumption?: boolean };
+  const fxCells: MatrixCell[] = isFx ? allMatrixRows.flatMap((row) => row.data as MatrixCell[]) : [];
+  const fxPublished = fxCells.filter((cell) => cell.status === "published").length;
+  const fxMissing = fxCells.filter((cell) => cell.status === "missing").length;
+  const fxPublishedPercent = fxCells.length ? Math.round((100 * fxPublished) / fxCells.length) : 0;
+  const fxMissingPercent = fxCells.length ? Math.round((100 * fxMissing) / fxCells.length) : 0;
+  const fxLatest = fxSnapshot
+    ? fxSnapshot.rows
+        .flatMap((row) =>
+          Object.entries(row.cells)
+            .filter(
+              ([month, cell]) =>
+                month.startsWith(`${selectedYear}-`) &&
+                cell &&
+                ["published", "revised"].includes(cell.status) &&
+                cell.value !== null
+            )
+            .map(([month]) => month)
+        )
+        .sort()
+        .at(-1)
+    : allMatrixRows
+        .flatMap((row) =>
+          (row.data as MatrixCell[])
+            .map((cell, idx) =>
+              cell.status === "published" && cell.value !== null ? displayMonths[idx] : null
+            )
+            .filter((m): m is string => Boolean(m))
+        )
+        .sort()
+        .at(-1);
+  const fxCached = !fxSnapshot || !!matrixError || !!fxRefreshError || fxSnapshot.freshness?.status === "ERROR";
+
+  const eqCells = isEquity ? diffRows.flatMap((row) => row.data) : [];
+  const eqAvailable = eqCells.filter((cell) => !cell.isMissing).length;
+  const eqMissing = eqCells.filter((cell) => cell.isMissing).length;
+  const eqAvailablePercent = eqCells.length ? Math.round((100 * eqAvailable) / eqCells.length) : 0;
+  const eqMissingPercent = eqCells.length ? Math.round((100 * eqMissing) / eqCells.length) : 0;
+  const eqLatest = isEquity
+    ? diffRows
+        .flatMap((row) =>
+          row.data
+            .map((cell, idx) => (!cell.isMissing ? displayMonths[idx] : null))
+            .filter((m): m is string => Boolean(m))
+        )
+        .sort()
+        .at(-1)
+    : undefined;
+  const eqCached =
+    !equitySnapshot || !!matrixError || !!equityRefreshError || equitySnapshot.freshness?.status === "ERROR";
+
+  const isPairMatrixMode = isEquity || activeTab === "Différentiels & Notes";
+
   return (
     <div className="w-full max-w-[1600px] mx-auto p-3.5 sm:p-5 lg:p-6 xl:p-8 flex flex-col text-white font-sans">
       
@@ -460,7 +579,19 @@ export default function MacroDataPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       <AdminPageHeader
         eyebrow={t("macro.eyebrow")}
-        badgeText={t("macro.badge")}
+        badgeText={
+          isFx
+            ? fxCached
+              ? "Cached / unverified"
+              : fxMissing
+              ? "Partial publication coverage"
+              : "Published matrix coverage"
+            : isEquity
+            ? eqCached
+              ? "Pair-level • Local snapshot"
+              : "Pair-level • Live market sync"
+            : t("macro.badge")
+        }
         title={t("macro.title")}
         searchPlaceholder={t("macro.search_placeholder")}
         searchValue={headerSearch}
@@ -484,19 +615,85 @@ export default function MacroDataPage() {
         }
       />
 
+      {isFx && (
+        <div className="mb-4 rounded-xl border border-white/10 p-4 text-sm" aria-live="polite">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p>
+              {fxSnapshot?.freshness?.last_success_at
+                ? `Last successful IMF refresh: ${new Date(fxSnapshot.freshness.last_success_at).toLocaleString()}`
+                : "No live IMF backend refresh recorded in this browser session yet (displaying bundled snapshot if offline/unauthenticated)."}
+            </p>
+            <button
+              type="button"
+              onClick={refreshFx}
+              disabled={fxRefreshing}
+              className="rounded-lg border border-white/20 px-4 py-2 hover:bg-white/[0.06] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {fxRefreshing ? "Refreshing IMF…" : "Refresh IMF reserves"}
+            </button>
+          </div>
+          {(matrixError || fxRefreshError || fxSnapshot?.freshness?.status === "ERROR") && (
+            <p role="alert" className="mt-3 text-amber-300">
+              {fxRefreshError ||
+                (matrixError instanceof Error ? matrixError.message : fxSnapshot?.freshness?.error)}{" "}
+              The last available data is displayed; live backend refresh requires an authenticated staff session.
+            </p>
+          )}
+        </div>
+      )}
+
+      {isEquity && (
+        <div className="mb-4 rounded-xl border border-white/10 p-4 text-sm" aria-live="polite">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <p className="font-semibold text-white">
+                Pair-level Equity Model (Étape 2: FX × Base Index − Étape 1: Base Index)
+              </p>
+              <p className="text-xs text-slate-400">
+                Per Equity methodology, calculations apply directly to each FX pair (no country-level table).{" "}
+                {equitySnapshot?.freshness?.last_success_at
+                  ? `Last live market sync: ${new Date(equitySnapshot.freshness.last_success_at).toLocaleString()}`
+                  : "Using verified pair-level snapshot when backend session is unavailable."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={refreshEquity}
+              disabled={equityRefreshing}
+              className="rounded-lg border border-white/20 px-4 py-2 hover:bg-white/[0.06] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {equityRefreshing ? "Refreshing Equity…" : "Refresh live Equity"}
+            </button>
+          </div>
+          {(matrixError || equityRefreshError || equitySnapshot?.freshness?.status === "ERROR") && (
+            <p role="alert" className="mt-3 text-amber-300">
+              {equityRefreshError ||
+                (matrixError instanceof Error ? matrixError.message : equitySnapshot?.freshness?.error)}{" "}
+              Displaying verified pair calculations; live backend refresh requires an authenticated staff session.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 2. TOP KPI ROW (Non-clickable, hover-only, zero click active ring) */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
         
-        {/* KPI 1: Sovereign Economies */}
+        {/* KPI 1: Sovereign Economies / Pairs */}
         <CatalogueKPICard
-          title={t("macro.kpi_economies")}
-          value="8"
-          numericValue={8}
+          title={isEquity ? "Paires FX (G10)" : t("macro.kpi_economies")}
+          value={isFx ? String(COUNTRIES.length) : isEquity ? String(CANONICAL_28_PAIRS.length) : "8"}
+          numericValue={isFx ? COUNTRIES.length : isEquity ? CANONICAL_28_PAIRS.length : 8}
           decimals={0}
-          unit="G10"
-          subtitle={t("macro.kpi_economies_sub")}
+          unit={isEquity ? "Paires" : "G10"}
+          subtitle={
+            isFx
+              ? "Countries in this matrix"
+              : isEquity
+              ? "Calculated directly per FX pair"
+              : t("macro.kpi_economies_sub")
+          }
           variant="lime"
           icon={<Database size={14} />}
           bars={[50, 75, 80, 95]}
@@ -505,11 +702,23 @@ export default function MacroDataPage() {
         {/* KPI 2: Matrix Observations */}
         <CatalogueKPICard
           title={t("macro.kpi_observations")}
-          value="576"
-          numericValue={576}
+          value={
+            isFx
+              ? String(fxCells.length - fxMissing)
+              : isEquity
+              ? String(eqAvailable)
+              : "576"
+          }
+          numericValue={isFx ? fxCells.length - fxMissing : isEquity ? eqAvailable : 576}
           decimals={0}
           unit={lang === "fr" ? "Points Macro" : "Data Points"}
-          subtitle={t("macro.kpi_observations_sub")}
+          subtitle={
+            isFx
+              ? `${fxCells.length - fxMissing} / ${COUNTRIES.length * 12} cells available (${selectedYear})`
+              : isEquity
+              ? `${eqAvailable} / ${CANONICAL_28_PAIRS.length * 12} pair-months (${selectedYear})`
+              : t("macro.kpi_observations_sub")
+          }
           variant="sky"
           icon={<CheckCircle2 size={14} />}
           bars={[60, 70, 85, 100]}
@@ -518,26 +727,44 @@ export default function MacroDataPage() {
         {/* KPI 3: Published Data */}
         <CatalogueKPICard
           title={t("macro.kpi_published")}
-          value="75%"
-          numericValue={75}
+          value={isFx ? `${fxPublishedPercent}%` : isEquity ? `${eqAvailablePercent}%` : "75%"}
+          numericValue={isFx ? fxPublishedPercent : isEquity ? eqAvailablePercent : 75}
           decimals={0}
           suffix="%"
           unit={lang === "fr" ? "Officielles" : "Official"}
-          subtitle={t("macro.kpi_published_sub")}
+          subtitle={
+            isFx
+              ? fxLatest
+                ? `Latest published period: ${fxLatest}`
+                : "No confirmed publication in this year"
+              : isEquity
+              ? eqLatest
+                ? `Latest market period: ${eqLatest}`
+                : "No market data in this year"
+              : t("macro.kpi_published_sub")
+          }
           variant="emerald"
           icon={<Sparkles size={14} />}
           bars={[70, 75, 80, 75]}
         />
 
-        {/* KPI 4: Quant Estimates */}
+        {/* KPI 4: Awaiting publication */}
         <CatalogueKPICard
-          title={t("macro.kpi_calendar")}
-          value="25%"
-          numericValue={25}
+          title={isFx || isEquity ? "Awaiting publication" : t("macro.kpi_calendar")}
+          value={isFx ? `${fxMissingPercent}%` : isEquity ? `${eqMissingPercent}%` : "25%"}
+          numericValue={isFx ? fxMissingPercent : isEquity ? eqMissingPercent : 25}
           decimals={0}
           suffix="%"
-          unit="Projections"
-          subtitle={t("macro.kpi_calendar_sub")}
+          unit={isFx || isEquity ? "Missing" : "Projections"}
+          subtitle={
+            isFx
+              ? fxSnapshot
+                ? "Blank cells remain unpublished"
+                : "Unpublished months stay blank"
+              : isEquity
+              ? "Future months remain unpopulated"
+              : t("macro.kpi_calendar_sub")
+          }
           variant="purple"
           icon={<Calendar size={14} />}
           bars={[25, 25, 25, 25]}
@@ -609,12 +836,16 @@ export default function MacroDataPage() {
             </div>
             <div>
               <h2 className="text-base font-bold text-white tracking-tight">
-                {activeTab === "Matrice Macro"
+                {isEquity
+                  ? `Matrice Paires FX : ${INDICATOR_MAP[activeInd] || activeInd} (${selectedYear})`
+                  : activeTab === "Matrice Macro"
                   ? `Matrice Souveraine G10 : ${INDICATOR_MAP[activeInd] || activeInd} (${selectedYear})`
                   : `Différentiels & Notes G10 : ${INDICATOR_MAP[activeInd] || activeInd} (${selectedYear})`}
               </h2>
               <p className="text-xs font-mono text-slate-400">
-                {activeTab === "Matrice Macro"
+                {isEquity
+                  ? "Calcul direct par paire FX (Étape 2 : FX × Base Index − Étape 1 : Base Index, Green-Candle ATH) et barème [−10 à +10]"
+                  : activeTab === "Matrice Macro"
                   ? "Données mensuelles agrégées des banques centrales & instituts nationaux de statistiques"
                   : "Écarts bilatéraux (Base − Quote) et notation quantitative calibrée [−10 à +10] sur les 28 paires G10"}
               </p>
@@ -623,7 +854,7 @@ export default function MacroDataPage() {
 
           <div className="flex items-center gap-3 flex-wrap">
             {/* Precision Toggle Switcher with Cool Framer Motion Animation */}
-            {activeTab === "Matrice Macro" && (
+            {!isPairMatrixMode && (
               <div className="flex items-center gap-1 p-1 rounded-full bg-[#0A0B0F] border border-white/[0.08] shadow-inner relative">
                 <button
                   type="button"
@@ -681,7 +912,7 @@ export default function MacroDataPage() {
                 type="text"
                 value={countrySearch}
                 onChange={(e) => setCountrySearch(e.target.value)}
-                placeholder={activeTab === "Matrice Macro" ? "Filtrer un pays..." : "Filtrer une paire (ex. EUR/USD)..."}
+                placeholder={!isPairMatrixMode ? "Filtrer un pays..." : "Filtrer une paire (ex. EUR/USD)..."}
                 className="w-full bg-[#0A0B0F] border border-white/[0.08] rounded-full pl-8 pr-7 py-1.5 text-xs font-mono text-white placeholder:text-slate-500 focus:border-[#D4FF00]/50 focus:outline-none transition-all"
               />
               {countrySearch && (
@@ -695,7 +926,7 @@ export default function MacroDataPage() {
             </div>
 
             {/* Legend Badges */}
-            {activeTab === "Matrice Macro" ? (
+            {!isPairMatrixMode ? (
               <div className="flex items-center gap-3 text-xs font-mono text-slate-400 flex-wrap">
                 <div className="flex items-center gap-1.5" title="Donnée officielle publiée (Non modifiable)">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
@@ -732,8 +963,8 @@ export default function MacroDataPage() {
           </div>
         </div>
 
-        {/* TAB 1: Macro Data Matrix View (Scrollable across all 12 months with sticky left col) */}
-        {activeTab === "Matrice Macro" && (
+        {/* TAB 1: Macro Data Matrix View (Country × Month for macro indicators; Pair-only for Equity) */}
+        {!isPairMatrixMode && (
           <div className="w-full overflow-x-auto pb-2">
             <table className="w-full border-separate border-spacing-0 min-w-[1240px]">
               <thead>
@@ -872,8 +1103,8 @@ export default function MacroDataPage() {
           </div>
         )}
 
-        {/* TAB 2: Differential & Rating View across the 28 G10 pairs */}
-        {activeTab === "Différentiels & Notes" && (
+        {/* TAB 2 (or Pair-Level Equity Mode): Pair Differential & Rating View across the 28 G10 pairs */}
+        {isPairMatrixMode && (
           <div className="w-full overflow-x-auto pb-2">
             <table className="w-full border-separate border-spacing-0 min-w-[1240px]">
               <thead>
@@ -963,17 +1194,23 @@ export default function MacroDataPage() {
                             title={`Cliquer pour inspecter le calcul différentiel de ${row.pair} (${month})`}
                           >
                             <div className="flex flex-col items-center justify-center gap-1">
-                              {/* Rating Pill [-10 to +10] */}
-                              <span className={clsx(
-                                "font-mono text-xs font-bold px-2 py-0.5 rounded-full inline-flex items-center justify-center min-w-[34px] tabular-nums",
-                                rating > 0 
-                                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_8px_rgba(16,185,129,0.25)]" 
-                                  : rating < 0 
-                                  ? "bg-rose-500/15 text-rose-400 border border-rose-500/30 shadow-[0_0_8px_rgba(244,63,94,0.25)]" 
-                                  : "bg-white/[0.05] text-slate-400 border border-white/[0.08]"
-                              )}>
-                                {rating > 0 ? `+${rating}` : rating}
-                              </span>
+                              {/* Rating Pill [-10 to +10] or Missing */}
+                              {cell.isMissing ? (
+                                <span className="font-mono text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center justify-center min-w-[34px] bg-white/[0.04] text-slate-500 border border-white/[0.08]">
+                                  —
+                                </span>
+                              ) : (
+                                <span className={clsx(
+                                  "font-mono text-xs font-bold px-2 py-0.5 rounded-full inline-flex items-center justify-center min-w-[34px] tabular-nums",
+                                  rating > 0 
+                                    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_8px_rgba(16,185,129,0.25)]" 
+                                    : rating < 0 
+                                    ? "bg-rose-500/15 text-rose-400 border border-rose-500/30 shadow-[0_0_8px_rgba(244,63,94,0.25)]" 
+                                    : "bg-white/[0.05] text-slate-400 border border-white/[0.08]"
+                                )}>
+                                  {rating > 0 ? `+${rating}` : rating}
+                                </span>
+                              )}
 
                               {/* Bilateral Spread */}
                               <span className="font-mono text-[10px] text-slate-400 tabular-nums">
@@ -996,13 +1233,21 @@ export default function MacroDataPage() {
           <div className="flex items-center gap-2">
             <span>
               Affichage de <strong className="text-white">
-                {activeTab === "Matrice Macro" ? filteredMatrixRows.length : filteredDiffRows.length}
-              </strong> {activeTab === "Matrice Macro" ? "zones économiques souveraines G10" : "combinaisons de paires G10"}
+                {!isPairMatrixMode ? filteredMatrixRows.length : filteredDiffRows.length}
+              </strong> {!isPairMatrixMode ? "zones économiques souveraines G10" : "combinaisons de paires G10"}
             </span>
           </div>
           <span className="text-[#D4FF00] font-bold flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF00] animate-pulse" />
-            Couverture d'ingestion 100%
+            {isFx
+              ? fxCached
+                ? "Cached / unverified"
+                : `Published coverage ${fxPublishedPercent}%`
+              : isEquity
+              ? eqCached
+                ? `Pair-level snapshot ${eqAvailablePercent}%`
+                : `Live pair coverage ${eqAvailablePercent}%`
+              : "Couverture d'ingestion 100%"}
           </span>
         </div>
       </SculptedTableContainer>
@@ -1120,24 +1365,51 @@ export default function MacroDataPage() {
                 </span>
                 <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-1">
                   <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col">
-                    <span className="text-[10px] text-slate-400">{selectedDiffCell.baseCountry} (Base)</span>
-                    <span className="font-bold text-white text-sm mt-0.5">{selectedDiffCell.data.baseVal}</span>
+                    <span className="text-[10px] text-slate-400">
+                      {isEquity
+                        ? `Étape 2 : ${selectedDiffCell.pair} × Index`
+                        : `${selectedDiffCell.baseCountry} (Base)`}
+                    </span>
+                    <span className="font-bold text-white text-sm mt-0.5">
+                      {isEquity ? selectedDiffCell.data.quoteVal : selectedDiffCell.data.baseVal}
+                    </span>
                   </div>
                   <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col">
-                    <span className="text-[10px] text-slate-400">{selectedDiffCell.quoteCountry} (Quote)</span>
-                    <span className="font-bold text-white text-sm mt-0.5">{selectedDiffCell.data.quoteVal}</span>
+                    <span className="text-[10px] text-slate-400">
+                      {isEquity
+                        ? `Étape 1 : ${selectedDiffCell.baseCountry} Index`
+                        : `${selectedDiffCell.quoteCountry} (Quote)`}
+                    </span>
+                    <span className="font-bold text-white text-sm mt-0.5">
+                      {isEquity ? selectedDiffCell.data.baseVal : selectedDiffCell.data.quoteVal}
+                    </span>
                   </div>
                 </div>
 
+                {isEquity && selectedDiffCell.data.equityDetails?.base_ath != null && (
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-400">
+                    <div className="p-2 rounded-lg bg-white/[0.02] border border-white/5">
+                      Synth Cur: {Number(selectedDiffCell.data.equityDetails.synth_cur).toFixed(2)} • Green ATH: {Number(selectedDiffCell.data.equityDetails.synth_ath).toFixed(2)}
+                    </div>
+                    <div className="p-2 rounded-lg bg-white/[0.02] border border-white/5">
+                      Index Cur: {Number(selectedDiffCell.data.equityDetails.base_cur).toFixed(2)} • Green ATH: {Number(selectedDiffCell.data.equityDetails.base_ath).toFixed(2)}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs font-mono">
-                  <span className="text-slate-400">Écart ($Base − Quote$) :</span>
+                  <span className="text-slate-400">
+                    {isEquity ? "Final Equity Change (Étape 2 − Étape 1) :" : "Écart (Base − Quote) :"}
+                  </span>
                   <span className="font-bold text-white">{selectedDiffCell.data.diff}</span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs font-mono">
                   <span className="text-slate-300">Note Attribuée [−10 à +10] :</span>
                   <span className="font-bold text-emerald-400 text-sm">
-                    {selectedDiffCell.data.rating > 0 ? `+${selectedDiffCell.data.rating}` : selectedDiffCell.data.rating} / 10
+                    {selectedDiffCell.data.isMissing
+                      ? "—"
+                      : `${selectedDiffCell.data.rating > 0 ? `+${selectedDiffCell.data.rating}` : selectedDiffCell.data.rating} / 10`}
                   </span>
                 </div>
 

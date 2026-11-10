@@ -37,17 +37,9 @@ def fix_all_statuses():
         )
         print(f"Current Account: {p_count} set to published (Q2 omitted for UK & Euro Area)")
 
-        # 3. FX Reserves:
-        # Euro Area published only through 2026-01. Switzerland through 2026-08. Others through 2026-09.
-        # No forecasts exist on IMF - all official prints are published.
-        ind_fx = MacroIndicator.objects.get(slug="fx_reserves")
-        MacroDataPoint.objects.filter(country__name="Euro Area", indicator=ind_fx, month__gt=date(2026, 1, 1)).delete()
-        MacroDataPoint.objects.filter(country__name="Switzerland", indicator=ind_fx, month__gt=date(2026, 8, 1)).delete()
-        MacroDataPoint.objects.filter(indicator=ind_fx, month__gt=date(2026, 9, 1)).delete()
-        p_count = MacroDataPoint.objects.filter(indicator=ind_fx).update(
-            status=MacroDataPoint.Status.PUBLISHED
-        )
-        print(f"FX Reserves: {p_count} set to published (purged unpublished months)")
+        # FX release availability is determined by the live IMF sync.
+        # Never delete observations based on a historical publication cutoff.
+        print("FX Reserves: unchanged; use manage.py scrape_imf_fx for an official refresh")
 
         # 4. CPI Inflation:
         # All countries published through 2026-09. 2026-10..12 are forward forecasts.
@@ -70,15 +62,8 @@ def fix_all_statuses():
         )
         print(f"Interest Rate: {p_count} published (<= 2026-10), {f_count} forecast (> 2026-10)")
 
-        # 6. Equity: Real-time calculation through 2026-10. 2026-11 and 2026-12 are forecast.
-        ind_eq = MacroIndicator.objects.get(slug="equity")
-        p_count = MacroDataPoint.objects.filter(indicator=ind_eq, month__lte=date(2026, 10, 1)).update(
-            status=MacroDataPoint.Status.PUBLISHED
-        )
-        f_count = MacroDataPoint.objects.filter(indicator=ind_eq, month__gt=date(2026, 10, 1)).update(
-            status=MacroDataPoint.Status.FORECAST
-        )
-        print(f"Equity: {p_count} published (<= 2026-10), {f_count} forecast (> 2026-10)")
+        # 6. Equity: Pair-level calculation via manage.py scrape_equity (no country-level matrix).
+        print("Equity: unchanged; use manage.py scrape_equity for live pair-level refresh")
 
     print("Successfully corrected all macro publication statuses!")
 

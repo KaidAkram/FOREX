@@ -8,16 +8,86 @@ from rest_framework import status
 @api_view(["GET"])
 def macro_matrix(request):
     """
-    Country × Month matrix for a given indicator.
+    Country × Month matrix for a given indicator (or pair-level matrix for Equity).
     ?indicator=gdp  (default: gdp)
     """
-    from apps.macro.models import MacroDataPoint, MacroIndicator, Country
+    from datetime import date
+    import json
+    from pathlib import Path
+    from apps.macro.models import MacroDataPoint, MacroIndicator, Country, Differential, FXPair, SystemSetting
 
     indicator_slug = request.query_params.get("indicator", "gdp")
     try:
         indicator = MacroIndicator.objects.get(slug=indicator_slug)
     except MacroIndicator.DoesNotExist:
         return Response({"error": "Indicator not found."}, status=404)
+
+    months_set: set = set()
+    # The calendar must advance without editing source each year.
+    for m_idx in range(1, 13):
+        months_set.add(f"{date.today().year}-{m_idx:02d}")
+
+    if indicator.slug == "equity":
+        # Per Equity Indicator2.pdf, Equity is calculated directly per FX pair (no country table).
+        pairs = FXPair.objects.filter(is_active=True).select_related("base_currency", "quote_currency").order_by("symbol")
+        diffs = (
+            Differential.objects.filter(indicator=indicator, pair__is_active=True)
+            .select_related("pair", "rating")
+            .order_by("pair__symbol", "month")
+        )
+        cache_pairs = {}
+        cache_path = Path(__file__).resolve().parents[5] / "equity_dataset_cache.json"
+        if cache_path.exists():
+            try:
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    cache_pairs = json.load(f).get("pairs", {})
+            except Exception:
+                cache_pairs = {}
+
+        pair_map: dict = {}
+        for d in diffs:
+            month_str = d.month.strftime("%Y-%m")
+            months_set.add(month_str)
+            sym = d.pair.symbol
+            try:
+                rat_val = d.rating.rating_value
+            except Exception:
+                rat_val = None
+            cached_pt = (cache_pairs.get(sym) or cache_pairs.get(sym.replace("/", " ")) or {}).get(month_str, {})
+            pair_map.setdefault(sym, {})[month_str] = {
+                "change_index": d.base_value,
+                "change_synth": d.quote_value,
+                "final_change": d.difference,
+                "rating": rat_val,
+                "is_complete": d.is_complete,
+                "base_cur": cached_pt.get("base_cur"),
+                "base_ath": cached_pt.get("base_ath"),
+                "synth_cur": cached_pt.get("synth_cur"),
+                "synth_ath": cached_pt.get("synth_ath"),
+                "as_of_date": cached_pt.get("as_of_date"),
+                "is_provisional": cached_pt.get("is_provisional", False),
+            }
+
+        months = sorted(months_set)
+        pair_rows = [
+            {
+                "pair": p.symbol,
+                "base_currency": p.base_currency.iso_code,
+                "quote_currency": p.quote_currency.iso_code,
+                "cells": {m: pair_map.get(p.symbol, {}).get(m) for m in months},
+            }
+            for p in pairs
+        ]
+        refresh = SystemSetting.objects.filter(key="equity_refresh").first()
+        return Response({
+            "indicator": indicator.name,
+            "slug": indicator.slug,
+            "mode": "pair",
+            "months": months,
+            "rows": [],
+            "pair_rows": pair_rows,
+            "freshness": refresh.value if refresh else None,
+        })
 
     countries = Country.objects.filter(is_active=True).order_by("name")
     points = (
@@ -28,10 +98,6 @@ def macro_matrix(request):
 
     # Build {country_iso: {month_str: {value, status}}}
     matrix: dict = {}
-    months_set: set = set()
-    # Ensure all 12 months of live year (2026) are present
-    for m_idx in range(1, 13):
-        months_set.add(f"2026-{m_idx:02d}")
 
     for p in points:
         iso = p.country.iso_code
@@ -55,12 +121,16 @@ def macro_matrix(request):
         for c in countries
     ]
 
-    return Response({
+    payload = {
         "indicator": indicator.name,
         "slug": indicator.slug,
         "months": months,
         "rows": rows,
-    })
+    }
+    if indicator.slug == "fx_reserves":
+        refresh = SystemSetting.objects.filter(key="fx_reserves_refresh").first()
+        payload["freshness"] = refresh.value if refresh else None
+    return Response(payload)
 
 
 @api_view(["POST"])

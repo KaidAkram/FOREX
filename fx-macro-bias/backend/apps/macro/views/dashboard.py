@@ -82,7 +82,7 @@ def latest_data(request):
 @api_view(["GET"])
 def data_status(request):
     """Per-indicator data availability status."""
-    from apps.macro.models import MacroIndicator, MacroDataPoint
+    from apps.macro.models import MacroIndicator, MacroDataPoint, Differential
     from datetime import date
 
     today = date.today()
@@ -90,6 +90,29 @@ def data_status(request):
     result = []
 
     for ind in indicators:
+        if ind.slug == "equity":
+            latest_diff = (
+                Differential.objects.filter(indicator=ind, is_complete=True)
+                .order_by("-month")
+                .first()
+            )
+            if not latest_diff:
+                status = "Missing"
+                last_pub = None
+            else:
+                days_old = (today - latest_diff.month).days
+                status = "Updated" if days_old < 45 else "Pending"
+                last_pub = latest_diff.month
+            result.append({
+                "indicator": ind.name,
+                "slug": ind.slug,
+                "frequency": ind.get_frequency_display(),
+                "status": status,
+                "last_published": last_pub.strftime("%b %Y") if last_pub else None,
+                "next_expected": "—",
+            })
+            continue
+
         latest = (
             MacroDataPoint.objects.filter(indicator=ind, is_active_value=True)
             .order_by("-month")

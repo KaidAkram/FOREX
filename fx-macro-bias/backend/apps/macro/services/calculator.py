@@ -38,15 +38,28 @@ def calculate_differential(pair_id: int, indicator_id: int, month) -> "Different
 
     indicator = MacroIndicator.objects.get(pk=indicator_id)
     if indicator.slug == "equity":
-        # Equity is calculated directly for the FX pair (Synthetic Change vs Index Change)
+        # Equity is calculated directly per FX pair (Equity Indicator2.pdf):
+        # Final = Change_{FX×Index} (quote_value) - Change_{Index} (base_value)
         diff = Differential.objects.filter(
             pair_id=pair_id, indicator_id=indicator_id, month=month
         ).first()
         if diff and diff.base_value is not None and diff.quote_value is not None:
-            diff.difference = float(diff.base_value - diff.quote_value)
+            diff.difference = float(diff.quote_value) - float(diff.base_value)
             diff.is_complete = True
             diff.save()
             return diff
+        diff, _ = Differential.objects.update_or_create(
+            pair_id=pair_id,
+            indicator_id=indicator_id,
+            month=month,
+            defaults={
+                "base_value": None,
+                "quote_value": None,
+                "difference": None,
+                "is_complete": False,
+            },
+        )
+        return diff
 
     if indicator.slug == "fx_reserves":
         # 12-Month rolling average of monthly differences per 'Calcul du différentiel — FX Reserves Exchange.docx'
@@ -311,12 +324,17 @@ def recalculate_full_matrix() -> int:
     pairs = list(FXPair.objects.filter(is_active=True).select_related("base_currency", "quote_currency"))
     indicators = list(MacroIndicator.objects.filter(is_active=True))
     active_indicator_count = len(indicators)
-    months = list(
+    dp_months = set(
         MacroDataPoint.objects.filter(is_active_value=True)
         .values_list("month", flat=True)
         .distinct()
-        .order_by("month")
     )
+    eq_months = set(
+        Differential.objects.filter(indicator__slug="equity", is_complete=True)
+        .values_list("month", flat=True)
+        .distinct()
+    )
+    months = sorted(dp_months | eq_months)
 
     if not pairs or not months or not indicators:
         return 0
@@ -345,6 +363,7 @@ def recalculate_full_matrix() -> int:
     diffs_to_update = []
     ratings_to_create = []
     ratings_to_update = []
+    pending_ratings = []
     scores_to_create = []
     scores_to_update = []
 
@@ -369,11 +388,12 @@ def recalculate_full_matrix() -> int:
                     is_complete = False
 
                     if ind.slug == "equity":
-                        # Equity preserves pair-level differential
+                        # Equity is calculated per FX pair (Equity Indicator2.pdf):
+                        # Étape 3 = Change_{FX×Index} (quote_value) - Change_{Index} (base_value)
                         if diff_obj and diff_obj.base_value is not None and diff_obj.quote_value is not None:
                             base_val = float(diff_obj.base_value)
                             quote_val = float(diff_obj.quote_value)
-                            diff_val = round(base_val - quote_val, 4)
+                            diff_val = quote_val - base_val
                             is_complete = True
                     elif ind.slug == "fx_reserves":
                         # 12-month rolling average in memory
@@ -457,6 +477,9 @@ def recalculate_full_matrix() -> int:
                             rat_obj = Rating(differential=diff_obj, rating_value=rating_val)
                             ratings_to_create.append(rat_obj)
                             rating_map[diff_obj.pk] = rat_obj
+                    else:
+                        # New differentials receive IDs only after the batch insert.
+                        pending_ratings.append((diff_obj, rating_val))
 
                 # FinalScore calculation
                 is_score_complete = (n_complete == active_indicator_count and active_indicator_count > 0)
@@ -498,6 +521,10 @@ def recalculate_full_matrix() -> int:
         # Batch write to SQLite in transaction
         if diffs_to_create:
             Differential.objects.bulk_create(diffs_to_create, batch_size=500)
+            ratings_to_create.extend(
+                Rating(differential=diff_obj, rating_value=value)
+                for diff_obj, value in pending_ratings
+            )
         if diffs_to_update:
             Differential.objects.bulk_update(diffs_to_update, ["base_value", "quote_value", "difference", "is_complete"], batch_size=500)
 

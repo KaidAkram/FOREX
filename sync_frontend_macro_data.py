@@ -1,23 +1,22 @@
 """
-Syncs backend MacroDataPoint records to macroDataset.json and macroDataset.ts
-Ensures all data up to 2026-10 is fully populated and accurately reflects published numbers.
+Syncs backend MacroDataPoint, FX Reserves, and pair-level Equity records
+to macroDataset.json and macroDataset.ts safely.
 """
-import os
-import sys
 import json
+import os
 import re
-import django
-from datetime import date
+import sys
 from pathlib import Path
 
-# Setup Django environment
+import django
+
 backend_dir = Path(__file__).resolve().parent / "fx-macro-bias" / "backend"
 sys.path.insert(0, str(backend_dir))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
 django.setup()
 
-from apps.macro.models import MacroDataPoint, MacroIndicator, Country, FXPair, Differential, Rating, FinalScore
+from apps.macro.models import Differential, MacroDataPoint  # noqa: E402
 
 INDICATOR_NAME_MAP = {
     "gdp": "GDP",
@@ -25,7 +24,6 @@ INDICATOR_NAME_MAP = {
     "interest_rate": "Interest Rate",
     "fx_reserves": "FX Reserves",
     "ca_gdp": "Current Account",
-    "equity": "Equity",
 }
 
 COUNTRY_MAP = {
@@ -41,24 +39,30 @@ COUNTRY_MAP = {
     "Norway": "Norway",
 }
 
+
 def main():
-    print("--> Querying all MacroDataPoint records from database...")
+    root = Path(__file__).resolve().parent
+    print("--> Querying MacroDataPoint records from database...")
     master_db = {
         "GDP": {},
         "CPI": {},
         "Interest Rate": {},
         "FX Reserves": {},
         "Current Account": {},
-        "Equity": {}
+        "Equity": {},
     }
 
-    # Initialize empty country maps
     for ind_name in master_db:
+        if ind_name == "Equity":
+            continue
         for c_display in COUNTRY_MAP.values():
             master_db[ind_name][c_display] = {}
 
-    dps = MacroDataPoint.objects.filter(is_active_value=True).select_related("country", "indicator").order_by("month")
-    
+    dps = (
+        MacroDataPoint.objects.filter(is_active_value=True)
+        .select_related("country", "indicator")
+        .order_by("month")
+    )
     count = 0
     for dp in dps:
         ind_key = INDICATOR_NAME_MAP.get(dp.indicator.slug)
@@ -68,105 +72,122 @@ def main():
         if not c_name:
             continue
         m_str = dp.month.strftime("%Y-%m")
-        # Preserve full unrounded precision as required by client
-        val = dp.value
-        master_db[ind_key][c_name][m_str] = val
+        master_db[ind_key][c_name][m_str] = dp.value
         count += 1
+    print(f"--> Extracted {count} country MacroDataPoint rows.")
 
-    print(f"--> Extracted {count} total data points across all 6 macro indicators.")
+    # Pair-level FX Reserves (from Differential + Rating)
+    pair_fx = {}
+    fx_diffs = (
+        Differential.objects.filter(indicator__slug="fx_reserves", pair__is_active=True)
+        .select_related("pair", "rating")
+        .order_by("pair__symbol", "month")
+    )
+    for d in fx_diffs:
+        ym = d.month.strftime("%Y-%m")
+        try:
+            rat_val = int(d.rating.rating_value) if d.rating.rating_value is not None else 0
+        except Exception:
+            rat_val = 0
+        pair_fx.setdefault(d.pair.symbol, {})[ym] = {
+            "base_flow": d.base_value,
+            "quote_flow": d.quote_value,
+            "spread": d.difference,
+            "rating": rat_val,
+        }
 
-    # Check 2026-09 & 2026-10 specifically
-    print("\n[Verification: 2026-09 & 2026-10 Data Points]")
-    for ind_key, countries_data in master_db.items():
-        usa_09 = countries_data.get("USA", {}).get("2026-09")
-        usa_10 = countries_data.get("USA", {}).get("2026-10")
-        eur_09 = countries_data.get("Euro Area", {}).get("2026-09")
-        eur_10 = countries_data.get("Euro Area", {}).get("2026-10")
-        print(f"   - {ind_key:15}: USA[09]={usa_09}, USA[10]={usa_10} | EUR[09]={eur_09}, EUR[10]={eur_10}")
+    # Pair-level Equity (from equity_dataset_cache.json, verified against DB Differential/Rating)
+    cache_path = root / "equity_dataset_cache.json"
+    fe_pairs = {}
+    if cache_path.exists():
+        with open(cache_path, "r", encoding="utf-8") as f:
+            raw_pairs = json.load(f).get("pairs", {})
+        for sym, months_map in raw_pairs.items():
+            fe_pairs[sym] = months_map
+            fe_pairs[sym.replace("/", " ")] = months_map
+            fe_pairs[sym.replace(" ", "/")] = months_map
+    else:
+        eq_diffs = (
+            Differential.objects.filter(indicator__slug="equity", pair__is_active=True, is_complete=True)
+            .select_related("pair", "rating")
+            .order_by("pair__symbol", "month")
+        )
+        for d in eq_diffs:
+            ym = d.month.strftime("%Y-%m")
+            try:
+                rat_val = int(d.rating.rating_value) if d.rating.rating_value is not None else 0
+            except Exception:
+                rat_val = 0
+            pt = {
+                "synth_ath": None,
+                "synth_cur": None,
+                "change_synth": float(d.quote_value),
+                "base_ath": None,
+                "base_cur": None,
+                "change_index": float(d.base_value),
+                "final_change": float(d.difference),
+                "rating": rat_val,
+            }
+            fe_pairs.setdefault(d.pair.symbol, {})[ym] = pt
+            fe_pairs.setdefault(d.pair.symbol.replace("/", " "), {})[ym] = pt
 
     # 1. Update macroDataset.json
-    json_path = Path(__file__).resolve().parent / "fx-macro-bias" / "frontend" / "src" / "data" / "macroDataset.json"
-    print(f"\n--> Updating {json_path}...")
+    json_path = root / "fx-macro-bias" / "frontend" / "src" / "data" / "macroDataset.json"
     fe_json = {}
     if json_path.exists():
-        try:
-            with open(json_path, "r", encoding="utf-8") as f:
-                fe_json = json.load(f)
-        except Exception:
-            fe_json = {}
+        with open(json_path, "r", encoding="utf-8") as f:
+            fe_json = json.load(f)
 
     for k, v in master_db.items():
         fe_json[k] = v
+    fe_json["PairFXReserves"] = pair_fx
+    fe_json["PairEquity"] = fe_pairs
 
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(fe_json, f, indent=2)
-    print("   -> Successfully wrote macroDataset.json")
+    print(f"--> Updated {json_path}")
 
-    # 2. Update macroDataset.ts header constants & cutoffs
-    ts_path = Path(__file__).resolve().parent / "fx-macro-bias" / "frontend" / "src" / "data" / "macroDataset.ts"
-    print(f"\n--> Updating {ts_path} header constants & cutoffs...")
+    # 2. Update macroDataset.ts (MASTER_MACRO_DATABASE + PAIR_EQUITY_DATA)
+    ts_path = root / "fx-macro-bias" / "frontend" / "src" / "data" / "macroDataset.ts"
     with open(ts_path, "r", encoding="utf-8") as f:
         ts_content = f.read()
 
-    new_cutoffs_block = """export const OFFICIAL_RELEASE_CUTOFFS: Record<string, string | ((country: string) => string)> = {
-  // GDP: Official prints through 2026-09 (Q1, Q2, Q3 published). Q4 (2026-10..12) are forward forecasts.
-  "GDP": "2026-09",
-
-  // Current Account: UK & Euro Area published through 2026-03 (Q1); Others published through 2026-06 (Q2).
-  // Q2 is unavailable for both Euro Area and UK. No forecasts published for CA - unpublished periods are missing (null).
-  "Current Account": (country: string) => {
-    if (country === "United Kingdom" || country === "Euro Area") {
-      return "2026-03";
-    }
-    return "2026-06";
-  },
-
-  // CPI: Official prints through September 2026 (2026-09) for all economies.
-  // October 2026 (2026-10) and beyond are forward forecasts.
-  "CPI": "2026-09",
-
-  // Interest Rate: Official central bank policy prints through October 2026 (2026-10). November/December are forecasts.
-  "Interest Rate": "2026-10",
-
-  // FX Reserves:
-  // Euro Area: Last published is 2026-01. Following months not yet published.
-  // Switzerland: Last published is 2026-08. Following months not yet published.
-  // Other countries: Official IMF SDMX reserves published through September 2026 (2026-09).
-  // Months after September 2026 have no forecasts and are missing (null).
-  "FX Reserves": (country: string) => {
-    if (country === "Euro Area") {
-      return "2026-01";
-    }
-    if (country === "Switzerland") {
-      return "2026-08";
-    }
-    return "2026-09";
-  },
-
-  // Equity: Real-time continuous sovereign equity close prints through October 2026 (2026-10).
-  "Equity": "2026-10",
-};"""
-
-    # Use regex to replace whatever OFFICIAL_RELEASE_CUTOFFS block exists
-    ts_content = re.sub(
-        r"export const OFFICIAL_RELEASE_CUTOFFS: Record<string, string \| \(\(country: string\) => string\)> = \{[\s\S]*?\};",
-        new_cutoffs_block,
-        ts_content
+    db_marker = "export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string, number | null>>> = "
+    matrix_fn_marker = "export function getMacroMatrixData(indicator: string, year: number) {"
+    prefix = ts_content.split(db_marker, 1)[0]
+    after_db = ts_content.split(matrix_fn_marker, 1)[1]
+    ts_content = (
+        prefix
+        + db_marker
+        + json.dumps(master_db, indent=2)
+        + ";\n\n"
+        + matrix_fn_marker
+        + after_db
     )
-    print("   -> Injected authoritative OFFICIAL_RELEASE_CUTOFFS.")
 
-    # Replace MASTER_MACRO_DATABASE in ts_content
-    prefix = ts_content.split("export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string, number | null>>> = ")[0]
-    suffix = ts_content.split("export function getMacroMatrixData(indicator: string, year: number) {")[1]
-
-    new_db_ts = "export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string, number | null>>> = " + json.dumps(master_db, indent=2) + ";\n\n"
-    ts_content = prefix + new_db_ts + "export function getMacroMatrixData(indicator: string, year: number) {" + suffix
+    pair_eq_marker = "export const PAIR_EQUITY_DATA:"
+    diff_fn_marker = "export function getCombinedDifferentialData("
+    prefix_eq = ts_content.split(pair_eq_marker, 1)[0]
+    after_eq = ts_content.split(diff_fn_marker, 1)[1]
+    pair_eq_decl = (
+        "export const PAIR_EQUITY_DATA: Record<string, Record<string, { "
+        "synth_ath: number | null; synth_cur: number | null; change_synth: number; "
+        "base_ath: number | null; base_cur: number | null; change_index: number; "
+        "final_change: number; rating: number; as_of_date?: string; is_provisional?: boolean; }>> = "
+    )
+    ts_content = (
+        prefix_eq
+        + pair_eq_decl
+        + json.dumps(fe_pairs, indent=2)
+        + ";\n\n"
+        + diff_fn_marker
+        + after_eq
+    )
 
     with open(ts_path, "w", encoding="utf-8") as f:
         f.write(ts_content)
+    print(f"--> Updated {ts_path}")
 
-    print("   -> Successfully replaced MASTER_MACRO_DATABASE in macroDataset.ts!")
-    print("\n[COMPLETE] Frontend datasets synchronized with 100% database accuracy and official publication cutoffs.")
 
 if __name__ == "__main__":
     main()

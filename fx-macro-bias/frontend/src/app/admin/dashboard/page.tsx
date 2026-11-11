@@ -36,6 +36,7 @@ import {
 import { CurrencyFlag, FXPairFlags } from "@/components/ui/DopaminePrimitives";
 import { PeriodSelectorPopover } from "@/components/shell/PeriodSelectorPopover";
 import { MacroPublicationsHeader } from "@/components/dashboard/MacroPublicationsHeader";
+import { UpcomingEventsWidget } from "@/components/calendar/UpcomingEventsWidget";
 import {
   SPRING_WEIGHTLESS,
   dispatchUndoToast,
@@ -935,6 +936,9 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Live Upcoming Economic Announcements Widget (Biquote Now) */}
+      <UpcomingEventsWidget variant="header" href="/admin/calendar" />
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 2. TOP KPI ROW                                                     */}

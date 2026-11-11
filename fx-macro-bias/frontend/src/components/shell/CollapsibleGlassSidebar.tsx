@@ -19,11 +19,13 @@ import {
   SignOutIcon,
   MuteIcon,
   UnmuteIcon,
+  CalendarIcon,
 } from "@primer/octicons-react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { SPRING_WEIGHTLESS } from "@/lib/uxEngineeringStandards";
 import { soundFX } from "@/lib/soundEngine";
+import { UpcomingEventsWidget } from "@/components/calendar/UpcomingEventsWidget";
 
 export interface NavItemDef {
   id: string;
@@ -37,6 +39,7 @@ export const ADMIN_NAV_ITEMS: NavItemDef[] = [
   { id: "analytics", href: "/admin/analytics", label: "Analytique", icon: GraphIcon },
   { id: "rules", href: "/admin/rating-rules", label: "Règles de Notation", icon: SlidersIcon },
   { id: "macro", href: "/admin/macro-data", label: "Données Macro", icon: DatabaseIcon },
+  { id: "calendar", href: "/admin/calendar", label: "Calendrier Éco", icon: CalendarIcon },
   { id: "score", href: "/admin/final-score", label: "Score Final", icon: PulseIcon },
   { id: "catalog", href: "/admin/catalog", label: "Catalogue Utilisateur", icon: GlobeIcon },
   { id: "settings", href: "/admin/settings", label: "Paramètres", icon: GearIcon },
@@ -288,6 +291,20 @@ export function CollapsibleGlassSidebar({
           );
         })}
       </nav>
+
+      {/* COMPACT UPCOMING EVENTS WIDGET (SIDEBAR) */}
+      {!effectiveCollapsed && (
+        <div className="relative z-10 py-2">
+          <UpcomingEventsWidget
+            variant="sidebar"
+            href="/admin/calendar"
+            onOpenCalendar={() => {
+              if (onSelect) onSelect("calendar");
+              if (onCloseMobile) onCloseMobile();
+            }}
+          />
+        </div>
+      )}
 
       {/* BOTTOM PROFILE POD & LANGUAGE TOGGLE */}
       <div className="relative z-10 pt-3 border-t border-white/[0.06] flex flex-col gap-2">

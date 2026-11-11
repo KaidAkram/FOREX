@@ -60,6 +60,15 @@ const SUGGESTIONS: SuggestionItem[] = [
     badge: "Pipeline"
   },
   {
+    id: "nav-calendar",
+    category: "Pages",
+    title: "Economic Calendar (Biquote)",
+    description: "Real-time economic releases, impact levels, and upcoming announcements",
+    href: "/admin/calendar",
+    icon: Globe2,
+    badge: "Live"
+  },
+  {
     id: "nav-final-score",
     category: "Pages",
     title: "Final Score Matrix",

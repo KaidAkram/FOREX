@@ -21,6 +21,7 @@ import DashboardPage from "./dashboard/page";
 import AnalyticsPage from "./analytics/page";
 import RatingRulesPage from "./rating-rules/page";
 import MacroDataPage from "./macro-data/page";
+import AdminCalendarPage from "./calendar/page";
 import FinalScorePage from "./final-score/page";
 import AdminCatalogPage from "./catalog/page";
 import AdminSettingsPage from "./settings/page";
@@ -30,6 +31,7 @@ const MemoDashboard = React.memo(DashboardPage);
 const MemoAnalytics = React.memo(AnalyticsPage);
 const MemoRatingRules = React.memo(RatingRulesPage);
 const MemoMacroData = React.memo(MacroDataPage);
+const MemoCalendar = React.memo(AdminCalendarPage);
 const MemoFinalScore = React.memo(FinalScorePage);
 const MemoAdminCatalog = React.memo(AdminCatalogPage);
 const MemoAdminSettings = React.memo(AdminSettingsPage);
@@ -41,6 +43,7 @@ interface UndoToastData {
 }
 
 const getSectionFromPath = (path: string): string => {
+  if (path.includes("/admin/calendar")) return "calendar";
   if (path.includes("/admin/macro-data")) return "macro";
   if (path.includes("/admin/final-score")) return "score";
   if (path.includes("/admin/catalog")) return "catalog";
@@ -72,6 +75,7 @@ export default function AdminLayout({
     analytics: true,
     rules: true,
     macro: true,
+    calendar: true,
     score: true,
     catalog: true,
     settings: true,
@@ -303,6 +307,9 @@ export default function AdminLayout({
             <div id="workspace-macro" style={{ display: activeSection === "macro" ? "block" : "none" }}>
               <MemoMacroData />
             </div>
+            <div id="workspace-calendar" style={{ display: activeSection === "calendar" ? "block" : "none" }}>
+              <MemoCalendar />
+            </div>
             <div id="workspace-score" style={{ display: activeSection === "score" ? "block" : "none" }}>
               <MemoFinalScore />
             </div>
@@ -314,7 +321,7 @@ export default function AdminLayout({
             </div>
 
             {/* Fallback for other sub-routes (e.g. support) */}
-            {!["dashboard", "analytics", "rules", "macro", "score", "catalog", "settings"].includes(activeSection) && children}
+            {!["dashboard", "analytics", "rules", "macro", "calendar", "score", "catalog", "settings"].includes(activeSection) && children}
           </main>
         </div>
       </div>

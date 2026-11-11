@@ -102,6 +102,7 @@ export function CommandPaletteModal({
       setSelectedIndex(0);
       router.prefetch("/admin/final-score");
       router.prefetch("/admin/macro-data");
+      router.prefetch("/admin/calendar");
       router.prefetch("/admin/dashboard");
       router.prefetch("/admin/analytics");
       router.prefetch("/admin/rating-rules");
@@ -113,6 +114,7 @@ export function CommandPaletteModal({
 
   const SYSTEM_COMMANDS: SystemCommand[] = useMemo(
     () => [
+      { type: "command", label: "Ouvrir Calendrier Économique (Biquote)", icon: StackIcon, href: "/admin/calendar" },
       { type: "command", label: "Ouvrir Catalogue Utilisateur", icon: GlobeIcon, href: "/admin/catalog" },
       { type: "command", label: "Matrice Score Final (12M)", icon: PulseIcon, href: "/admin/final-score" },
       { type: "command", label: "Calibrer Règles de Notation", icon: SlidersIcon, href: "/admin/rating-rules" },

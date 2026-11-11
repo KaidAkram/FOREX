@@ -44,6 +44,8 @@ import {
 } from "@/data/userCatalogService";
 import { TraderPairCard, TraderPairData } from "@/components/trader/TraderPairCard";
 import { PairThesisDrawer } from "@/components/trader/PairThesisDrawer";
+import { EconomicCalendarView } from "@/components/calendar/EconomicCalendarView";
+import { UpcomingEventsWidget } from "@/components/calendar/UpcomingEventsWidget";
 
 // Generate organic 6-point sparkline ending at score
 function genSparkline(pair: string, score: number): number[] {
@@ -72,6 +74,7 @@ export default function TraderPortalPage() {
   const [currencyUniverse, setCurrencyUniverse] = useState<string>("Tous");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [activeTab, setActiveTab] = useState<"signals" | "calendar">("signals");
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -292,8 +295,45 @@ export default function TraderPortalPage() {
           </div>
         </div>
 
-        {/* Center-Right: Plan Switcher + Admin Portal + Search + Compact Profile */}
+        {/* Center-Right: Section Switch + Plan Switcher + Admin Portal + Search + Compact Profile */}
         <div className="flex items-center gap-3">
+          {/* 0. Section Switch: Signaux vs Calendrier */}
+          <div className="flex items-center rounded-full bg-white/[0.03] p-1 border border-white/[0.07] shadow-inner">
+            {(
+              [
+                { id: "signals" as const, label: "Signaux" },
+                { id: "calendar" as const, label: "Calendrier Éco" },
+              ]
+            ).map((tab) => {
+              const isTabActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    soundFX.playPop();
+                    setActiveTab(tab.id);
+                  }}
+                  className={`relative px-3 py-1.5 rounded-full text-xs font-sans font-semibold transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    isTabActive ? "text-[#07080C]" : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {isTabActive && (
+                    <motion.div
+                      layoutId="portal-workspace-tab"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                      className="absolute inset-0 rounded-full bg-[#D4FF00] shadow-[0_0_15px_rgba(212,255,0,0.3)] z-0"
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    {tab.id === "calendar" && <CalendarIcon size={12} />}
+                    <span>{tab.label}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* 1. Plan View Switcher (Basic | Pro) with Sliding Pill */}
           <div className="flex items-center rounded-full bg-white/[0.03] p-1 border border-white/[0.07] shadow-inner">
             {(["basic", "pro"] as const).map((t) => {
@@ -438,8 +478,19 @@ export default function TraderPortalPage() {
       {/* MAIN TRADER WORKSPACE                                             */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <main className="flex-1 max-w-[1600px] w-full mx-auto px-3.5 sm:px-6 py-5 sm:py-6 flex flex-col gap-5 sm:gap-6">
-        {/* ──────────────────────────────────────────────────────────── */}
-        {/* 3.2 SECTION 1: OPPORTUNITÉS CLÉS DU JOUR (TOP MOVERS HERO)  */}
+        {activeTab === "calendar" ? (
+          <EconomicCalendarView embedded />
+        ) : (
+          <>
+            {/* Live Upcoming Economic Announcements Widget (Biquote Now) */}
+            <UpcomingEventsWidget
+              variant="header"
+              onOpenCalendar={() => setActiveTab("calendar")}
+              className="mb-0"
+            />
+
+            {/* ──────────────────────────────────────────────────────────── */}
+            {/* 3.2 SECTION 1: OPPORTUNITÉS CLÉS DU JOUR (TOP MOVERS HERO)  */}
         {/* ──────────────────────────────────────────────────────────── */}
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -940,6 +991,8 @@ export default function TraderPortalPage() {
             </motion.div>
           )}
         </AnimatePresence>
+          </>
+        )}
       </main>
 
       {/* ══════════════════════════════════════════════════════════════════ */}

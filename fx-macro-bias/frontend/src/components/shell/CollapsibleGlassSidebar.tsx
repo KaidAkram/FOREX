@@ -37,10 +37,10 @@ export interface NavItemDef {
 export const ADMIN_NAV_ITEMS: NavItemDef[] = [
   { id: "dashboard", href: "/admin/dashboard", label: "Tableau de Bord", icon: AppsIcon },
   { id: "analytics", href: "/admin/analytics", label: "Analytique", icon: GraphIcon },
-  { id: "rules", href: "/admin/rating-rules", label: "Règles de Notation", icon: SlidersIcon },
-  { id: "macro", href: "/admin/macro-data", label: "Données Macro", icon: DatabaseIcon },
   { id: "calendar", href: "/admin/calendar", label: "Calendrier Éco", icon: CalendarIcon },
+  { id: "macro", href: "/admin/macro-data", label: "Données Macro", icon: DatabaseIcon },
   { id: "score", href: "/admin/final-score", label: "Score Final", icon: PulseIcon },
+  { id: "rules", href: "/admin/rating-rules", label: "Règles de Notation", icon: SlidersIcon },
   { id: "catalog", href: "/admin/catalog", label: "Catalogue Utilisateur", icon: GlobeIcon },
   { id: "settings", href: "/admin/settings", label: "Paramètres", icon: GearIcon },
 ];

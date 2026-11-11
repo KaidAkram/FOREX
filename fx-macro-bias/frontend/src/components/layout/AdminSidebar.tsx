@@ -15,7 +15,8 @@ import {
   Globe2,
   ExternalLink,
   X,
-  Zap
+  Zap,
+  Calendar
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
@@ -24,9 +25,10 @@ import { SPRING_SNAPPY } from "@/components/ui/DopaminePrimitives";
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Tableau de Bord", icon: LayoutDashboard },
   { href: "/admin/analytics", label: "Analytique", icon: LineChart },
-  { href: "/admin/rating-rules", label: "Règles de Notation", icon: SlidersHorizontal },
+  { href: "/admin/calendar", label: "Calendrier Éco", icon: Calendar },
   { href: "/admin/macro-data", label: "Données Macro", icon: Database },
   { href: "/admin/final-score", label: "Score Final", icon: Activity },
+  { href: "/admin/rating-rules", label: "Règles de Notation", icon: SlidersHorizontal },
   { href: "/admin/catalog", label: "Catalogue Utilisateur", icon: Globe2 },
   { href: "/admin/settings", label: "Paramètres", icon: Settings2 },
 ];

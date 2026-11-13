@@ -55,8 +55,13 @@ else:
             }
         }
     else:
-        from django.core.exceptions import ImproperlyConfigured
-        raise ImproperlyConfigured('Production requires persistent PostgreSQL: configure DATABASE_URL or DB_NAME.')
+        # Fallback to local SQLite for zero-cost / Free plan hosting
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
 
 # ──────────────────────────────────────────────
 # HTTPS & Transport Security (HSTS)

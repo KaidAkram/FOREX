@@ -17,7 +17,9 @@ def snapshot(request):
     if not version:
         return JsonResponse({'error': 'Initial data refresh is pending.'}, status=503)
     etag = '"' + version.value['version'] + '"'
-    response = HttpResponse(status=304) if request.headers.get('If-None-Match') == etag else HttpResponse(snapshot_body(version.value['version']), content_type='application/json')
+    inm = (request.headers.get('If-None-Match') or '').strip()
+    is_match = bool(inm and (inm == etag or inm == f'W/{etag}' or inm.strip('W/').strip('"') == version.value['version']))
+    response = HttpResponse(status=304) if is_match else HttpResponse(snapshot_body(version.value['version']), content_type='application/json')
     response['ETag'] = etag
     response['Cache-Control'] = 'public, max-age=0, must-revalidate'
     return response

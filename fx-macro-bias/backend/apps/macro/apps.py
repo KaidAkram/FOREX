@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 import os
+import sys
 
 class MacroConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
@@ -8,8 +9,9 @@ class MacroConfig(AppConfig):
     def ready(self):
         import apps.macro.signals  # noqa: F401
         
-        # When running in zero-cost / single-service mode without a dedicated worker
-        if os.environ.get("ENABLE_IN_PROCESS_SCHEDULER") == "true":
+        # Avoid running worker thread during build/management commands
+        is_management = any(cmd in sys.argv for cmd in ['check', 'migrate', 'collectstatic', 'makemigrations', 'test', 'shell', 'createsuperuser', 'bootstrap_macro'])
+        if not is_management and os.environ.get("ENABLE_IN_PROCESS_SCHEDULER", "true").lower() == "true":
             try:
                 from apps.macro.services.scheduler import start_background_scheduler
                 start_background_scheduler()

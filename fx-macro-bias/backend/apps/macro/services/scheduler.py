@@ -19,9 +19,13 @@ def queue_refresh(trigger_source='manual'):
 
 def acquire_lease(owner):
     now = timezone.now()
-    WorkerLease.objects.get_or_create(name='macro', defaults={'owner': '', 'expires_at': now, 'heartbeat_at': now})
-    return WorkerLease.objects.filter(name='macro', expires_at__lte=now).update(
-        owner=owner, expires_at=now + timedelta(seconds=120), heartbeat_at=now) == 1
+    try:
+        WorkerLease.objects.get_or_create(name='macro', defaults={'owner': '', 'expires_at': now, 'heartbeat_at': now})
+        return WorkerLease.objects.filter(name='macro', expires_at__lte=now).update(
+            owner=owner, expires_at=now + timedelta(seconds=120), heartbeat_at=now) == 1
+    except Exception as exc:
+        logger.warning(f"Database not ready for worker lease: {exc}")
+        return False
 
 def release_lease(owner):
     WorkerLease.objects.filter(name='macro', owner=owner).update(owner='', expires_at=timezone.now())

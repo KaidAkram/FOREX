@@ -20,8 +20,7 @@ services:
     runtime: python
     plan: free
     buildCommand: cd fx-macro-bias/backend && pip install -r requirements.txt && python manage.py collectstatic --noinput
-    preDeployCommand: cd fx-macro-bias/backend && python manage.py migrate --noinput && python manage.py bootstrap_macro --continuous
-    startCommand: cd fx-macro-bias/backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60
+    startCommand: cd fx-macro-bias/backend && python manage.py migrate --noinput && python manage.py bootstrap_macro --continuous && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION

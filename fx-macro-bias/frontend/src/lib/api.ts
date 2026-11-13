@@ -18,6 +18,30 @@ export const api = axios.create({
   timeout: 30_000,
 });
 
+let tokenRefresh: Promise<void> | null = null;
+api.interceptors.request.use(async (config) => {
+  if (typeof window === 'undefined') return config;
+  let token = sessionStorage.getItem('shiftfx_access');
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      if (payload.exp * 1000 < Date.now() + 60000) {
+        tokenRefresh ||= (async () => {
+          const response = await fetch('/api/auth/token/refresh/', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh:sessionStorage.getItem('shiftfx_refresh')})});
+          if (!response.ok) throw new Error('Administrator session expired. Please sign in again.');
+          const data = await response.json();
+          sessionStorage.setItem('shiftfx_access',data.access);
+          if (data.refresh) sessionStorage.setItem('shiftfx_refresh',data.refresh);
+        })().finally(() => {tokenRefresh = null;});
+        await tokenRefresh;
+        token = sessionStorage.getItem('shiftfx_access');
+      }
+    } catch {throw new Error('Administrator session expired. Please sign in again.');}
+    config.headers.Authorization = 'Bearer '+token;
+  }
+  return config;
+});
+
 // ── Response interceptor for consistent error handling ──
 api.interceptors.response.use(
   (response) => response,

@@ -1,4 +1,5 @@
 "use client";
+import {useLiveVersion} from "@/context/LiveDataContext";
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -60,6 +61,7 @@ function formatConciseCarry(carry: string): string {
 }
 
 export default function AdminCatalogPage() {
+  const liveVersion = useLiveVersion();
   const { lang, t } = useLanguage();
   const [signals, setSignals] = useState<TraderSignal[]>([]);
   const [config, setConfig] = useState<CatalogConfig | null>(null);
@@ -81,7 +83,7 @@ export default function AdminCatalogPage() {
     setConfig(loadedConfig);
     const loadedSignals = getTraderSignals();
     setSignals(loadedSignals);
-  }, []);
+  }, [liveVersion]);
 
   // Sync internal signals when config changes (Strictly Canonical 28 Pairs)
   const pairsList = useMemo(() => {

@@ -1,4 +1,6 @@
 "use client";
+import { useLiveVersion } from "@/context/LiveDataContext";
+import { getLiveSnapshot } from "@/lib/liveSnapshot";
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
@@ -387,6 +389,7 @@ function findLatestPublishedFromMatrix(
 }
 
 export default function DashboardPage() {
+  const liveVersion = useLiveVersion();
   const { lang, t } = useLanguage();
   const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentLiveMonthKey());
@@ -401,20 +404,15 @@ export default function DashboardPage() {
 
   // Live backend queries across Dashboard, Macro Matrices, Final Score, and Scheduler telemetry
   const { data: liveBundle, refetch: refetchDashboard } = useQuery({
-    queryKey: ["adminDashboardLiveBundle"],
+    queryKey: ["adminDashboardLiveBundle", liveVersion],
     queryFn: async () => {
-      const results = await Promise.allSettled([
-        dashboardApi.kpis(),
-        dashboardApi.dataStatus(),
-        api.get("/settings/scraper-status"),
-        macroDataApi.matrix("cpi"),
-        macroDataApi.matrix("interest_rate"),
-        macroDataApi.matrix("gdp"),
-        macroDataApi.matrix("fx_reserves"),
-        macroDataApi.matrix("ca_gdp"),
-        macroDataApi.matrix("equity"),
-        finalScoreApi.matrix(),
-      ]);
+      const snapshot = getLiveSnapshot();
+      if (!snapshot) throw new Error('Live snapshot unavailable');
+      const matrix = (label: string) => ({rows: Object.entries(snapshot.cells[label] || {}).map(([country,cells]) => ({country,cells})), freshness: label === 'FX Reserves' ? snapshot.freshness.fx_reserves_refresh : undefined});
+      const equity = {mode: 'pair', pair_rows: Object.entries(snapshot.equity).map(([pair,cells]) => ({pair,cells})), freshness: snapshot.freshness.equity_refresh};
+      const scoreMatrix = {rows: Object.entries(snapshot.scores).map(([pair,months]) => ({pair, cells: Object.fromEntries(Object.entries(months).map(([month,point]) => [month,{final_score: point.score === null ? null : point.score/10, is_complete: point.is_complete}]))}))};
+      const values = [undefined,undefined,undefined,matrix('CPI'),matrix('Interest Rate'),matrix('GDP'),matrix('FX Reserves'),matrix('Current Account'),equity,scoreMatrix];
+      const results: PromiseSettledResult<{data: any}>[] = values.map(data => ({status: 'fulfilled', value: {data}}));
 
       const unwrap = <T,>(idx: number): T | undefined => {
         const res = results[idx];
@@ -527,8 +525,8 @@ export default function DashboardPage() {
         bias,
         topDrivers,
       };
-    });
-  }, [selectedYear, selectedMonth, displayMonths, liveFxHistory, liveEquityMap, liveBundle?.scoreMatrix?.rows]);
+    }).filter(pair => getLiveSnapshot()?.scores[pair.name]?.[selectedMonth]?.is_complete === true);
+  }, [selectedYear, selectedMonth, displayMonths, liveFxHistory, liveEquityMap, liveBundle?.scoreMatrix?.rows, liveVersion]);
 
   // 2. Dynamic Bias Breakdown across the 28 canonical pairs
   const biasDistribution = useMemo(() => {
@@ -782,6 +780,11 @@ export default function DashboardPage() {
         }
       }
 
+      const sourceHealth = Object.entries(getLiveSnapshot()?.freshness || {}).filter(([key]) => key.startsWith('feed:'+cfg.slug+':') || key === cfg.slug+'_refresh');
+      if (sourceHealth.some(([, value]) => ['ERROR','PARTIAL','STALE'].includes(value.status))) {
+        statusLabel = lang === 'fr' ? 'Source retardée' : 'Source delayed';
+        tone = 'amber';
+      }
       return {
         slug: cfg.slug,
         ind: lang === "fr" ? cfg.fr : cfg.en,
@@ -806,7 +809,7 @@ export default function DashboardPage() {
       cronActive: scraper?.cron_active ?? true,
       lastScrapeTime: scraper?.last_scrape_time,
     };
-  }, [liveBundle?.dataStatus, liveBundle?.matrices, liveBundle?.scraperStatus, selectedYear, lang]);
+  }, [liveBundle?.dataStatus, liveBundle?.matrices, liveBundle?.scraperStatus, selectedYear, lang, liveVersion]);
 
   const activePairsCount = liveBundle?.kpis?.active_fx_pairs ?? CANONICAL_PAIRS.length;
   const majorsCount = useMemo(

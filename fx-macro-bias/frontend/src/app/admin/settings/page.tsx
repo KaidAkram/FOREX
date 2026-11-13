@@ -51,6 +51,7 @@ const innerPod = "bg-white/[0.02] border border-white/[0.06] rounded-[20px] p-4"
 
 // Crontab Presets
 const CRON_PRESETS = [
+  {id: "5minutes", exp: "*/5 * * * *", fr: "Toutes les 5 minutes", en: "Every 5 minutes", descFr: "Mises à jour continues", descEn: "Continuous release checks"},
   { id: "hourly", exp: "0 * * * *", fr: "Toutes les heures", en: "Every Hour", descFr: "Polling haute fréquence macroéconomique", descEn: "High-frequency macro ingestion" },
   { id: "4hours", exp: "0 */4 * * *", fr: "Toutes les 4 heures", en: "Every 4 Hours", descFr: "Équilibre optimal banques centrales", descEn: "Optimal central bank cadence" },
   { id: "12hours", exp: "0 */12 * * *", fr: "Toutes les 12 heures", en: "Every 12 Hours", descFr: "Sessions Londres & New York", descEn: "London & New York overlap" },
@@ -77,8 +78,8 @@ export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<"cron" | "language" | "security" | "ingestion" | "audit">("cron");
   
   // Cron State
-  const [cronPreset, setCronPreset] = useState("4hours");
-  const [customCron, setCustomCron] = useState("0 */4 * * *");
+  const [cronPreset, setCronPreset] = useState("5minutes");
+  const [customCron, setCustomCron] = useState("*/5 * * * *");
   const [timezone, setTimezone] = useState("Europe/London");
   const [cronActive, setCronActive] = useState(true);
 
@@ -98,18 +99,12 @@ export default function AdminSettingsPage() {
   const [isPinging, setIsPinging] = useState(false);
   const [pingLatency, setPingLatency] = useState<number | null>(null);
 
-  // Load Settings from localStorage on Mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("shiftfx_settings_config");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.cronPreset) setCronPreset(parsed.cronPreset);
-        if (parsed.customCron) setCustomCron(parsed.customCron);
-        if (parsed.timezone) setTimezone(parsed.timezone);
-        if (parsed.cronActive !== undefined) setCronActive(parsed.cronActive);
-      }
-    } catch {}
+    settingsApi.get().then(({data}) => {
+      const cfg = data.settings;
+      setCronPreset(cfg.cronPreset); setCustomCron(cfg.customCron || '');
+      setTimezone(cfg.timezone || 'UTC'); setCronActive(cfg.cronActive);
+    }).catch(error => setScraperError(error.message));
   }, []);
 
   const handleCronPresetSelect = (presetId: string, exp: string) => {
@@ -120,22 +115,14 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const handleSave = () => {
-    playSuccessSound();
-    setIsSaving(true);
+  const handleSave = async () => {
+    setIsSaving(true); setScraperError('');
     try {
-      localStorage.setItem(
-        "shiftfx_settings_config",
-        JSON.stringify({ cronPreset, customCron, timezone, cronActive })
-      );
-    } catch {}
-
-    setTimeout(() => {
-      setIsSaving(false);
-      setSaveNotice(true);
-      confetti({ particleCount: 25, spread: 45, origin: { y: 0.2 } });
+      await settingsApi.save({cronPreset, customCron, timezone, cronActive});
+      setSaveNotice(true); playSuccessSound();
       setTimeout(() => setSaveNotice(false), 3000);
-    }, 350);
+    } catch (error) {setScraperError(error instanceof Error ? error.message : 'Settings could not be saved.');}
+    finally {setIsSaving(false);}
   };
 
   const handleRunScraper = async () => {
@@ -149,7 +136,7 @@ export default function AdminSettingsPage() {
       const indicators = response.data?.indicators || {};
       if (
         !response.data?.success ||
-        response.data?.status !== "SUCCESS" ||
+        !["SUCCESS", "QUEUED"].includes(response.data?.status) ||
         indicators.fx_reserves?.status === "ERROR" ||
         indicators.equity?.status === "ERROR"
       ) {
@@ -174,16 +161,15 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const handlePingTelemetry = () => {
-    playClickSound();
-    setIsPinging(true);
-    setPingLatency(null);
-
-    setTimeout(() => {
-      setIsPinging(false);
-      setPingLatency(Math.floor(Math.random() * 8) + 6); // 6-14ms
-      playSuccessSound();
-    }, 450);
+  const handlePingTelemetry = async () => {
+    setIsPinging(true); setPingLatency(null);
+    const start = performance.now();
+    try {
+      const response = await fetch('/api/health', {cache: 'no-store'});
+      if (!response.ok) throw new Error('Health check failed');
+      setPingLatency(Math.round(performance.now()-start));
+    } catch {setScraperError('The backend health check failed.');}
+    finally {setIsPinging(false);}
   };
 
   const handleVerifyAndActivate2FA = () => {
@@ -263,7 +249,7 @@ export default function AdminSettingsPage() {
             ) : scrapeSuccess ? (
               <>
                 <CheckCircle2 size={14} className="text-emerald-400" />
-                <span className="text-emerald-400">{lang === "fr" ? "Collecte Validée !" : "Ingestion Done!"}</span>
+                <span className="text-emerald-400">{lang === "fr" ? "Actualisation en attente" : "Refresh queued"}</span>
               </>
             ) : (
               <>

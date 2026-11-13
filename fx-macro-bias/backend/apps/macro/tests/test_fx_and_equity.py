@@ -132,10 +132,11 @@ class FXReserveAndEquityTests(TestCase):
         self.assertIn(self.client.post("/api/admin/macro-data/equity/refresh").status_code, [401, 403])
 
     @patch("apps.macro.views.fx_reserves.refresh_fx_reserves", side_effect=IMFFetchError("unavailable"))
-    def test_endpoint_failure_has_no_false_success(self, refresh):
+    def test_endpoint_queues_work_without_claiming_ingestion_success(self, refresh):
         response = self.client.post("/api/admin/macro-data/fx-reserves/refresh")
-        self.assertEqual(response.status_code, 502)
-        self.assertIs(response.data["success"], False)
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.data["status"], "QUEUED")
+        refresh.assert_not_called()
 
     @patch("imf_fx_reserves.urllib.request.urlopen")
     def test_command_reads_sdmx_bytes_and_persists_api_visible_october(self, opener):

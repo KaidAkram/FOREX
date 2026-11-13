@@ -1,10 +1,13 @@
+# Apply to the existing Render services after backing up/migrating the live database.
+# Paid plans are intentional: free web services sleep and cannot provide continuous updates.
 services:
   - type: web
     name: shiftfx-admin
-    env: node
-    plan: free
-    buildCommand: cd fx-macro-bias/frontend && npm install --include=dev && npm run build
+    runtime: node
+    plan: starter
+    buildCommand: cd fx-macro-bias/frontend && npm ci --include=dev && npm run build
     startCommand: cd fx-macro-bias/frontend && npm start
+    healthCheckPath: /login
     envVars:
       - key: NODE_ENV
         value: production
@@ -14,26 +17,63 @@ services:
         fromService:
           type: web
           name: shiftfx-backend
-          property: host
-
+          property: hostport
   - type: web
     name: shiftfx-backend
-    env: python
-    plan: free
-    buildCommand: cd fx-macro-bias/backend && pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
-    startCommand: cd fx-macro-bias/backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    runtime: python
+    plan: starter
+    buildCommand: cd fx-macro-bias/backend && pip install -r requirements.txt && python manage.py collectstatic --noinput
+    preDeployCommand: cd fx-macro-bias/backend && python manage.py migrate --noinput && python manage.py bootstrap_macro --continuous
+    startCommand: cd fx-macro-bias/backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 30
+    healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.production
-      - key: DEBUG
-        value: "False"
       - key: SECRET_KEY
         generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: shiftfx-data
+          property: connectionString
+      - key: INTERNAL_SERVICE_HOST
+        fromService:
+          type: web
+          name: shiftfx-backend
+          property: host
+      - key: SECURE_SSL_REDIRECT
+        value: "false"
       - key: ALLOWED_HOSTS
-        value: "localhost,127.0.0.1,.onrender.com"
+        value: localhost,127.0.0.1,.onrender.com,.shiftfx.io,shiftfx-backend
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://shiftfx.io,https://terminal.shiftfx.io,https://admin.shiftfx.io"
+        value: https://shiftfx.io,https://terminal.shiftfx.io,https://admin.shiftfx.io
       - key: CSRF_TRUSTED_ORIGINS
-        value: "https://*.onrender.com,https://shiftfx.io,https://terminal.shiftfx.io,https://admin.shiftfx.io"
+        value: https://*.onrender.com,https://shiftfx.io,https://terminal.shiftfx.io,https://admin.shiftfx.io
+  - type: worker
+    name: shiftfx-ingestion
+    runtime: python
+    plan: standard
+    buildCommand: cd fx-macro-bias/backend && pip install -r requirements.txt
+    startCommand: cd fx-macro-bias/backend && python manage.py run_scraper_cron --daemon
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: shiftfx-data
+          property: connectionString
+      - key: ALERT_WEBHOOK_URL
+        sync: false
+      - key: DB_CONN_MAX_AGE
+        value: '0'
+databases:
+  - name: shiftfx-data
+    plan: basic-256mb
+    databaseName: shiftfx
+    user: shiftfx
+    ipAllowList: []

@@ -132,6 +132,9 @@ def fetch_market_data():
         try:
             hist = yf.Ticker(ticker).history(period='max', interval='1d')
             cleaned = _clean_ohlc_frame(hist)
+            if cleaned.empty:
+                hist = yf.Ticker(ticker).history(period='10y', interval='1d')
+                cleaned = _clean_ohlc_frame(hist)
         except Exception as exc:
             raise EquityFetchError(f"Failed to download index {code} ({ticker})") from exc
         if cleaned.empty:
@@ -277,7 +280,7 @@ def compute_equity_from_frames(index_dfs, fx_dfs, *, start_year=2023, today=None
     return results, country_results
 
 
-def build_equity_dataset(use_cache=False, live_update=True, *, start_year=2023, today=None):
+def build_equity_dataset(use_cache=False, live_update=True, *, start_year=2023, today=None, write_cache=True):
     cache_path = Path(__file__).resolve().parent / 'equity_dataset_cache.json'
     if use_cache and not live_update and cache_path.exists():
         with open(cache_path, 'r', encoding='utf-8') as f:
@@ -299,8 +302,9 @@ def build_equity_dataset(use_cache=False, live_update=True, *, start_year=2023, 
         'pairs': results,
         'countries': country_results,
     }
-    with open(cache_path, 'w', encoding='utf-8') as f:
-        json.dump(payload, f, indent=2)
+    if write_cache:
+        with open(cache_path, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, indent=2)
 
     return results, country_results
 

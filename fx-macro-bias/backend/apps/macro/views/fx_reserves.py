@@ -12,11 +12,5 @@ logger = logging.getLogger(__name__)
 @permission_classes([IsAdminStaff])
 @throttle_classes([ScopedRateThrottle])
 def refresh(request):
-    try:
-        return Response({"success": True, **refresh_fx_reserves()})
-    except Exception:
-        logger.exception("IMF FX reserve refresh failed")
-        return Response({"success": False, "error": "IMF refresh failed; previous observations retained."}, status=502)
-
-
-refresh.throttle_scope = "scraper_trigger"
+    from apps.macro.services.scheduler import queue_refresh
+    return Response(queue_refresh('admin_fx_reserves'), status=202)

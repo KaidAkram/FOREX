@@ -1,3 +1,4 @@
+from apps.macro.services.fencing import check_lease
 """Shared, transactional pair-level live ingestion for the Equity indicator."""
 import logging
 import sys
@@ -36,6 +37,7 @@ def refresh_equity(*, start_year=2023, recalculate=True):
         pair_results, _ = equity_engine.build_equity_dataset(
             use_cache=False,
             live_update=True,
+            write_cache=False,
             start_year=start_year,
         )
         indicator = MacroIndicator.objects.get(slug="equity")
@@ -50,6 +52,7 @@ def refresh_equity(*, start_year=2023, recalculate=True):
         missing_pairs = []
 
         with transaction.atomic(), disable_macro_signals():
+            check_lease()
             # Per Equity Indicator2.pdf: Equity is computed directly per FX pair,
             # so remove legacy country-level MacroDataPoints and copied future months.
             MacroDataPoint.objects.filter(indicator=indicator).delete()
@@ -90,12 +93,10 @@ def refresh_equity(*, start_year=2023, recalculate=True):
                     saved += 1
                 valid_months_by_pair[pair.pk] = month_dates
 
-                # Remove any stale/future Equity rows not produced by live candles (e.g. copied 2026-12)
-                if month_dates:
-                    Differential.objects.filter(pair=pair, indicator=indicator).exclude(
-                        month__in=month_dates
-                    ).delete()
 
+            # Only impossible future observations are removed. Missing historical candles
+            # in a partial provider response must not erase last-known-good data.
+            Differential.objects.filter(indicator=indicator, month__gt=date.today().replace(day=1)).delete()
             if saved == 0:
                 raise ValueError("No Equity pair calculations matched active FX pairs")
 
@@ -115,6 +116,7 @@ def refresh_equity(*, start_year=2023, recalculate=True):
                 from apps.macro.services.calculator import recalculate_full_matrix
                 count = recalculate_full_matrix()
 
+            SystemSetting.objects.update_or_create(key='equity_details', defaults={'value': pair_results})
             fetched_at = timezone.now().isoformat()
             metadata = {
                 **metadata,
@@ -130,6 +132,9 @@ def refresh_equity(*, start_year=2023, recalculate=True):
                 "error": None,
             }
             SystemSetting.objects.update_or_create(key=REFRESH_KEY, defaults={"value": metadata})
+            if recalculate:
+                from apps.macro.services.snapshot import publish_snapshot
+                publish_snapshot()
 
         return metadata
     except Exception:

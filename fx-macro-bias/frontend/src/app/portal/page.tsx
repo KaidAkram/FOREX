@@ -1,4 +1,6 @@
 "use client";
+import { useLiveVersion } from "@/context/LiveDataContext";
+import { getLiveSnapshot } from "@/lib/liveSnapshot";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
@@ -64,6 +66,7 @@ function genSparkline(pair: string, score: number): number[] {
 }
 
 export default function TraderPortalPage() {
+  const liveVersion = useLiveVersion();
   const { user, setSimulatedTier, logout } = useAuth();
   const router = useRouter();
 
@@ -99,7 +102,7 @@ export default function TraderPortalPage() {
       window.removeEventListener("shiftfx_catalog_updated", loadData);
       window.removeEventListener("shiftfx_watchlist_updated", loadData);
     };
-  }, []);
+  }, [liveVersion]);
 
   useEffect(() => {
     if (user?.tier) setLocalSimulatedTier(user.tier);

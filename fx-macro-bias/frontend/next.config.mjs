@@ -62,6 +62,9 @@ if (
     backendTarget = `http://${backendTarget}`;
   }
 }
+if (backendTarget === "http://shiftfx-backend") {
+  backendTarget = "http://shiftfx-backend:10000";
+}
 backendTarget = backendTarget.replace(/\/+$/, "");
 
 

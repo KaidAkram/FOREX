@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY fx-macro-bias/backend/requirements.txt .
 RUN pip install --prefix=/install --no-warn-script-location -r requirements.txt
 
 # Final minimal runtime image
@@ -40,13 +40,14 @@ RUN groupadd -g 10001 appgroup && \
 # Copy installed python dependencies from builder
 COPY --from=builder /install /usr/local
 
-WORKDIR /app
+WORKDIR /app/fx-macro-bias/backend
 
 # Copy application code
-COPY . /app
+COPY fx-macro-bias/backend /app/fx-macro-bias/backend
+COPY equity_engine.py imf_fx_reserves.py fx_reserves_engine.py /app/
 
 # Ensure proper ownership and permissions
-RUN mkdir -p /app/staticfiles /app/media /app/logs && \
+RUN mkdir -p /app/fx-macro-bias/backend/staticfiles /app/fx-macro-bias/backend/media /app/fx-macro-bias/backend/logs && \
     chown -R appuser:appgroup /app
 
 USER appuser
@@ -55,6 +56,6 @@ EXPOSE 8001
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8001/api/macro/dashboard/ || exit 1
+    CMD curl -f http://localhost:8001/api/health || exit 1
 
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8001", "--workers", "3", "--threads", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-"]

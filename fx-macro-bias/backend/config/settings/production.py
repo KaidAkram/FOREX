@@ -18,6 +18,10 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
+internal_host = config('INTERNAL_SERVICE_HOST', default='')
+if internal_host and internal_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(internal_host)
+
 # Auto-detect Render environment
 render_host = config("RENDER_EXTERNAL_HOSTNAME", default=None)
 if render_host and render_host not in ALLOWED_HOSTS:
@@ -29,7 +33,7 @@ if database_url:
     DATABASES = {
         "default": dj_database_url.config(
             default=database_url,
-            conn_max_age=60,
+            conn_max_age=config("DB_CONN_MAX_AGE", default=60, cast=int),
             ssl_require=True,
         )
     }
@@ -51,13 +55,8 @@ else:
             }
         }
     else:
-        # Fallback to local SQLite if no external DB configured
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.sqlite3",
-                "NAME": BASE_DIR / "db.sqlite3",
-            }
-        }
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured('Production requires persistent PostgreSQL: configure DATABASE_URL or DB_NAME.')
 
 # ──────────────────────────────────────────────
 # HTTPS & Transport Security (HSTS)

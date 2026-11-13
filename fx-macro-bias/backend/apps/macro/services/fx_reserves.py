@@ -1,3 +1,4 @@
+from apps.macro.services.fencing import check_lease
 """Shared, non-destructive live ingestion for the IMF FX reserve indicator."""
 import logging
 import sys
@@ -33,6 +34,7 @@ def refresh_fx_reserves(*, start_year=2022, recalculate=True):
             raise ValueError("No active countries matched the IMF response")
         saved = 0
         with transaction.atomic(), disable_macro_signals():
+            check_lease()
             for name in supported:
                 for month, value in observations[name].items():
                     year, number = map(int, month.split("-"))
@@ -54,10 +56,12 @@ def refresh_fx_reserves(*, start_year=2022, recalculate=True):
                 from apps.macro.services.calculator import recalculate_full_matrix
                 count = recalculate_full_matrix()
             expected = {name for name, c in countries.items() if c.imf_country_code}
+            stale = [name for name in supported if (date.today() - date.fromisoformat(source['latest_by_country'][name] + '-01')).days > 120]
             metadata = {
                 **metadata,
                 **source,
-                "status": "SUCCESS",
+                "status": "PARTIAL" if stale or expected - supported else "SUCCESS",
+                "errors": [f"{name}: IMF source series is more than 120 days old" for name in stale],
                 "last_attempt_at": attempted_at,
                 "last_success_at": source["fetched_at"],
                 "points_saved": saved,
@@ -66,6 +70,9 @@ def refresh_fx_reserves(*, start_year=2022, recalculate=True):
                 "error": None,
             }
             SystemSetting.objects.update_or_create(key=REFRESH_KEY, defaults={"value": metadata})
+            if recalculate:
+                from apps.macro.services.snapshot import publish_snapshot
+                publish_snapshot()
         return metadata
     except Exception:
         failed = {

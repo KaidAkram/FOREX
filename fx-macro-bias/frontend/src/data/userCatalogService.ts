@@ -1,12 +1,13 @@
 "use client";
+import { getLiveSnapshot } from "../lib/liveSnapshot.ts";
 
-import { 
-  PAIRS, 
-  INDICATORS, 
-  getCombinedDifferentialData, 
+import {
+  PAIRS,
+  INDICATORS,
+  getCombinedDifferentialData,
   getCurrentLiveMonthKey,
   getForwardMonths,
-  SYSTEM_CURRENT_YEAR, 
+  SYSTEM_CURRENT_YEAR,
   MASTER_MACRO_DATABASE
 } from "./macroDataset";
 
@@ -72,7 +73,7 @@ export const CANONICAL_28_PAIRS: string[] = [
 ];
 
 const CANONICAL_PAIRS_SET = new Set(CANONICAL_28_PAIRS);
-export const ACTIVE_PAIRS = PAIRS.filter((p, index, self) => 
+export const ACTIVE_PAIRS = PAIRS.filter((p, index, self) =>
   CANONICAL_PAIRS_SET.has(p.name) && self.findIndex(x => x.name === p.name) === index
 );
 
@@ -81,13 +82,13 @@ export const WATCHLIST_STORAGE_KEY = "shiftfx_user_watchlist";
 
 // 8 Core pairs default to Basic tier; remaining 20 exotic/cross pairs default to Pro tier
 const DEFAULT_BASIC_PAIRS = new Set([
-  "EUR/USD", 
-  "GBP/USD", 
-  "USD/JPY", 
-  "AUD/USD", 
-  "USD/CAD", 
-  "USD/CHF", 
-  "NZD/USD", 
+  "EUR/USD",
+  "GBP/USD",
+  "USD/JPY",
+  "AUD/USD",
+  "USD/CAD",
+  "USD/CHF",
+  "NZD/USD",
   "EUR/GBP"
 ]);
 
@@ -109,28 +110,23 @@ function generateDriverSummary(pair: string, baseCountry: string, quoteCountry: 
   carryAdvantage: string;
 } {
   // Approximate policy rates from latest data in dataset
-  const rates: Record<string, number> = {
-    "USA": 5.00,
-    "Euro Area": 3.40,
-    "United Kingdom": 4.75,
-    "Japan": 0.25,
-    "Switzerland": 1.00,
-    "Canada": 4.00,
-    "Australia": 4.35,
-    "New Zealand": 4.75
+  const rates = getLiveSnapshot()?.data['Interest Rate'] || {};
+  const latestRate = (country: string) => {
+    const values = rates[country] || {};
+    const latest = Object.keys(values).sort().at(-1);
+    return latest ? values[latest] : null;
   };
-
-  const baseRate = rates[baseCountry] ?? 3.50;
-  const quoteRate = rates[quoteCountry] ?? 3.50;
-  const diffRate = baseRate - quoteRate;
+  const baseRate = latestRate(baseCountry);
+  const quoteRate = latestRate(quoteCountry);
+  const diffRate = baseRate !== null && quoteRate !== null ? baseRate - quoteRate : 0;
   const countryCodeMap: Record<string, string> = {
     "USA": "USA", "United States": "USA", "Euro Area": "EUR", "United Kingdom": "UK",
     "Japan": "JPY", "Switzerland": "CHF", "Canada": "CAD", "Australia": "AUD", "New Zealand": "NZD"
   };
   const baseCode = countryCodeMap[baseCountry] || baseCountry;
   const quoteCode = countryCodeMap[quoteCountry] || quoteCountry;
-  const carryAdvantage = diffRate >= 0 
-    ? `+${diffRate.toFixed(2)}% Carry (${baseCode})` 
+  const carryAdvantage = baseRate === null || quoteRate === null ? "Policy rate unavailable" : diffRate >= 0
+    ? `+${diffRate.toFixed(2)}% Carry (${baseCode})`
     : `${diffRate.toFixed(2)}% Carry (${quoteCode})`;
 
   if (scoreNum >= 25) {
@@ -138,7 +134,7 @@ function generateDriverSummary(pair: string, baseCountry: string, quoteCountry: 
       primaryDriver: `Sovereign policy divergence favors ${baseCountry}: Hawkish central bank path & robust capital inflows vs ${quoteCountry} disinflation.`,
       executionStrategy: `Trend Accumulation: Accumulate long positions on 4-hour pullbacks toward institutional support with positive carry overlay.`,
       keyCatalyst: `Next quarterly GDP release & sovereign bond auction absorption.`,
-      centralBankNext: `Policy rate decision scheduled in 14 trading days.`,
+      centralBankNext: `See the economic calendar for the next published decision time.`,
       carryAdvantage
     };
   }
@@ -148,7 +144,7 @@ function generateDriverSummary(pair: string, baseCountry: string, quoteCountry: 
       primaryDriver: `Moderate growth momentum & favorable terms of trade in ${baseCountry} outpacing ${quoteCountry} macroeconomic deceleration.`,
       executionStrategy: `Momentum Buy: Scale in on breakout confirmation with trailing stop placed below 20-day exponential moving average.`,
       keyCatalyst: `CPI print & manufacturing PMI survey.`,
-      centralBankNext: `Monetary policy statement in 21 days.`,
+      centralBankNext: `See the economic calendar for the next published decision time.`,
       carryAdvantage
     };
   }
@@ -158,7 +154,7 @@ function generateDriverSummary(pair: string, baseCountry: string, quoteCountry: 
       primaryDriver: `Structural macroeconomic headwinds & aggressive rate cut cycle in ${baseCountry} confronting resilient economic outperformance in ${quoteCountry}.`,
       executionStrategy: `High-Conviction Short: Sell counter-trend rallies into key resistance zones with target at multi-quarter liquidity pools.`,
       keyCatalyst: `Central bank press conference and labor market participation report.`,
-      centralBankNext: `Emergency policy review and benchmark update in 9 days.`,
+      centralBankNext: `See the economic calendar for the next published decision time.`,
       carryAdvantage
     };
   }
@@ -168,7 +164,7 @@ function generateDriverSummary(pair: string, baseCountry: string, quoteCountry: 
       primaryDriver: `Persistent yield spread widening in favor of ${quoteCountry} exerting ongoing downward pressure on ${pair}.`,
       executionStrategy: `Trend Follow Short: Maintain defensive short bias with stop-loss anchored above daily swing highs.`,
       keyCatalyst: `Services sector inflation and retail sales volume.`,
-      centralBankNext: `Quarterly monetary policy assessment in 18 days.`,
+      centralBankNext: `See the economic calendar for the next published decision time.`,
       carryAdvantage
     };
   }
@@ -177,7 +173,7 @@ function generateDriverSummary(pair: string, baseCountry: string, quoteCountry: 
     primaryDriver: `Balanced macroeconomic equilibrium: Countervailing growth and inflation differentials creating rangebound conditions.`,
     executionStrategy: `Mean-Reversion: Rangebound trading between upper and lower historical standard deviation bands. Avoid trend chasing.`,
     keyCatalyst: `Upcoming bilateral trade balance and consumer sentiment surveys.`,
-    centralBankNext: `Neutral stance anticipated at next central bank meeting in 16 days.`,
+    centralBankNext: `See the economic calendar for the next published decision time.`,
     carryAdvantage
   };
 }
@@ -185,22 +181,22 @@ function generateDriverSummary(pair: string, baseCountry: string, quoteCountry: 
 // Generate indicator insight
 function getIndicatorInsight(ind: string, base: string, quote: string, diff: number): string {
   if (ind === "Interest Rate") {
-    return diff > 0 
+    return diff > 0
       ? `${base} maintains an institutional carry & rate premium over ${quote}.`
       : `${quote} offers a higher risk-adjusted sovereign yield than ${base}.`;
   }
   if (ind === "CPI") {
-    return diff > 0 
+    return diff > 0
       ? `Inflation persistence in ${base} delays monetary easing relative to ${quote}.`
       : `Faster disinflation in ${base} opens room for central bank rate cuts.`;
   }
   if (ind === "GDP") {
-    return diff > 0 
+    return diff > 0
       ? `Real economic output expansion in ${base} outperforms ${quote}.`
       : `Growth slowdown in ${base} lags behind economic resilience in ${quote}.`;
   }
   if (ind === "Current Account") {
-    return diff > 0 
+    return diff > 0
       ? `Solid trade surplus & foreign reserve accumulation supports ${base}.`
       : `External deficit & terms-of-trade deterioration weighs on ${base}.`;
   }
@@ -312,8 +308,8 @@ export function toggleUserWatchlist(pair: string): string[] {
   if (typeof window === "undefined") return [];
   try {
     const current = getUserWatchlist();
-    const updated = current.includes(pair) 
-      ? current.filter(p => p !== pair) 
+    const updated = current.includes(pair)
+      ? current.filter(p => p !== pair)
       : [...current, pair];
     localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("shiftfx_watchlist_updated"));
@@ -360,10 +356,10 @@ export function getTraderSignals(year: number = SYSTEM_CURRENT_YEAR): TraderSign
       const diffList = getCombinedDifferentialData(pairName, ind, year);
       const liveItem = diffList.find(d => d.month === currentMonthKey) || diffList[diffList.length - 1];
       const differential = liveItem ? liveItem.rating : 0;
-      const impact: "BULLISH" | "BEARISH" | "NEUTRAL" = differential >= 2 
-        ? "BULLISH" 
-        : differential <= -2 
-        ? "BEARISH" 
+      const impact: "BULLISH" | "BEARISH" | "NEUTRAL" = differential >= 2
+        ? "BULLISH"
+        : differential <= -2
+        ? "BEARISH"
         : "NEUTRAL";
 
       return {
@@ -380,22 +376,23 @@ export function getTraderSignals(year: number = SYSTEM_CURRENT_YEAR): TraderSign
     const totalDifferential = pillars.reduce((acc, p) => acc + p.differential, 0);
     const scoreNum = parseFloat(((totalDifferential / 60) * 100).toFixed(1));
     const scorePct = scoreNum > 0 ? `+${scoreNum.toFixed(1)}%` : `${scoreNum.toFixed(1)}%`;
-    const bias: "BULLISH" | "BEARISH" | "NEUTRAL" = scoreNum >= 20.0 
-      ? "BULLISH" 
-      : scoreNum <= -20.0 
-      ? "BEARISH" 
+    const bias: "BULLISH" | "BEARISH" | "NEUTRAL" = scoreNum >= 20.0
+      ? "BULLISH"
+      : scoreNum <= -20.0
+      ? "BEARISH"
       : "NEUTRAL";
-    const biasFrench: "ACHETEUR" | "VENDEUR" | "NEUTRE" = bias === "BULLISH" 
-      ? "ACHETEUR" 
-      : bias === "BEARISH" 
-      ? "VENDEUR" 
+    const biasFrench: "ACHETEUR" | "VENDEUR" | "NEUTRE" = bias === "BULLISH"
+      ? "ACHETEUR"
+      : bias === "BEARISH"
+      ? "VENDEUR"
       : "NEUTRE";
 
     // Confidence derived from indicator alignment
     const positiveCount = pillars.filter(p => p.differential > 0).length;
     const negativeCount = pillars.filter(p => p.differential < 0).length;
     const dominantCount = Math.max(positiveCount, negativeCount);
-    const confidence = Math.min(95, Math.max(55, Math.round((dominantCount / 6) * 100) - (bias === "NEUTRAL" ? 18 : 0)));
+    const complete = getLiveSnapshot()?.scores[pairName]?.[currentMonthKey]?.is_complete === true;
+    const confidence = complete ? Math.min(95, Math.round((dominantCount / 6) * 100)) : 0;
 
     // 3-Month Forward Forecast Trend
     const forecast3MTrend = forecastMonths.map((fm) => {
@@ -430,7 +427,7 @@ export function getTraderSignals(year: number = SYSTEM_CURRENT_YEAR): TraderSign
     const customDriver = pairConfig.customDriverNote && pairConfig.customDriverNote.trim().length > 0
       ? pairConfig.customDriverNote.trim()
       : null;
-    const finalPrimaryDriver = customDriver || driverDetails.primaryDriver;
+    const finalPrimaryDriver = customDriver || (complete ? driverDetails.primaryDriver : "Incomplete period: waiting for remaining official releases. This score is provisional.");
 
     return {
       pair: pairName,

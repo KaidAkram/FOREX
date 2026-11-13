@@ -86,6 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     setUser(null);
+    sessionStorage.removeItem("shiftfx_access");
+    sessionStorage.removeItem("shiftfx_refresh");
     syncAuthCookie(null);
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -257,6 +259,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string,
     totpCode?: string
   ): Promise<{ success: boolean; require2FA?: boolean; user?: User; error?: string }> => {
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        const response = await fetch('/api/auth/token/', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: username.trim(), password})});
+        if (!response.ok) throw new Error('Invalid server administrator credentials.');
+        const tokens = await response.json();
+        const check = await fetch('/api/admin/settings', {headers: {Authorization: 'Bearer '+tokens.access}});
+        if (!check.ok) throw new Error('This account does not have administrator access.');
+        sessionStorage.setItem('shiftfx_access', tokens.access);
+        sessionStorage.setItem('shiftfx_refresh', tokens.refresh);
+        const adminUser: User = {username: username.trim(), role: 'admin', name: username.trim(), email: ''};
+        setUser(adminUser); localStorage.setItem(STORAGE_KEY, JSON.stringify(adminUser)); syncAuthCookie(adminUser);
+        return {success: true, user: adminUser};
+      } catch (error) {return {success: false, error: error instanceof Error ? error.message : 'Server sign-in failed.'};}
+    }
     const lockout = checkBruteForceLockout();
     if (lockout.isLocked) {
       return {

@@ -1,22 +1,24 @@
 "use client";
+import { useLiveVersion } from "@/context/LiveDataContext";
+import { getLiveSnapshot } from "@/lib/liveSnapshot";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { 
-  ChevronDown, 
-  Info, 
-  X, 
-  TrendingUp, 
-  TrendingDown, 
-  Minus, 
-  Sparkles, 
-  Layers, 
-  Activity, 
-  Filter, 
-  Grid3X3, 
-  LayoutGrid, 
-  CheckCircle2, 
-  Calendar, 
-  Zap, 
+import {
+  ChevronDown,
+  Info,
+  X,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Sparkles,
+  Layers,
+  Activity,
+  Filter,
+  Grid3X3,
+  LayoutGrid,
+  CheckCircle2,
+  Calendar,
+  Zap,
   SlidersHorizontal,
   ArrowRight,
   ExternalLink,
@@ -35,22 +37,22 @@ import { clsx } from "clsx";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { 
-  AdminPageHeader, CatalogueKPICard, SculptedFilterPod, SculptedTableContainer 
+import {
+  AdminPageHeader, CatalogueKPICard, SculptedFilterPod, SculptedTableContainer
 } from "@/components/admin/AdminPrimitives";
 import { FXPairFlags } from "@/components/ui/DopaminePrimitives";
 import { soundFX } from "@/lib/soundEngine";
 import { AnimatedMetricValue, GhostWireframeDissolve } from "@/components/motion/AnimatedNumberAndMorphChart";
 import { useLanguage } from "@/context/LanguageContext";
 
-import { 
-  INDICATORS, 
-  getCombinedDifferentialData, 
+import {
+  INDICATORS,
+  getCombinedDifferentialData,
   getCurrentLiveMonthKey,
   getDisplayMonthsForYear,
   getForwardMonths,
-  SYSTEM_CURRENT_YEAR, 
-  MACRO_YEARS 
+  SYSTEM_CURRENT_YEAR,
+  MACRO_YEARS
 } from "@/data/macroDataset";
 
 // ============================================================================
@@ -154,7 +156,7 @@ const fetchFinalScores = async (year: number, userOverrides: Record<string, any>
       if (customOverride && isForecast) {
         const scoreNum = parseFloat(customOverride.finalScorePct);
         const bias = scoreNum >= 20.0 ? "BULLISH" : scoreNum <= -20.0 ? "BEARISH" : "NEUTRAL";
-        const indicators = customOverride.indicatorRatings 
+        const indicators = customOverride.indicatorRatings
           ? INDICATORS.map(ind => ({ ind, val: customOverride.indicatorRatings[ind] ?? 0 }))
           : defaultIndicators;
         const totalScore = indicators.reduce((sum, item) => sum + item.val, 0);
@@ -171,15 +173,16 @@ const fetchFinalScores = async (year: number, userOverrides: Record<string, any>
         };
       }
 
-      const totalScore = defaultIndicators.reduce((sum, item) => sum + item.val, 0); 
-      const finalScorePct = ((totalScore / 60) * 100).toFixed(1); 
+      const totalScore = defaultIndicators.reduce((sum, item) => sum + item.val, 0);
+      const official = getLiveSnapshot()?.scores[pairData.name]?.[month];
+      const finalScorePct = official?.is_complete && official.score !== null ? official.score.toFixed(1) : '—';
       const bias = parseFloat(finalScorePct) >= 20.0 ? "BULLISH" : parseFloat(finalScorePct) <= -20.0 ? "BEARISH" : "NEUTRAL";
-      
-      return { 
-        month, 
-        indicators: defaultIndicators, 
-        totalScore, 
-        finalScorePct, 
+
+      return {
+        month,
+        indicators: defaultIndicators,
+        totalScore,
+        finalScorePct,
         bias,
         isForecast,
         isUserOverride: false
@@ -190,29 +193,30 @@ const fetchFinalScores = async (year: number, userOverrides: Record<string, any>
 
 const FlagStack = ({ base, quote, size = 20 }: { base: string; quote: string; size?: number }) => (
   <div className="flex items-center flex-shrink-0 mr-1.5">
-    <img 
-      src={`/flags/${base}.svg`} 
-      style={{ width: size, height: size }} 
-      className="rounded-full border border-white/10 z-10 shadow-sm object-cover" 
-      alt={base} 
+    <img
+      src={`/flags/${base}.svg`}
+      style={{ width: size, height: size }}
+      className="rounded-full border border-white/10 z-10 shadow-sm object-cover"
+      alt={base}
     />
-    <img 
-      src={`/flags/${quote}.svg`} 
-      style={{ width: size, height: size, marginLeft: -(size * 0.38) }} 
-      className="rounded-full border border-white/10 z-0 shadow-sm object-cover" 
-      alt={quote} 
+    <img
+      src={`/flags/${quote}.svg`}
+      style={{ width: size, height: size, marginLeft: -(size * 0.38) }}
+      className="rounded-full border border-white/10 z-0 shadow-sm object-cover"
+      alt={quote}
     />
   </div>
 );
 
 export default function FinalScorePage() {
-  const [selectedCell, setSelectedCell] = useState<{ 
-    pair: string; 
-    base: string; 
-    quote: string; 
-    baseCountry: string; 
-    quoteCountry: string; 
-    data: any 
+  const liveVersion = useLiveVersion();
+  const [selectedCell, setSelectedCell] = useState<{
+    pair: string;
+    base: string;
+    quote: string;
+    baseCountry: string;
+    quoteCountry: string;
+    data: any
   } | null>(null);
 
   // Client Estimation Modal State for 3-Month Forecasting
@@ -258,7 +262,7 @@ export default function FinalScorePage() {
   const [heatmapMode, setHeatmapMode] = useState<boolean>(true);
 
   const { data: scoresData, isLoading, refetch } = useQuery({
-    queryKey: ["final-scores", selectedYear, userOverrides],
+    queryKey: ["final-scores", selectedYear, userOverrides, liveVersion],
     queryFn: () => fetchFinalScores(selectedYear, userOverrides),
     staleTime: 120_000,
     placeholderData: (previousData) => previousData,
@@ -279,7 +283,7 @@ export default function FinalScorePage() {
   // High-Level Executive Summary Statistics across all 28 pairs
   const stats = useMemo(() => {
     if (!scoresData || scoresData.length === 0) return null;
-    
+
     let topBullish = { pair: "", score: -999, base: "", quote: "", baseCountry: "", quoteCountry: "" };
     let topBearish = { pair: "", score: 999, base: "", quote: "", baseCountry: "", quoteCountry: "" };
     let bullishCount = 0;
@@ -299,20 +303,20 @@ export default function FinalScorePage() {
       else neutralCount++;
 
       if (num > topBullish.score) {
-        topBullish = { 
-          pair: row.pair, 
-          score: num, 
-          base: row.base, 
+        topBullish = {
+          pair: row.pair,
+          score: num,
+          base: row.base,
           quote: row.quote,
           baseCountry: row.baseCountry,
           quoteCountry: row.quoteCountry
         };
       }
       if (num < topBearish.score) {
-        topBearish = { 
-          pair: row.pair, 
-          score: num, 
-          base: row.base, 
+        topBearish = {
+          pair: row.pair,
+          score: num,
+          base: row.base,
           quote: row.quote,
           baseCountry: row.baseCountry,
           quoteCountry: row.quoteCountry
@@ -494,7 +498,7 @@ export default function FinalScorePage() {
 
   return (
     <div className="w-full max-w-[1600px] mx-auto p-3.5 sm:p-5 lg:p-6 xl:p-8 flex flex-col text-white font-sans">
-      
+
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* 1. UNIFIED ADMIN PAGE HEADER (Single row utilities, NO duplicate admin) */}
       {/* ══════════════════════════════════════════════════════════════════ */}
@@ -533,8 +537,8 @@ export default function FinalScorePage() {
               }}
               className={clsx(
                 "h-10 px-4 rounded-full font-mono text-xs transition-all cursor-pointer border flex items-center gap-1.5 whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
-                heatmapMode 
-                  ? "bg-[#D4FF00]/15 text-[#D4FF00] border-[#D4FF00]/40 font-bold" 
+                heatmapMode
+                  ? "bg-[#D4FF00]/15 text-[#D4FF00] border-[#D4FF00]/40 font-bold"
                   : "bg-[#101218] text-slate-400 border-white/[0.08] hover:text-white"
               )}
             >
@@ -550,7 +554,7 @@ export default function FinalScorePage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
-          
+
           {/* Card 1: Top Bullish Bias */}
           <CatalogueKPICard
             title={t("score.kpi_tailwind")}
@@ -810,15 +814,15 @@ export default function FinalScorePage() {
                     const isCurrentLive = m === latestSettledMonth;
                     const isLast = mIdx === displayMonths.length - 1;
                     return (
-                      <th 
-                        key={m} 
+                      <th
+                        key={m}
                         className={clsx(
                           "px-2 py-3.5 font-mono text-xs text-center min-w-[96px] whitespace-nowrap transition-colors border-b border-white/[0.08]",
                           isLast && "pr-6",
                           isFcst
                             ? "bg-purple-500/[0.04] border-x border-purple-500/15 text-purple-300"
-                            : isCurrentLive 
-                            ? "bg-[#D4FF00]/[0.05] text-[#D4FF00] font-bold border-x border-[#D4FF00]/20" 
+                            : isCurrentLive
+                            ? "bg-[#D4FF00]/[0.05] text-[#D4FF00] font-bold border-x border-[#D4FF00]/20"
                             : "bg-[#101218] text-slate-400 font-semibold border-r border-white/[0.03]"
                         )}
                       >
@@ -862,7 +866,7 @@ export default function FinalScorePage() {
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Filter size={24} className="text-slate-500" />
                         <span className="font-sans font-semibold text-sm text-white">Aucune paire ne correspond aux filtres</span>
-                        <button 
+                        <button
                           onClick={() => { setCurrencyGroup("ALL"); setRegimeFilter("ALL"); setSearchQuery(""); }}
                           className="text-xs font-mono text-[#D4FF00] hover:underline mt-1"
                         >
@@ -874,7 +878,7 @@ export default function FinalScorePage() {
                 ) : (
                   filteredScores.map((row: any) => (
                     <tr key={row.pair} className="hover:bg-white/[0.02] transition-colors group">
-                      
+
                       {/* Sticky Left Data Cell */}
                       <td className="sticky left-0 z-20 bg-[#101218] group-hover:bg-[#15171f] pl-6 pr-4 py-3 border-b border-r border-white/[0.08] shadow-[4px_0_12px_rgba(0,0,0,0.6)] w-[210px] min-w-[210px] max-w-[210px] transition-colors">
                         <div className="flex items-center gap-3 w-full">
@@ -888,8 +892,8 @@ export default function FinalScorePage() {
                                 {row.group}
                               </span>
                             </div>
-                            <span 
-                              className="text-[11px] text-slate-400 group-hover:text-slate-300 font-sans truncate leading-tight mt-0.5" 
+                            <span
+                              className="text-[11px] text-slate-400 group-hover:text-slate-300 font-sans truncate leading-tight mt-0.5"
                               title={`${row.baseCountry} / ${row.quoteCountry}`}
                             >
                               {row.baseCountry} / {row.quoteCountry}
@@ -910,38 +914,38 @@ export default function FinalScorePage() {
                         const isLast = j === row.data.length - 1;
 
                         return (
-                          <td 
-                            key={cell.month} 
+                          <td
+                            key={cell.month}
                             className={clsx(
                               "px-1.5 py-2 text-center relative border-b border-white/[0.04] min-w-[96px]",
                               isLast && "pr-6",
-                              isFcst 
-                                ? "bg-purple-500/[0.04] border-x border-purple-500/15" 
-                                : isCurrentLive 
-                                ? "bg-[#D4FF00]/[0.03] border-x border-[#D4FF00]/10" 
+                              isFcst
+                                ? "bg-purple-500/[0.04] border-x border-purple-500/15"
+                                : isCurrentLive
+                                ? "bg-[#D4FF00]/[0.03] border-x border-[#D4FF00]/10"
                                 : "border-r border-white/[0.02]"
                             )}
                           >
-                            <motion.button 
+                            <motion.button
                               whileHover={{ scale: 1.04 }}
                               whileTap={{ scale: 0.96 }}
                               onClick={() => {
                                 if (isFcst) {
                                   handleOpenEstimation(row, cell);
                                 } else {
-                                  setSelectedCell({ 
-                                    pair: row.pair, 
-                                    base: row.base, 
-                                    quote: row.quote, 
-                                    baseCountry: row.baseCountry, 
-                                    quoteCountry: row.quoteCountry, 
-                                    data: cell 
+                                  setSelectedCell({
+                                    pair: row.pair,
+                                    base: row.base,
+                                    quote: row.quote,
+                                    baseCountry: row.baseCountry,
+                                    quoteCountry: row.quoteCountry,
+                                    data: cell
                                   });
                                 }
                               }}
                               title={
-                                isFcst 
-                                  ? `Ajuster l'estimation client pour ${row.pair} (${cell.month})` 
+                                isFcst
+                                  ? `Ajuster l'estimation client pour ${row.pair} (${cell.month})`
                                   : `Détail 6 indicateurs pour ${row.pair} (${cell.month})`
                               }
                               className={clsx(
@@ -960,8 +964,8 @@ export default function FinalScorePage() {
                               {/* Percentage & Trend Arrow */}
                               <div className="flex items-center gap-1">
                                 <span className={clsx(
-                                  "font-mono text-xs font-bold tracking-tight", 
-                                  isFcst 
+                                  "font-mono text-xs font-bold tracking-tight",
+                                  isFcst
                                     ? isUserOverride ? "text-purple-200 font-extrabold" : "text-purple-300"
                                     : num >= 20.0 ? "text-emerald-400" : num <= -20.0 ? "text-rose-400" : "text-slate-200"
                                 )}>
@@ -981,8 +985,8 @@ export default function FinalScorePage() {
                                 <div className="flex items-center gap-1 mt-0.5">
                                   <span className={clsx(
                                     "font-mono text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full flex items-center gap-0.5",
-                                    isUserOverride 
-                                      ? "bg-purple-500/35 text-purple-200 border border-purple-400/60" 
+                                    isUserOverride
+                                      ? "bg-purple-500/35 text-purple-200 border border-purple-400/60"
                                       : "bg-purple-500/15 text-purple-300 border border-purple-500/30"
                                   )}>
                                     {isUserOverride ? (
@@ -1067,13 +1071,13 @@ export default function FinalScorePage() {
                   <motion.div
                     key={row.pair}
                     whileHover={{ y: -3 }}
-                    onClick={() => setSelectedCell({ 
-                      pair: row.pair, 
-                      base: row.base, 
-                      quote: row.quote, 
-                      baseCountry: row.baseCountry, 
-                      quoteCountry: row.quoteCountry, 
-                      data: latestCell 
+                    onClick={() => setSelectedCell({
+                      pair: row.pair,
+                      base: row.base,
+                      quote: row.quote,
+                      baseCountry: row.baseCountry,
+                      quoteCountry: row.quoteCountry,
+                      data: latestCell
                     })}
                     className={clsx("p-4 sm:p-5 flex flex-col justify-between gap-3.5 cursor-pointer transition-all hover:border-[#D4FF00]/40", matteCard)}
                   >
@@ -1118,16 +1122,16 @@ export default function FinalScorePage() {
                           return (
                             <div key={mCell.month} className="flex flex-col items-center gap-0.5">
                               <div className="w-full bg-white/5 rounded-md h-8 flex items-end p-0.5">
-                                <div 
+                                <div
                                   style={{ height: `${heightPct}%` }}
                                   className={clsx(
                                     "w-full rounded-sm transition-all",
-                                    isFcst 
-                                      ? "bg-purple-400" 
-                                      : mCell.bias === "BULLISH" 
-                                      ? "bg-emerald-400" 
-                                      : mCell.bias === "BEARISH" 
-                                      ? "bg-rose-400" 
+                                    isFcst
+                                      ? "bg-purple-400"
+                                      : mCell.bias === "BULLISH"
+                                      ? "bg-emerald-400"
+                                      : mCell.bias === "BEARISH"
+                                      ? "bg-rose-400"
                                       : "bg-slate-400"
                                   )}
                                 />
@@ -1236,7 +1240,7 @@ export default function FinalScorePage() {
                     </div>
 
                     {/* Interactive Range Slider */}
-                    <input 
+                    <input
                       type="range"
                       min={-100}
                       max={100}
@@ -1261,8 +1265,8 @@ export default function FinalScorePage() {
                           onClick={() => setCustomScoreInput(p.val)}
                           className={clsx(
                             "py-1 rounded-lg text-[11px] font-mono font-bold border transition-all cursor-pointer text-center",
-                            customScoreInput === p.val 
-                              ? "bg-[#8B5CF6]/30 border-[#A855F7] text-white" 
+                            customScoreInput === p.val
+                              ? "bg-[#8B5CF6]/30 border-[#A855F7] text-white"
                               : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
                           )}
                         >
@@ -1297,7 +1301,7 @@ export default function FinalScorePage() {
                               {val > 0 ? `+${val}` : val}
                             </span>
                           </div>
-                          <input 
+                          <input
                             type="range"
                             min={-10}
                             max={10}
@@ -1373,23 +1377,23 @@ export default function FinalScorePage() {
           {selectedCell && (
             <>
               {/* Dark Ambient Backdrop */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 cursor-pointer" 
+                className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 cursor-pointer"
                 onClick={() => setSelectedCell(null)}
               />
 
               {/* Slide-over Panel */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: 360 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 360 }}
                 transition={{ type: "spring", stiffness: 350, damping: 32 }}
-                className="fixed top-0 right-0 h-full w-full sm:w-[540px] max-w-full bg-[#101218]/95 backdrop-blur-3xl border-l border-white/10 shadow-[-30px_0_70px_rgba(0,0,0,0.95),inset_0_1px_0_0_rgba(255,255,255,0.08)] p-6 sm:p-8 z-50 overflow-y-auto flex flex-col gap-6 scrollbar-thin scrollbar-thumb-white/10" 
+                className="fixed top-0 right-0 h-full w-full sm:w-[540px] max-w-full bg-[#101218]/95 backdrop-blur-3xl border-l border-white/10 shadow-[-30px_0_70px_rgba(0,0,0,0.95),inset_0_1px_0_0_rgba(255,255,255,0.08)] p-6 sm:p-8 z-50 overflow-y-auto flex flex-col gap-6 scrollbar-thin scrollbar-thumb-white/10"
               >
-                
+
                 {/* Drawer Header */}
                 <div className="flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
                   <div className="flex flex-col gap-1.5">
@@ -1412,8 +1416,8 @@ export default function FinalScorePage() {
                     </div>
                   </div>
 
-                  <button 
-                    onClick={() => setSelectedCell(null)} 
+                  <button
+                    onClick={() => setSelectedCell(null)}
                     className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:text-white transition-colors cursor-pointer shrink-0"
                     aria-label="Fermer les détails"
                   >
@@ -1499,13 +1503,13 @@ export default function FinalScorePage() {
                           <div className="w-full h-2 rounded-full bg-white/5 flex items-center relative overflow-hidden">
                             {/* Center Line Marker */}
                             <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-white/20 z-10" />
-                            
+
                             {/* Negative Left Bar */}
                             <div className="w-1/2 h-full flex justify-end">
                               {isNegative && (
-                                <div 
-                                  style={{ width: `${barWidth}%` }} 
-                                  className="h-full bg-rose-400 rounded-l-full" 
+                                <div
+                                  style={{ width: `${barWidth}%` }}
+                                  className="h-full bg-rose-400 rounded-l-full"
                                 />
                               )}
                             </div>
@@ -1513,9 +1517,9 @@ export default function FinalScorePage() {
                             {/* Positive Right Bar */}
                             <div className="w-1/2 h-full flex justify-start">
                               {isPositive && (
-                                <div 
-                                  style={{ width: `${barWidth}%` }} 
-                                  className="h-full bg-emerald-400 rounded-r-full" 
+                                <div
+                                  style={{ width: `${barWidth}%` }}
+                                  className="h-full bg-emerald-400 rounded-r-full"
                                 />
                               )}
                             </div>
@@ -1536,8 +1540,8 @@ export default function FinalScorePage() {
                     Score Final (%) = (&Sigma; Notes des 6 Piliers / 60) &times; 100
                   </div>
                   <div className="font-mono text-[11px] text-slate-300 bg-black/50 p-2.5 rounded-xl border border-white/5">
-                    ({selectedCell.data.indicators.map((i: any) => i.val > 0 ? `+${i.val}` : String(i.val)).join(" + ")}) = 
-                    <strong className="text-white"> {selectedCell.data.totalScore > 0 ? `+${selectedCell.data.totalScore}` : selectedCell.data.totalScore} / 60 &times; 100 </strong> = 
+                    ({selectedCell.data.indicators.map((i: any) => i.val > 0 ? `+${i.val}` : String(i.val)).join(" + ")}) =
+                    <strong className="text-white"> {selectedCell.data.totalScore > 0 ? `+${selectedCell.data.totalScore}` : selectedCell.data.totalScore} / 60 &times; 100 </strong> =
                     <strong className="text-[#D4FF00]"> {parseFloat(selectedCell.data.finalScorePct) > 0 ? `+${selectedCell.data.finalScorePct}` : selectedCell.data.finalScorePct}%</strong>
                   </div>
                 </div>

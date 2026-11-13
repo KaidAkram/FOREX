@@ -33,14 +33,8 @@ def macro_matrix(request):
             .select_related("pair", "rating")
             .order_by("pair__symbol", "month")
         )
-        cache_pairs = {}
-        cache_path = Path(__file__).resolve().parents[5] / "equity_dataset_cache.json"
-        if cache_path.exists():
-            try:
-                with open(cache_path, "r", encoding="utf-8") as f:
-                    cache_pairs = json.load(f).get("pairs", {})
-            except Exception:
-                cache_pairs = {}
+        details = SystemSetting.objects.filter(key='equity_details').first()
+        cache_pairs = details.value if details else {}
 
         pair_map: dict = {}
         for d in diffs:
@@ -166,7 +160,7 @@ def manual_entry(request):
         country=country,
         indicator=indicator,
         month=month,
-        status="published",
+        status__in=["published", "revised"],
         is_active_value=True,
     ).first()
 
@@ -223,7 +217,7 @@ def manual_entry(request):
         # Purge any lingering non-published/inactive rows to prevent constraint collision
         MacroDataPoint.objects.filter(
             country=country, indicator=indicator, month=month
-        ).exclude(status="published").delete()
+        ).exclude(status__in=["published", "revised"]).delete()
 
         dp = MacroDataPoint.objects.create(
             country=country,

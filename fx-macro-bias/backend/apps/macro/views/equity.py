@@ -12,11 +12,5 @@ logger = logging.getLogger(__name__)
 @permission_classes([IsAdminStaff])
 @throttle_classes([ScopedRateThrottle])
 def refresh(request):
-    try:
-        return Response({"success": True, **refresh_equity()})
-    except Exception:
-        logger.exception("Live Equity refresh failed")
-        return Response({"success": False, "error": "Equity refresh failed; previous calculations retained."}, status=502)
-
-
-refresh.throttle_scope = "scraper_trigger"
+    from apps.macro.services.scheduler import queue_refresh
+    return Response(queue_refresh('admin_equity'), status=202)

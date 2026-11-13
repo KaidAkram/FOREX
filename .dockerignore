@@ -1,0 +1,11 @@
+**/.env*
+**/db.sqlite3
+**/__pycache__
+**/node_modules
+**/.next
+.git
+scratch
+*.xlsx
+*.pdf
+*.docx
+*.zip

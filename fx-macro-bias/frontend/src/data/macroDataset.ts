@@ -1,3 +1,4 @@
+import { getLiveSnapshot } from "../lib/liveSnapshot.ts";
 // Verified Macroeconomic Sovereign Dataset
 // Extracted from official IMF SDMX 3.0 API, TradingEconomics Highcharts Engine, and National Central Banks
 
@@ -116,55 +117,8 @@ export function getDisplayMonthsForYear(
 // Data up to cutoff is officially published (Read-only).
 // Future / unreleased periods with estimates are flagged as "forecast" (Editable).
 // Missing periods without prints are flagged as "missing" (Editable).
-export const OFFICIAL_RELEASE_CUTOFFS: Record<string, string | ((country: string) => string)> = {
-  // GDP: Official prints through 2026-09 (Q1, Q2, Q3 published). Q4 (2026-10..12) are forward forecasts.
-  // GDP: Only Euro Area, Sweden, and USA have officially published Q3 2026 (through 2026-09).
-  // Australia, Canada, Japan, New Zealand, Norway, Switzerland, and UK have only published Q2 (through 2026-06).
-  "GDP": (country: string) => {
-    const c = country.toLowerCase();
-    if (c.includes("euro") || c.includes("sweden") || c.includes("united states") || c === "usa") {
-      return "2026-09";
-    }
-    return "2026-06";
-  },
-
-  // Current Account: UK & Euro Area published through 2026-03 (Q1); Others published through 2026-06 (Q2).
-  // Q2 is unavailable for both Euro Area and UK. No forecasts published for CA - unpublished periods are missing (null).
-  "Current Account": (country: string) => {
-    if (country === "United Kingdom" || country === "Euro Area") {
-      return "2026-03";
-    }
-    return "2026-06";
-  },
-
-  // CPI: Official prints through September 2026 (2026-09) for all economies.
-  // October 2026 (2026-10) and beyond are forward forecasts.
-  // CPI: Official prints through October 2026 (2026-10) for Euro Area, Switzerland, and Sweden.
-  // Other economies published through September 2026 (2026-09).
-  "CPI": (country: string) => {
-    const c = country.toLowerCase();
-    if (c.includes("euro") || c.includes("switzerland") || c.includes("sweden")) {
-      return "2026-10";
-    }
-    return "2026-09";
-  },
-
-  // Interest Rate: Official central bank policy prints through November 2026 (2026-11) for Australia, Norway, Sweden, UK.
-  // Other economies published through October 2026 (2026-10).
-  "Interest Rate": (country: string) => {
-    const c = country.toLowerCase();
-    if (c.includes("australia") || c.includes("norway") || c.includes("sweden") || c.includes("united kingdom") || c.includes("uk")) {
-      return "2026-11";
-    }
-    return "2026-10";
-  },
-
-  // FX Reserves: availability comes directly from live IMF SDMX observations (no hardcoded date cutoffs).
-  "FX Reserves": () => "9999-12",
-
-  // Equity: pair-level live daily OHLC calculation (no fixed month cutoff).
-  "Equity": "9999-12",
-};
+// Publication is determined by source observations, never a fixed date.
+export const OFFICIAL_RELEASE_CUTOFFS: Record<string, string | ((country: string) => string)> = Object.fromEntries(INDICATORS.map(name => [name, "9999-12"]));
 
 export const MASTER_MACRO_DATABASE: Record<string, Record<string, Record<string, number | null>>> = {
   "GDP": {
@@ -36651,6 +36605,21 @@ export function getCombinedDifferentialData(
   }>>,
   monthsOverride?: string[]
 ) {
+  const live = getLiveSnapshot();
+  if (live) {
+    const key = pairName.replace(' ', '/');
+    return (monthsOverride || getDisplayMonthsForYear(year)).map(month => {
+      const point = live.differentials[key]?.[indicator]?.[month];
+      const complete = point?.is_complete && point.rating !== null;
+      const scale = indicator === 'Equity' ? 100 : 1;
+      const format = (v: number|null|undefined) => v == null ? '—' : String(Number((v * scale).toFixed(4))) + (indicator === 'Equity' ? '%' : '');
+      return {month, baseVal: format(point?.base_value), quoteVal: format(point?.quote_value),
+        diff: complete ? format(point?.difference) : '—', diffNum: complete ? (point!.difference || 0) * scale : 0,
+        rating: complete ? point!.rating! : 0, rule: complete ? 'Published calculation' : 'Awaiting data',
+        regime: complete ? 'Published calculation' : 'Pending data', isMissing: !complete, isForecast: false,
+        equityDetails: indicator === 'Equity' ? live.equity[key]?.[month] : undefined};
+    });
+  }
   const pair = PAIRS.find(p => p.name === pairName || p.name.replace('/', ' ') === pairName.replace('/', ' ')) || PAIRS[0];
   // Annual cycle plus N+3 forward horizon for the active system year
   const months = monthsOverride ?? getDisplayMonthsForYear(year);

@@ -1,535 +1,117 @@
-"""
-Unified Macroeconomic Scraper Orchestrator — FX Macro Bias Engine
-Orchestrates data extraction, missing print detection, automatic rescheduling,
-and mathematical pipeline calculation across all 6 macro indicators:
-1. GDP Growth (TradingEconomics / OECD)
-2. CPI Inflation (TradingEconomics / National Bureaus)
-3. Interest Rates (Central Banks / TradingEconomics)
-4. FX Reserves Excl. Gold (IMF SDMX 3.0 API)
-5. Current Account / GDP (OECD SDMX 3.0 API)
-6. Equity Benchmark Returns (Yahoo Finance / ATH Model)
-"""
-from __future__ import annotations
-
+from apps.macro.services.fencing import check_lease
+"""Scheduled ingestion and atomic publication of client snapshots."""
 import logging
-import json
-import os
-import sys
-import re
-import gzip
-import base64
-import urllib.request
-import urllib.parse
-from datetime import datetime, date, timedelta, timezone
-from typing import Dict, Any, List, Optional
-from pathlib import Path
-
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+from typing import Optional
 from django.db import transaction
-from django.utils import timezone as dj_timezone
-
-from apps.macro.models import (
-    Country,
-    MacroIndicator,
-    MacroDataPoint,
-    FXPair,
-    SystemSetting,
-    AuditLog,
-)
-from apps.macro.signals import disable_macro_signals
-from apps.macro.services.calculator import recalculate_full_matrix
+from django.utils import timezone as django_timezone
+from apps.macro.models import SystemSetting, AuditLog
+from apps.macro.services.ingestion import sync_indicator, fetch_te
 
 logger = logging.getLogger(__name__)
 
-# TradingEconomics CloudFront decryption key & Sovereign Economy slugs
-TE_OBFUSCATION_KEY = "tradingeconomics-charts-core-api-key".encode("utf-8")
-TE_COUNTRY_SLUGS = {
-    "USD": "united-states",
-    "EUR": "euro-area",
-    "JPY": "japan",
-    "GBP": "united-kingdom",
-    "AUD": "australia",
-    "CAD": "canada",
-    "CHF": "switzerland",
-    "NZD": "new-zealand",
-    "SEK": "sweden",
-    "NOK": "norway",
-}
+def _cron_field(field, low, high):
+    values = set()
+    for part in field.split(','):
+        spec, sep, step = part.partition('/')
+        step = int(step) if sep else 1
+        if step < 1:
+            raise ValueError('Cron step must be positive')
+        if spec == '*':
+            start, end = low, high
+        elif '-' in spec:
+            start, end = map(int, spec.split('-'))
+        else:
+            start = int(spec)
+            end = high if sep else start
+        if not low <= start <= end <= high:
+            raise ValueError('Cron field outside allowed range')
+        values.update(range(start, end + 1, step))
+    return values
 
-# Root directory reference for engine scripts
-ROOT_DIR = Path(__file__).resolve().parents[5]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
-
-def compute_next_cron_run(preset: str, custom_cron: str = "", from_time: Optional[datetime] = None) -> datetime:
-    """Calculates the next scheduled cron execution time based on preset or custom cron."""
+def compute_next_cron_run(preset, custom_cron='', from_time=None, timezone_name='UTC'):
     now = from_time or datetime.now(timezone.utc)
-    preset = preset.lower()
-
-    if preset == "hourly":
-        return (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-    elif preset == "4hours":
-        next_hour = ((now.hour // 4) + 1) * 4
-        if next_hour >= 24:
-            next_day = now + timedelta(days=1)
-            return next_day.replace(hour=next_hour % 24, minute=0, second=0, microsecond=0)
-        return now.replace(hour=next_hour, minute=0, second=0, microsecond=0)
-    elif preset == "12hours":
-        next_hour = 12 if now.hour < 12 else 0
-        target = now if next_hour == 12 else (now + timedelta(days=1))
-        return target.replace(hour=next_hour, minute=0, second=0, microsecond=0)
-    elif preset == "daily":
-        return (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    elif preset == "weekly":
-        days_ahead = 7 - now.weekday()  # Monday
-        return (now + timedelta(days=days_ahead)).replace(hour=0, minute=0, second=0, microsecond=0)
-    else:
-        # Default fallback: 4 hours
-        return now + timedelta(hours=4)
-
+    expressions = {'5minutes': '*/5 * * * *', 'hourly': '0 * * * *', '4hours': '0 */4 * * *',
+                   '12hours': '0 */12 * * *', 'daily': '0 0 * * *', 'weekly': '0 0 * * 1'}
+    expression = custom_cron if preset == 'custom' else expressions.get(preset)
+    if not expression or len(expression.split()) != 5:
+        raise ValueError('Select a supported schedule or a valid five-field cron expression')
+    fields = expression.split()
+    minute, hour, dom, month, dow = [_cron_field(v, *bounds) for v, bounds in zip(fields, [(0,59),(0,23),(1,31),(1,12),(0,7)])]
+    dow = {x % 7 for x in dow}
+    zone = ZoneInfo(timezone_name)
+    candidate = now.astimezone(timezone.utc).replace(second=0, microsecond=0) + timedelta(minutes=1)
+    for _ in range(60 * 24 * 366 * 5):
+        local = candidate.astimezone(zone)
+        day_match = local.day in dom
+        week_match = (local.weekday() + 1) % 7 in dow
+        day_ok = (day_match or week_match) if fields[2] != '*' and fields[4] != '*' else (day_match and week_match)
+        if local.minute in minute and local.hour in hour and local.month in month and day_ok:
+            return candidate
+        candidate += timedelta(minutes=1)
+    raise ValueError('Cron expression has no occurrence within five years')
 
 class ScraperOrchestrator:
-    """
-    Coordinates end-to-end ingestion, ensures published data is stored,
-    and handles automatic rescheduling when prints are delayed or skipped.
-    """
+    _fetch_te_series = classmethod(lambda cls, slug, category: fetch_te(slug, category)[0])
 
     @classmethod
-    def run_full_pipeline(cls, trigger_source: str = "manual") -> Dict[str, Any]:
-        """
-        Executes scraping across all indicators, populates database,
-        detects skipped or delayed prints, and schedules next runs.
-        """
-        now_utc = datetime.now(timezone.utc)
-        logger.info(f"[Orchestrator] Starting macro data pipeline (trigger={trigger_source}) at {now_utc.isoformat()}")
-
-        results: Dict[str, Any] = {
-            "trigger_source": trigger_source,
-            "started_at": now_utc.isoformat(),
-            "indicators": {},
-            "total_points_saved": 0,
-            "has_skipped_prints": False,
-            "skipped_reasons": [],
-        }
-
-        # 1. Scrape IMF FX Reserves
-        try:
-            fx_saved, fx_skipped = cls._sync_fx_reserves()
-            results["indicators"]["fx_reserves"] = {"status": "SUCCESS", "points": fx_saved}
-            results["total_points_saved"] += fx_saved
-            if fx_skipped:
-                results["has_skipped_prints"] = True
-                results["skipped_reasons"].append(f"FX Reserves: {fx_skipped}")
-        except Exception as e:
-            logger.exception("Error syncing FX Reserves")
-            results["indicators"]["fx_reserves"] = {"status": "ERROR", "error": str(e)}
-            results["has_skipped_prints"] = True
-            results["skipped_reasons"].append(f"FX Reserves exception: {str(e)}")
-
-        # 2. Scrape Equity Benchmarks
-        try:
-            eq_saved, eq_skipped = cls._sync_equity()
-            results["indicators"]["equity"] = {"status": "SUCCESS", "points": eq_saved}
-            results["total_points_saved"] += eq_saved
-            if eq_skipped:
-                results["has_skipped_prints"] = True
-                results["skipped_reasons"].append(f"Equity: {eq_skipped}")
-        except Exception as e:
-            logger.exception("Error syncing Equity")
-            results["indicators"]["equity"] = {"status": "ERROR", "error": str(e)}
-            results["has_skipped_prints"] = True
-            results["skipped_reasons"].append(f"Equity exception: {str(e)}")
-
-        # 3. Scrape OECD Current Account
-        try:
-            ca_saved, ca_skipped = cls._sync_current_account()
-            results["indicators"]["ca_gdp"] = {"status": "SUCCESS", "points": ca_saved}
-            results["total_points_saved"] += ca_saved
-            if ca_skipped:
-                results["has_skipped_prints"] = True
-                results["skipped_reasons"].append(f"Current Account: {ca_skipped}")
-        except Exception as e:
-            logger.exception("Error syncing Current Account")
-            results["indicators"]["ca_gdp"] = {"status": "ERROR", "error": str(e)}
-            results["has_skipped_prints"] = True
-            results["skipped_reasons"].append(f"Current Account exception: {str(e)}")
-
-        # 4. Scrape GDP Growth
-        try:
-            gdp_saved, gdp_skipped = cls._sync_gdp()
-            results["indicators"]["gdp"] = {"status": "SUCCESS", "points": gdp_saved}
-            results["total_points_saved"] += gdp_saved
-            if gdp_skipped:
-                results["has_skipped_prints"] = True
-                results["skipped_reasons"].append(f"GDP: {gdp_skipped}")
-        except Exception as e:
-            logger.exception("Error syncing GDP")
-            results["indicators"]["gdp"] = {"status": "ERROR", "error": str(e)}
-            results["has_skipped_prints"] = True
-            results["skipped_reasons"].append(f"GDP exception: {str(e)}")
-
-        # 5. Scrape CPI (Inflation)
-        try:
-            cpi_saved, cpi_skipped = cls._sync_cpi()
-            results["indicators"]["cpi"] = {"status": "SUCCESS", "points": cpi_saved}
-            results["total_points_saved"] += cpi_saved
-            if cpi_skipped:
-                results["has_skipped_prints"] = True
-                results["skipped_reasons"].append(f"CPI: {cpi_skipped}")
-        except Exception as e:
-            logger.exception("Error syncing CPI")
-            results["indicators"]["cpi"] = {"status": "ERROR", "error": str(e)}
-            results["has_skipped_prints"] = True
-            results["skipped_reasons"].append(f"CPI exception: {str(e)}")
-
-        # 6. Scrape Interest Rates
-        try:
-            ir_saved, ir_skipped = cls._sync_interest_rates()
-            results["indicators"]["interest_rate"] = {"status": "SUCCESS", "points": ir_saved}
-            results["total_points_saved"] += ir_saved
-            if ir_skipped:
-                results["has_skipped_prints"] = True
-                results["skipped_reasons"].append(f"Interest Rate: {ir_skipped}")
-        except Exception as e:
-            logger.exception("Error syncing Interest Rates")
-            results["indicators"]["interest_rate"] = {"status": "ERROR", "error": str(e)}
-            results["has_skipped_prints"] = True
-            results["skipped_reasons"].append(f"Interest Rate exception: {str(e)}")
-
-        # 7. Execute Full Matrix Recalculation across all FX pairs
-        logger.info("[Orchestrator] Recalculating full matrix differentials, ratings, and biases...")
-        records_recalculated = recalculate_full_matrix()
-        results["records_recalculated"] = records_recalculated
-
-        finished_utc = datetime.now(timezone.utc)
-        results["finished_at"] = finished_utc.isoformat()
-        last_scrape_str = finished_utc.strftime("%b %d, %H:%M UTC")
-
-        # 8. Manage Rescheduling & Cron Setting Persistence
-        setting_obj = SystemSetting.objects.filter(key="scraper_settings").first()
-        current_cfg = setting_obj.value if setting_obj and setting_obj.value else {}
-
-        cron_preset = current_cfg.get("cronPreset", "4hours")
-        custom_cron = current_cfg.get("customCron", "")
-        retry_delay_mins = int(current_cfg.get("retry_delay_minutes", 30))
-
-        if results["has_skipped_prints"]:
-            # Auto-Reschedule for delayed / skipped prints as requested by user
-            next_run = finished_utc + timedelta(minutes=retry_delay_mins)
-            status_text = "SKIPPED_RESCHEDULED"
-            skipped_reason_text = "Delayed/unreleased prints detected: " + "; ".join(results["skipped_reasons"])
-            logger.warning(f"[Orchestrator] {skipped_reason_text}. Rescheduled next retry at {next_run.isoformat()}")
-        else:
-            # Regular schedule
-            next_run = compute_next_cron_run(cron_preset, custom_cron, finished_utc)
-            status_text = "SUCCESS"
-            skipped_reason_text = None
-            logger.info(f"[Orchestrator] Full pipeline executed successfully. Next run at {next_run.isoformat()}")
-
-        current_cfg.update({
-            "lastScrapeTime": last_scrape_str,
-            "lastScrapeIso": finished_utc.isoformat(),
-            "last_status": status_text,
-            "next_scheduled_run": next_run.isoformat(),
-            "next_scheduled_run_display": next_run.strftime("%b %d, %Y %H:%M UTC"),
-            "skipped_reason": skipped_reason_text,
-            "has_skipped_prints": results["has_skipped_prints"],
-            "records_updated": records_recalculated,
-        })
-
-        SystemSetting.objects.update_or_create(
-            key="scraper_settings",
-            defaults={"value": current_cfg, "description": "Active Scraper & Cron Orchestration configuration"}
-        )
-
-        # 9. Audit Logging
-        AuditLog.objects.create(
-            entity_type="ScraperExecution",
-            entity_id=f"RUN-{int(finished_utc.timestamp())}",
-            action="executed" if not results["has_skipped_prints"] else "skipped_rescheduled",
-            after_value={
-                "trigger_source": trigger_source,
-                "records_recalculated": records_recalculated,
-                "points_saved": results["total_points_saved"],
-                "has_skipped_prints": results["has_skipped_prints"],
-                "skipped_reasons": results["skipped_reasons"],
-                "next_scheduled_run": next_run.isoformat(),
-                "timestamp": finished_utc.isoformat(),
-            },
-            user=trigger_source,
-            notes=(
-                f"Macro scraper pipeline: {records_recalculated} pair-months validated. "
-                + (f"Next retry in {retry_delay_mins}m due to: {skipped_reason_text}" if results["has_skipped_prints"] else f"Next run: {next_run.strftime('%b %d, %H:%M UTC')}")
-            )
-        )
-
-        results["success"] = True
-        results["status"] = status_text
-        results["last_scrape_time"] = last_scrape_str
-        results["next_scheduled_run"] = next_run.isoformat()
-        results["next_scheduled_run_display"] = next_run.strftime("%b %d, %Y %H:%M UTC")
-        results["skipped_reason"] = skipped_reason_text
-
-        return results
-
-    # ──────────────────────────────────────────────────────────
-    # INTERNAL INDICATOR SYNCS
-    # ──────────────────────────────────────────────────────────
-
-    @classmethod
-    def _sync_fx_reserves(cls) -> tuple[int, Optional[str]]:
-        """Use the same non-destructive live sync as the dedicated command/API."""
+    def run_full_pipeline(cls, trigger_source='worker'):
+        from apps.macro.services.calculator import recalculate_full_matrix
+        from apps.macro.services.snapshot import publish_snapshot
         from apps.macro.services.fx_reserves import refresh_fx_reserves
-        result = refresh_fx_reserves(recalculate=False)
-        missing = result.get("missing_countries", [])
-        return result["points_saved"], ("No observations returned for: " + ", ".join(missing)) if missing else None
-
-    @classmethod
-    def _sync_equity(cls) -> tuple[int, Optional[str]]:
-        """Use the shared pair-level Equity live sync."""
         from apps.macro.services.equity import refresh_equity
-        result = refresh_equity(recalculate=False)
-        missing = result.get("missing_pairs", [])
-        return result["points_saved"], ("No observations returned for: " + ", ".join(missing)) if missing else None
+        results = {'started_at': django_timezone.now().isoformat(), 'indicators': {}, 'total_points_saved': 0}
+        # Publish fast macro releases before the heavier full-history market calculation.
+        jobs = [(s, lambda slug=s: sync_indicator(slug)) for s in ('gdp', 'cpi', 'interest_rate', 'ca_gdp')]
+        jobs += [('fx_reserves', lambda: refresh_fx_reserves(recalculate=False)), ('equity', lambda: refresh_equity(recalculate=False))]
+        errors = []
+        for slug, job in jobs:
+            try:
+                result = job()
+                missing = result.get('missing_countries', []) + result.get('missing_pairs', [])
+                failures = result.get('errors', []) + [f'Missing: {x}' for x in missing]
+                if failures:
+                    result['status'] = 'PARTIAL'
+                    errors.extend(f'{slug}: {x}' for x in failures)
+                results['indicators'][slug] = result
+                results['total_points_saved'] += result.get('points', result.get('points_saved', 0))
+                # Clients read an immutable snapshot: never a half-recalculated matrix.
+                with transaction.atomic():
 
-    @classmethod
-    def _sync_current_account(cls) -> tuple[int, Optional[str]]:
-        """Syncs OECD Current Account (% of GDP)."""
-        indicator = MacroIndicator.objects.get(slug="ca_gdp")
-        saved = MacroDataPoint.objects.filter(indicator=indicator).count()
-        skipped = None
+                    check_lease()
+                    results['records_recalculated'] = recalculate_full_matrix()
+                    publish_snapshot()
+            except Exception as exc:
+                logger.exception('Indicator refresh failed: %s', slug)
+                results['indicators'][slug] = {'status': 'ERROR', 'error': str(exc)}
+                errors.append(f'{slug}: {exc}')
+        with transaction.atomic():
 
-        with disable_macro_signals(), transaction.atomic():
-            # Q2 data are unavailable for both Euro Area and UK
-            MacroDataPoint.objects.filter(country__name__in=["United Kingdom", "Euro Area"], indicator=indicator, month__gte=date(2026, 4, 1)).delete()
+            check_lease()
+            recalculate_full_matrix()
+            publish_snapshot()
+        now = django_timezone.now()
+        results.update(finished_at=now.isoformat(), success=not errors, status='PARTIAL' if errors else 'SUCCESS',
+                       has_skipped_prints=bool(errors), skipped_reasons=errors)
+        with transaction.atomic():
 
-            MacroDataPoint.objects.filter(indicator=indicator, month__lte=date(2026, 6, 1)).update(
-                status=MacroDataPoint.Status.PUBLISHED
-            )
-
-        # Verify if 2026-09 is present
-        missing_2026_q3 = MacroDataPoint.objects.filter(indicator=indicator, month=date(2026, 9, 1)).count()
-        if missing_2026_q3 == 0:
-            skipped = "OECD 2026-Q3 preliminary release pending"
-
-        return saved, skipped
-
-    @classmethod
-    def _fetch_te_series(cls, slug: str, category: str) -> dict[str, float]:
-        """
-        Dynamically and autonomously fetches historical published data directly from TradingEconomics.
-        Strictly official points from the live CloudFront JSON stream.
-        """
-        url = f"https://tradingeconomics.com/{slug}/{category}"
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9"
-        })
-        with urllib.request.urlopen(req, timeout=15) as r:
-            html = r.read().decode("utf-8")
-
-        m_sym = re.search(r"TESymbol\s*=\s*'([^']+)'", html)
-        m_tok = re.search(r"TEChartsToken\s*=\s*'([^']+)'", html)
-        if not m_sym:
-            raise ValueError(f"Could not extract TESymbol from {url}")
-        sym = m_sym.group(1)
-        tok = m_tok.group(1) if m_tok else "20260324:loboantunes"
-
-        cf_url = f"https://d3ii0wo49og5mi.cloudfront.net/economics/{urllib.parse.quote(sym.lower())}?span=5y"
-        req_cf = urllib.request.Request(cf_url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-            "x-api-key": tok,
-            "Referer": url
-        })
-        with urllib.request.urlopen(req_cf, timeout=15) as r_cf:
-            raw = json.loads(r_cf.read().decode("utf-8"))
-
-        enc = base64.b64decode(raw)
-        dec = bytearray(b ^ TE_OBFUSCATION_KEY[i % len(TE_OBFUSCATION_KEY)] for i, b in enumerate(enc))
-        json_data = json.loads(gzip.decompress(dec).decode("utf-8"))
-        pts = json_data[0]["series"][0]["serie"]["data"]
-
-        return {p[3][:10]: float(p[0]) for p in pts}
-
-    @classmethod
-    def _sync_gdp(cls) -> tuple[int, Optional[str]]:
-        """Syncs GDP Annual Growth Rate autonomously from TradingEconomics — strictly official publications."""
-        indicator = MacroIndicator.objects.get(slug="gdp")
-        countries = Country.objects.filter(is_active=True)
-        saved = 0
-        skipped = None
-
-        with disable_macro_signals(), transaction.atomic():
-            MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
-
-            for country in countries:
-                slug = TE_COUNTRY_SLUGS.get(country.iso_code.upper(), country.trading_economics_slug)
-                if not slug:
-                    continue
-
-                try:
-                    pts = cls._fetch_te_series(slug, "gdp-growth-annual")
-                except Exception as e:
-                    logger.warning(f"Could not fetch live TE GDP for {country.name}: {e}")
-                    continue
-
-                quarterly_map = {}
-                for dt_str, val in pts.items():
-                    yr = int(dt_str[:4])
-                    mo = int(dt_str[5:7])
-                    if yr >= 2023:
-                        quarterly_map[(yr, mo)] = val
-
-                max_pub_date = None
-                quarters_def = [
-                    (3, [1, 2, 3]),
-                    (6, [4, 5, 6]),
-                    (9, [7, 8, 9]),
-                    (12, [10, 11, 12]),
-                ]
-
-                for (yr, q_mo), val in quarterly_map.items():
-                    sub_months = dict(quarters_def).get(q_mo, [q_mo])
-                    for m in sub_months:
-                        dt = date(yr, m, 1)
-                        if max_pub_date is None or dt > max_pub_date:
-                            max_pub_date = dt
-                        MacroDataPoint.objects.update_or_create(
-                            country=country,
-                            indicator=indicator,
-                            month=dt,
-                            defaults={
-                                "value": val,
-                                "status": MacroDataPoint.Status.PUBLISHED,
-                                "source": "TradingEconomics Official Release (Autonomous Live Scraper)",
-                                "is_active_value": True,
-                            }
-                        )
-                        saved += 1
-
-                # Clean up any unreleased future periods beyond latest official quarter
-                if max_pub_date:
-                    MacroDataPoint.objects.filter(
-                        country=country,
-                        indicator=indicator,
-                        month__gt=max_pub_date
-                    ).exclude(status=MacroDataPoint.Status.MANUAL).delete()
-
-        return saved, skipped
-
-    @classmethod
-    def _sync_cpi(cls) -> tuple[int, Optional[str]]:
-        """Syncs CPI Inflation Rate autonomously from TradingEconomics — strictly official publications."""
-        indicator = MacroIndicator.objects.get(slug="cpi")
-        countries = Country.objects.filter(is_active=True)
-        saved = 0
-        skipped = None
-
-        with disable_macro_signals(), transaction.atomic():
-            MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
-
-            for country in countries:
-                slug = TE_COUNTRY_SLUGS.get(country.iso_code.upper(), country.trading_economics_slug)
-                if not slug:
-                    continue
-
-                try:
-                    pts = cls._fetch_te_series(slug, "inflation-cpi")
-                except Exception as e:
-                    logger.warning(f"Could not fetch live TE CPI for {country.name}: {e}")
-                    continue
-
-                max_pub_date = None
-                for dt_str, val in pts.items():
-                    yr = int(dt_str[:4])
-                    if yr >= 2023:
-                        dt = date.fromisoformat(dt_str)
-                        if max_pub_date is None or dt > max_pub_date:
-                            max_pub_date = dt
-                        MacroDataPoint.objects.update_or_create(
-                            country=country,
-                            indicator=indicator,
-                            month=dt,
-                            defaults={
-                                "value": val,
-                                "status": MacroDataPoint.Status.PUBLISHED,
-                                "source": "TradingEconomics Official Release (Autonomous Live Scraper)",
-                                "is_active_value": True,
-                            }
-                        )
-                        saved += 1
-
-                # Clean up unreleased future prints beyond latest official publication
-                if max_pub_date:
-                    MacroDataPoint.objects.filter(
-                        country=country,
-                        indicator=indicator,
-                        month__gt=max_pub_date
-                    ).exclude(status=MacroDataPoint.Status.MANUAL).delete()
-
-        return saved, skipped
-
-    @classmethod
-    def _sync_interest_rates(cls) -> tuple[int, Optional[str]]:
-        """Syncs Central Bank Interest Rates autonomously from TradingEconomics — strictly official publications."""
-        indicator = MacroIndicator.objects.get(slug="interest_rate")
-        countries = Country.objects.filter(is_active=True)
-        saved = 0
-        skipped = None
-
-        with disable_macro_signals(), transaction.atomic():
-            MacroDataPoint.objects.filter(indicator=indicator, status=MacroDataPoint.Status.FORECAST).delete()
-
-            for country in countries:
-                slug = TE_COUNTRY_SLUGS.get(country.iso_code.upper(), country.trading_economics_slug)
-                if not slug:
-                    continue
-
-                try:
-                    pts = cls._fetch_te_series(slug, "interest-rate")
-                except Exception as e:
-                    logger.warning(f"Could not fetch live TE Interest Rate for {country.name}: {e}")
-                    continue
-
-                max_pub_date = None
-                sorted_pts = sorted([(date.fromisoformat(k), float(v)) for k, v in pts.items() if int(k[:4]) >= 2023])
-                if sorted_pts:
-                    min_dt = sorted_pts[0][0]
-                    max_dt = sorted_pts[-1][0]
-                    max_pub_date = max_dt
-
-                    cur_val = sorted_pts[0][1]
-                    cur_dt = min_dt
-                    pt_dict = dict(sorted_pts)
-
-                    while cur_dt <= max_dt:
-                        if cur_dt in pt_dict:
-                            cur_val = pt_dict[cur_dt]
-
-                        MacroDataPoint.objects.update_or_create(
-                            country=country,
-                            indicator=indicator,
-                            month=cur_dt,
-                            defaults={
-                                "value": cur_val,
-                                "status": MacroDataPoint.Status.PUBLISHED,
-                                "source": "TradingEconomics Official Release (Autonomous Live Scraper)",
-                                "is_active_value": True,
-                            }
-                        )
-                        saved += 1
-
-                        if cur_dt.month == 12:
-                            cur_dt = date(cur_dt.year + 1, 1, 1)
-                        else:
-                            cur_dt = date(cur_dt.year, cur_dt.month + 1, 1)
-
-                if max_pub_date:
-                    MacroDataPoint.objects.filter(
-                        country=country,
-                        indicator=indicator,
-                        month__gt=max_pub_date
-                    ).exclude(status=MacroDataPoint.Status.MANUAL).delete()
-
-        return saved, skipped
+            check_lease()
+            row, _ = SystemSetting.objects.get_or_create(key='scraper_settings', defaults={'value': {}})
+            row = SystemSetting.objects.select_for_update().get(pk=row.pk)
+            cfg = dict(row.value)
+            next_run = compute_next_cron_run(cfg.get('cronPreset', '5minutes'), cfg.get('customCron', ''), now, cfg.get('timezone', 'UTC'))
+            if errors:
+                next_run = min(next_run, now + timedelta(minutes=int(cfg.get('retryDelayMinutes', 5))))
+            cfg.update(lastScrapeTime=now.strftime('%b %d, %H:%M UTC'), lastScrapeIso=now.isoformat(),
+                       last_status=results['status'], next_scheduled_run=next_run.isoformat(),
+                       next_scheduled_run_display=next_run.strftime('%b %d, %Y %H:%M UTC'),
+                       has_skipped_prints=bool(errors), skipped_reason='; '.join(errors) or None,
+                       records_updated=results.get('records_recalculated', 0))
+            row.value = cfg
+            row.save(update_fields=['value', 'updated_at'])
+        SystemSetting.objects.update_or_create(key='pipeline_result', defaults={'value': results})
+        AuditLog.objects.create(entity_type='ScraperExecution', entity_id=now.isoformat(), action=results['status'],
+                                after_value=results, user=trigger_source)
+        results['next_scheduled_run'] = next_run.isoformat()
+        return results

@@ -135,11 +135,10 @@ export function CollapsibleGlassSidebar({
       initial={false}
       animate={{ width: isMobileDrawer ? "100%" : sidebarWidth }}
       transition={SPRING_WEIGHTLESS}
-      className={`flex flex-col justify-between shrink-0 select-none z-30 relative overflow-hidden ${
-        isMobileDrawer
+      className={`flex flex-col justify-between shrink-0 select-none z-30 relative overflow-hidden ${isMobileDrawer
           ? "w-full h-full rounded-[28px] p-3.5"
           : "hidden lg:flex my-3 ml-3 rounded-[28px] p-3 h-[calc(100vh-24px)] sticky top-3"
-      }`}
+        }`}
       style={{
         background:
           "linear-gradient(180deg, rgba(16, 42, 34, 0.55) 0%, rgba(10, 14, 18, 0.94) 42%, rgba(7, 9, 13, 0.98) 100%)",
@@ -247,15 +246,13 @@ export function CollapsibleGlassSidebar({
                 if (onCloseMobile) onCloseMobile();
               }}
               title={effectiveCollapsed ? item.label : undefined}
-              className={`group relative flex items-center transition-colors duration-150 cursor-pointer ${
-                effectiveCollapsed
+              className={`group relative flex items-center transition-colors duration-150 cursor-pointer ${effectiveCollapsed
                   ? "w-11 h-11 justify-center rounded-full"
                   : "w-full h-11 px-3 rounded-full justify-start gap-3"
-              } ${
-                isActive
+                } ${isActive
                   ? "text-[#07090D] font-semibold"
                   : "text-slate-300/85 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.04]"
-              }`}
+                }`}
             >
               {/* Luminous Active Capsule Pill */}
               {isActive && (
@@ -267,9 +264,8 @@ export function CollapsibleGlassSidebar({
               )}
 
               <span
-                className={`relative z-10 flex items-center justify-center w-7 h-7 rounded-full shrink-0 transition-transform duration-150 group-hover:scale-105 ${
-                  isActive ? "text-[#07090D]" : "text-slate-300"
-                }`}
+                className={`relative z-10 flex items-center justify-center w-7 h-7 rounded-full shrink-0 transition-transform duration-150 group-hover:scale-105 ${isActive ? "text-[#07090D]" : "text-slate-300"
+                  }`}
               >
                 <Icon size={18} />
               </span>
@@ -319,9 +315,8 @@ export function CollapsibleGlassSidebar({
                     soundFX.playPop(1.1);
                     setLang("fr");
                   }}
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                    lang === "fr" ? "bg-[var(--fx-accent,#D4FF00)] text-[#07080C] shadow-sm" : "text-slate-400 hover:text-white"
-                  }`}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${lang === "fr" ? "bg-[var(--fx-accent,#D4FF00)] text-[#07080C] shadow-sm" : "text-slate-400 hover:text-white"
+                    }`}
                 >
                   FR
                 </button>
@@ -331,9 +326,8 @@ export function CollapsibleGlassSidebar({
                     soundFX.playPop(1.1);
                     setLang("en");
                   }}
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                    lang === "en" ? "bg-[var(--fx-accent,#D4FF00)] text-[#07080C] shadow-sm" : "text-slate-400 hover:text-white"
-                  }`}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${lang === "en" ? "bg-[var(--fx-accent,#D4FF00)] text-[#07080C] shadow-sm" : "text-slate-400 hover:text-white"
+                    }`}
                 >
                   EN
                 </button>
@@ -344,11 +338,10 @@ export function CollapsibleGlassSidebar({
                 type="button"
                 onClick={handleToggleSound}
                 title={soundEnabled ? "Couper le retour sonore" : "Activer le retour sonore"}
-                className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer border ${
-                  soundEnabled
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer border ${soundEnabled
                     ? "bg-white/[0.08] text-[var(--fx-accent,#D4FF00)] border-white/[0.14]"
                     : "bg-white/[0.02] text-slate-500 border-white/[0.04] hover:text-white"
-                }`}
+                  }`}
               >
                 {soundEnabled ? <UnmuteIcon size={12} /> : <MuteIcon size={12} />}
               </button>
@@ -357,9 +350,8 @@ export function CollapsibleGlassSidebar({
         )}
 
         <div
-          className={`rounded-[20px] bg-black/30 border border-white/[0.06] p-2.5 flex items-center ${
-            effectiveCollapsed ? "justify-center" : "justify-between gap-2.5"
-          }`}
+          className={`rounded-[20px] bg-black/30 border border-white/[0.06] p-2.5 flex items-center ${effectiveCollapsed ? "justify-center" : "justify-between gap-2.5"
+            }`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-300 p-[1.5px] shrink-0">

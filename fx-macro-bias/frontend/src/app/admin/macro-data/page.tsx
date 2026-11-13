@@ -1,4 +1,6 @@
 "use client";
+import { useLiveVersion } from "@/context/LiveDataContext";
+import { getLiveSnapshot } from "@/lib/liveSnapshot";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { 
@@ -159,6 +161,7 @@ function formatMacroCellDisplay(
 }
 
 export default function MacroDataPage() {
+  const liveVersion = useLiveVersion();
   const { lang, t } = useLanguage();
   const queryClient = useQueryClient();
   const [fxSnapshot, setFxSnapshot] = useState<FxSnapshot | null>(null);
@@ -208,135 +211,29 @@ export default function MacroDataPage() {
 
   // Fetch Matrix Data with authoritative fallback to verified MASTER_MACRO_DATABASE
   const fetchMatrixData = async (indicator: string, year: number) => {
+    const snapshot = getLiveSnapshot();
+    if (!snapshot) throw new Error('Live data is not available');
     const targetMonths = getDisplayMonthsForYear(year);
-    // 1. Preload local verified dataset from MASTER_MACRO_DATABASE (100% matched to EXCEL8EXAMPLE.xlsx & Official APIs)
-    const localBaseline = getMacroMatrixData(indicator, year);
-    if (indicator === "FX Reserves") {
-      const response = await macroDataApi.matrix("fx_reserves");
-      const snapshot = validateFxSnapshot(response.data);
-      setFxSnapshot(snapshot);
-      return fxRows(snapshot, COUNTRIES, year, assumptions, targetMonths);
-    }
-    if (indicator === "Equity") {
-      const response = await macroDataApi.matrix("equity");
-      const snapshot = validateEquitySnapshot(response.data);
-      setEquitySnapshot(snapshot);
+    if (indicator === 'Equity') {
+      setEquitySnapshot({pair_rows: Object.entries(snapshot.equity).map(([pair, cells]) => ({pair, cells})), freshness: snapshot.freshness.equity_refresh} as EquitySnapshot);
       return [];
     }
-
-    try {
-      const slugMap: Record<string, string> = {
-        "GDP": "gdp",
-        "Current Account": "ca_gdp",
-        "CPI": "cpi",
-        "Interest Rate": "interest_rate",
-        "FX Reserves": "fx_reserves",
-        "Equity": "equity"
-      };
-      const slug = slugMap[indicator] || indicator.toLowerCase().replace(/ /g, "_");
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-      // Use proxy or direct localhost port
-      const apiUrl = typeof window !== "undefined"
-        ? `/api/admin/macro-data/matrix?indicator=${slug}`
-        : `http://127.0.0.1:8001/api/admin/macro-data/matrix?indicator=${slug}`;
-
-      const res = await fetch(apiUrl, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.rows && json.rows.length > 0) {
-          return COUNTRIES.map((c) => {
-            const apiRow = json.rows.find((r: any) => 
-              r.country === c.country || 
-              (c.country === "USA" && r.country === "United States") || 
-              (c.country === "Euro Area" && (r.country === "Euro Area" || r.country === "Zone Euro")) ||
-              r.iso.toLowerCase() === c.base
-            );
-            const cells = targetMonths.map((m: string) => {
-              const assumptionKey = `${indicator}_${c.country}_${m}`;
-              const userSavedVal = assumptions[assumptionKey];
-              const cellPoint = apiRow?.cells?.[m];
-
-              const cutoffDef = OFFICIAL_RELEASE_CUTOFFS[indicator];
-              const cutoff = typeof cutoffDef === "function" ? cutoffDef(c.country) : (cutoffDef || "2026-09");
-              const isPastCutoff = year === SYSTEM_CURRENT_YEAR && m > cutoff;
-
-              // If official publication exists
-              const isPub = cellPoint?.status === "published" || (!isPastCutoff && cellPoint?.value !== null && cellPoint?.value !== undefined && cellPoint?.status !== "manual");
-
-              if (isPub && cellPoint && cellPoint.value !== null && cellPoint.value !== undefined) {
-                return {
-                  value: cellPoint.value,
-                  status: "published" as const,
-                  isAssumption: false
-                };
-              }
-
-              // If manual entry was made in backend or local state (and not yet officially published)
-              if (cellPoint?.status === "manual" && cellPoint.value !== null && cellPoint.value !== undefined) {
-                return {
-                  value: cellPoint.value,
-                  status: "manual" as const,
-                  isAssumption: true
-                };
-              }
-
-              if (userSavedVal !== undefined && userSavedVal !== "" && !isPub) {
-                return { value: userSavedVal, status: "manual" as const, isAssumption: true };
-              }
-
-              // Fallback to local verified baseline point if available and officially published
-              const localRow = localBaseline.find(lr => lr.country === c.country);
-              const localCell = localRow?.data.find((_, i) => targetMonths[i] === m);
-              if (localCell && localCell.value !== null && localCell.value !== undefined && localCell.status === "published") {
-                return {
-                  value: localCell.value,
-                  status: "published" as const,
-                  isAssumption: false
-                };
-              }
-
-              // Unreleased periods without manual entry: leave empty (null) with status "missing"
-              return { value: null, status: "missing" as const, isAssumption: false };
-            });
-            return {
-              country: c.country,
-              base: c.base,
-              data: cells
-            };
-          });
-        }
-      }
-    } catch {
-      // Graceful fallback to verified MASTER_MACRO_DATABASE
-    }
-
-    // Authoritative fallback: return verified getMacroMatrixData merged with user assumptions
-    return localBaseline.map((row) => ({
-      country: row.country,
-      base: row.base,
-      data: row.data.map((cell, idx) => {
-        const m = targetMonths[idx];
-        const assumptionKey = `${indicator}_${row.country}_${m}`;
-        const userSavedVal = assumptions[assumptionKey];
-        if (userSavedVal !== undefined && userSavedVal !== "" && cell.status !== "published") {
-          return { value: userSavedVal, status: "manual" as const, isAssumption: true };
-        }
-        return cell;
-      })
-    }));
+    const rows = COUNTRIES.map(c => ({country: c.country, cells: snapshot.cells[indicator]?.[c.country] || {}}));
+    if (indicator === 'FX Reserves') setFxSnapshot({rows, freshness: snapshot.freshness.fx_reserves_refresh});
+    return COUNTRIES.map(c => ({...c, data: targetMonths.map(month => {
+      const cell = snapshot.cells[indicator]?.[c.country]?.[month];
+      if (cell) return {value: cell.value, status: 'published' as const, isAssumption: false};
+      const manual = assumptions[indicator+'_'+c.country+'_'+month];
+      return manual !== undefined && manual !== '' ? {value: manual, status: 'manual' as const, isAssumption: true} : {value: null, status: 'missing' as const, isAssumption: false};
+    })}));
   };
 
   const { data: matrixData, isLoading: matrixLoading, error: matrixError } = useQuery({
-    queryKey: ["macroMatrixData", activeInd, selectedYear, assumptions],
+    queryKey: ["macroMatrixData", activeInd, selectedYear, assumptions, liveVersion],
     queryFn: () => fetchMatrixData(activeInd, selectedYear),
     staleTime: 120_000,
-    refetchOnWindowFocus: activeInd === "FX Reserves" || activeInd === "Equity",
-    refetchInterval: activeInd === "FX Reserves" || activeInd === "Equity" ? 60_000 : false,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15_000,
     placeholderData: activeInd === "FX Reserves" || activeInd === "Equity" ? undefined : (previousData) => previousData,
   });
 
@@ -408,7 +305,7 @@ export default function MacroDataPage() {
         data: diffList
       };
     });
-  }, [activeInd, selectedYear, displayMonths, fxSnapshot, liveEquityMap]);
+  }, [activeInd, selectedYear, displayMonths, fxSnapshot, liveEquityMap, liveVersion]);
 
   const filteredDiffRows = useMemo(() => {
     if (!countrySearch.trim()) return diffRows;
@@ -528,6 +425,10 @@ export default function MacroDataPage() {
   const isFx = activeInd === "FX Reserves";
   const isEquity = activeInd === "Equity";
   type MatrixCell = { value: number | string | null; status: "published" | "manual" | "missing"; isAssumption?: boolean };
+  const macroCells: MatrixCell[] = allMatrixRows.flatMap(row => row.data as MatrixCell[]);
+  const macroAvailable = macroCells.filter(cell => cell.value !== null).length;
+  const macroPublishedPercent = macroCells.length ? Math.round(100 * macroCells.filter(cell => cell.status === 'published').length / macroCells.length) : 0;
+  const macroMissingPercent = macroCells.length ? Math.round(100 * macroCells.filter(cell => cell.status === 'missing').length / macroCells.length) : 100;
   const fxCells: MatrixCell[] = isFx ? allMatrixRows.flatMap((row) => row.data as MatrixCell[]) : [];
   const fxPublished = fxCells.filter((cell) => cell.status === "published").length;
   const fxMissing = fxCells.filter((cell) => cell.status === "missing").length;
@@ -599,7 +500,7 @@ export default function MacroDataPage() {
             ? eqCached
               ? "Pair-level • Local snapshot"
               : "Pair-level • Live market sync"
-            : t("macro.badge")
+            : macroMissingPercent > 0 ? "Partial publication coverage" : "Published matrix coverage"
         }
         title={t("macro.title")}
         searchPlaceholder={t("macro.search_placeholder")}
@@ -630,7 +531,7 @@ export default function MacroDataPage() {
             <p>
               {fxSnapshot?.freshness?.last_success_at
                 ? `Last successful IMF refresh: ${new Date(fxSnapshot.freshness.last_success_at).toLocaleString()}`
-                : "No live IMF backend refresh recorded in this browser session yet (displaying bundled snapshot if offline/unauthenticated)."}
+                : "No successful IMF refresh recorded yet."}
             </p>
             <button
               type="button"
@@ -662,7 +563,7 @@ export default function MacroDataPage() {
                 Per Equity methodology, calculations apply directly to each FX pair (no country-level table).{" "}
                 {equitySnapshot?.freshness?.last_success_at
                   ? `Last live market sync: ${new Date(equitySnapshot.freshness.last_success_at).toLocaleString()}`
-                  : "Using verified pair-level snapshot when backend session is unavailable."}
+                  : "No successful market refresh recorded yet."}
               </p>
             </div>
             <button
@@ -692,8 +593,8 @@ export default function MacroDataPage() {
         {/* KPI 1: Sovereign Economies / Pairs */}
         <CatalogueKPICard
           title={isEquity ? "Paires FX (G10)" : t("macro.kpi_economies")}
-          value={isFx ? String(COUNTRIES.length) : isEquity ? String(CANONICAL_28_PAIRS.length) : "8"}
-          numericValue={isFx ? COUNTRIES.length : isEquity ? CANONICAL_28_PAIRS.length : 8}
+          value={isFx ? String(COUNTRIES.length) : isEquity ? String(CANONICAL_28_PAIRS.length) : String(COUNTRIES.length)}
+          numericValue={isFx ? COUNTRIES.length : isEquity ? CANONICAL_28_PAIRS.length : COUNTRIES.length}
           decimals={0}
           unit={isEquity ? "Paires" : "G10"}
           subtitle={
@@ -716,9 +617,9 @@ export default function MacroDataPage() {
               ? String(fxCells.length - fxMissing)
               : isEquity
               ? String(eqAvailable)
-              : "576"
+              : String(macroAvailable)
           }
-          numericValue={isFx ? fxCells.length - fxMissing : isEquity ? eqAvailable : 576}
+          numericValue={isFx ? fxCells.length - fxMissing : isEquity ? eqAvailable : macroAvailable}
           decimals={0}
           unit={lang === "fr" ? "Points Macro" : "Data Points"}
           subtitle={
@@ -726,7 +627,7 @@ export default function MacroDataPage() {
               ? `${fxCells.length - fxMissing} / ${COUNTRIES.length * displayMonths.length} cells available (${selectedYear})`
               : isEquity
               ? `${eqAvailable} / ${CANONICAL_28_PAIRS.length * displayMonths.length} pair-months (${selectedYear})`
-              : t("macro.kpi_observations_sub")
+              : `${macroAvailable} / ${COUNTRIES.length * displayMonths.length} cells available`
           }
           variant="sky"
           icon={<CheckCircle2 size={14} />}
@@ -736,8 +637,8 @@ export default function MacroDataPage() {
         {/* KPI 3: Published Data */}
         <CatalogueKPICard
           title={t("macro.kpi_published")}
-          value={isFx ? `${fxPublishedPercent}%` : isEquity ? `${eqAvailablePercent}%` : "75%"}
-          numericValue={isFx ? fxPublishedPercent : isEquity ? eqAvailablePercent : 75}
+          value={isFx ? `${fxPublishedPercent}%` : isEquity ? `${eqAvailablePercent}%` : `${macroPublishedPercent}%`}
+          numericValue={isFx ? fxPublishedPercent : isEquity ? eqAvailablePercent : macroPublishedPercent}
           decimals={0}
           suffix="%"
           unit={lang === "fr" ? "Officielles" : "Official"}
@@ -750,7 +651,7 @@ export default function MacroDataPage() {
               ? eqLatest
                 ? `Latest market period: ${eqLatest}`
                 : "No market data in this year"
-              : t("macro.kpi_published_sub")
+              : `Published cells in ${selectedYear}`
           }
           variant="emerald"
           icon={<Sparkles size={14} />}
@@ -759,12 +660,12 @@ export default function MacroDataPage() {
 
         {/* KPI 4: Awaiting publication */}
         <CatalogueKPICard
-          title={isFx || isEquity ? "Awaiting publication" : t("macro.kpi_calendar")}
-          value={isFx ? `${fxMissingPercent}%` : isEquity ? `${eqMissingPercent}%` : "25%"}
-          numericValue={isFx ? fxMissingPercent : isEquity ? eqMissingPercent : 25}
+          title="Awaiting publication"
+          value={isFx ? `${fxMissingPercent}%` : isEquity ? `${eqMissingPercent}%` : `${macroMissingPercent}%`}
+          numericValue={isFx ? fxMissingPercent : isEquity ? eqMissingPercent : macroMissingPercent}
           decimals={0}
           suffix="%"
-          unit={isFx || isEquity ? "Missing" : "Projections"}
+          unit="Missing"
           subtitle={
             isFx
               ? fxSnapshot
@@ -772,7 +673,7 @@ export default function MacroDataPage() {
                 : "Unpublished months stay blank"
               : isEquity
               ? "Future months remain unpopulated"
-              : t("macro.kpi_calendar_sub")
+              : "Unpublished periods remain blank"
           }
           variant="purple"
           icon={<Calendar size={14} />}

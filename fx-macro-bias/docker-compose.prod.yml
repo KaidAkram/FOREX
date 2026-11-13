@@ -67,8 +67,8 @@ services:
   # ----------------------------------------------------------------------------
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: fx-macro-bias/backend/Dockerfile
     container_name: shiftfx_backend
     restart: unless-stopped
     env_file:
@@ -94,11 +94,32 @@ services:
           cpus: "2.0"
           memory: 1536M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/api/macro/dashboard/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
       interval: 25s
       timeout: 5s
       retries: 3
       start_period: 25s
+
+  worker:
+    build:
+      context: ..
+      dockerfile: fx-macro-bias/backend/Dockerfile
+    command: ["python", "manage.py", "run_scraper_cron", "--daemon"]
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    networks:
+      - shiftfx_backend
+      - worker_egress
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      disable: true
 
   # ----------------------------------------------------------------------------
   # Secure PostgreSQL 16 Database (Isolated Backend Network)
@@ -154,6 +175,8 @@ services:
 # Isolated Docker Networks & Persistent Volumes
 # ------------------------------------------------------------------------------
 networks:
+  worker_egress:
+    driver: bridge
   shiftfx_public:
     driver: bridge
   shiftfx_backend:

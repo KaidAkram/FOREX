@@ -345,3 +345,10 @@ class SystemSetting(TimestampedModel):
     def __str__(self):
         return self.key
 
+
+
+class WorkerLease(models.Model):
+    name = models.CharField(max_length=50, primary_key=True)
+    owner = models.CharField(max_length=64, blank=True)
+    expires_at = models.DateTimeField()
+    heartbeat_at = models.DateTimeField()

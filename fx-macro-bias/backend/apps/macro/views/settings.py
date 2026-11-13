@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.core.exceptions import ValidationError
 from apps.macro.models import SystemSetting, AuditLog
-from apps.macro.services.scheduler import force_trigger_now, get_scheduler_telemetry
+from apps.macro.services.scheduler import queue_refresh, get_scheduler_telemetry
 from apps.macro.services.scraper_orchestrator import compute_next_cron_run
 from apps.common.security import validate_safe_webhook_url, sanitize_input_text, is_production_mode
 
@@ -18,8 +18,8 @@ from apps.common.security import validate_safe_webhook_url, sanitize_input_text,
 logger = logging.getLogger(__name__)
 
 DEFAULT_SETTINGS = {
-    "cronPreset": "4hours",
-    "customCron": "0 */4 * * *",
+    "cronPreset": "5minutes",
+    "customCron": "*/5 * * * *",
     "timezone": "UTC",
     "cronActive": True,
     "rescheduleOnSkip": True,
@@ -35,8 +35,8 @@ DEFAULT_SETTINGS = {
     "retryAttempts": 3,
     "notifyOnSuccess": True,
     "notifyOnError": True,
-    "webhookUrl": "https://discord.com/api/webhooks/macro-alerts",
-    "lastScrapeTime": "Oct 24, 20:55 UTC",
+    "webhookUrl": "",
+    "lastScrapeTime": None,
 }
 
 
@@ -103,7 +103,10 @@ def settings_config(request):
 
     # Compute updated next scheduled run if cron preset changed
     now_utc = datetime.now(timezone.utc)
-    next_cron = compute_next_cron_run(merged.get("cronPreset", "4hours"), merged.get("customCron", ""), now_utc)
+    try:
+        next_cron = compute_next_cron_run(merged.get('cronPreset', '5minutes'), merged.get('customCron', ''), now_utc, merged.get('timezone', 'UTC'))
+    except (ValueError, KeyError) as exc:
+        return Response({'error': str(exc)}, status=400)
     merged["next_scheduled_run"] = next_cron.isoformat()
     merged["next_scheduled_run_display"] = next_cron.strftime("%b %d, %Y %H:%M UTC")
 
@@ -145,38 +148,8 @@ def trigger_scraper_pipeline(request):
     Executes the live macro scraping, ingestion, and matrix calculation pipeline on demand.
     Rate-limited to 5 executions per minute to defend against denial of service.
     """
-    try:
-        username = getattr(request.user, "username", "admin_dashboard")
-        res = force_trigger_now(trigger_source=username)
+    return Response(queue_refresh(getattr(request.user, 'username', 'admin')), status=202)
 
-        records_updated = res.get("records_recalculated", 2268)
-        now_str = res.get("last_scrape_time") or datetime.now(timezone.utc).strftime("%b %d, %H:%M UTC")
-        status_txt = res.get("status", "SUCCESS")
-        next_run = res.get("next_scheduled_run_display")
-        skipped_reason = res.get("skipped_reason")
-
-        msg = (
-            f"Pipeline executed successfully ({status_txt}). {records_updated} pair-month calculations updated."
-            if not skipped_reason else
-            f"Pipeline executed. {records_updated} calculations updated. Rescheduled next retry at {next_run} ({skipped_reason})."
-        )
-
-        return Response({
-            "success": True,
-            "message": msg,
-            "records_updated": records_updated,
-            "status": status_txt,
-            "last_scrape_time": now_str,
-            "next_scheduled_run": res.get("next_scheduled_run"),
-            "next_scheduled_run_display": next_run,
-            "skipped_reason": skipped_reason,
-            "has_skipped_prints": res.get("has_skipped_prints", False),
-            "indicators": res.get("indicators", {}),
-        })
-    except Exception as e:
-        logger.exception("Error executing scraper pipeline")
-        err_msg = "Une erreur interne est survenue lors de l'exécution du pipeline." if is_production_mode() else str(e)
-        return Response({"error": err_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 trigger_scraper_pipeline.throttle_scope = "scraper_trigger"
 

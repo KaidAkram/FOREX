@@ -33,6 +33,9 @@ def health(request):
 
 @require_GET
 def readiness(request):
+    if request.GET.get('refresh') in ('1', 'true') or request.GET.get('force') in ('1', 'true'):
+        from apps.macro.services.scheduler import force_trigger_now
+        force_trigger_now()
     telemetry = get_scheduler_telemetry()
     from datetime import datetime, timedelta
     from django.utils import timezone
@@ -48,6 +51,7 @@ def readiness(request):
     return JsonResponse({
         'status': 'ok' if healthy else 'degraded',
         'worker_alive': telemetry['scheduler_alive'],
+        'is_currently_running': telemetry.get('is_currently_running'),
         'has_snapshot': has_snapshot,
         'has_usable_coverage': has_usable_coverage,
         'last_status': telemetry['last_status'],

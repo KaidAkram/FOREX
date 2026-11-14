@@ -72,7 +72,8 @@ def run_once(force=False):
         next_run = datetime.fromisoformat(due) if due else timezone.now()
         if timezone.is_naive(next_run):
             next_run = timezone.make_aware(next_run)
-        if not force and not request and (not cfg.get('cronActive', True) or next_run > timezone.now()):
+        has_snapshot = SystemSetting.objects.filter(key='public_macro_snapshot').exists()
+        if not force and not request and has_snapshot and (not cfg.get('cronActive', True) or next_run > timezone.now()):
             return {'status': 'IDLE'}
         result = ScraperOrchestrator.run_full_pipeline(request.value.get('source', 'worker') if request else 'worker')
         if request:
@@ -110,7 +111,8 @@ def _worker_loop():
         try:
             close_old_connections()
             SystemSetting.objects.update_or_create(key='worker_heartbeat', defaults={'value': {'at': timezone.now().isoformat()}})
-            run_once()
+            has_snapshot = SystemSetting.objects.filter(key='public_macro_snapshot').exists()
+            run_once(force=not has_snapshot)
         except Exception:
             logger.exception('Worker cycle failed; retrying in 15 seconds')
         _stop_event.wait(15)

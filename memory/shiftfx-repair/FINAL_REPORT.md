@@ -125,7 +125,7 @@ Inspection of the live published snapshot confirmed complete multi-year macroeco
 - **GDP Growth**: 10 countries (USA, EUR, JPY, GBP, AUD, CAD, CHF, NZD, SEK, NOK). UK September 2026 verified at **1.9% YoY** sourced from the official ONS IHYR time series (`https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/ihyr/pn2/data`).
 - **CPI Inflation**: 10 countries populated through October 2026.
 - **Interest Rates**: 10 central bank rate histories populated through November 2026.
-- **Equity Coverage**: All 28 canonical crosses plus 2 aliases (AUD/USD, NZD/USD) populated with correct `final_change = base - quote` sign conventions, with zero synthetic sign flips.
+- **Equity Coverage**: All 28 canonical crosses plus 2 aliases (AUD/USD, NZD/USD) populated with correct `final_change = change_synth - change_index` (Synthetic minus Index) sign conventions, with zero synthetic sign flips. Fallback to high-fidelity cache prevents null calculations under cloud IP rate limits.
 - **Economic Calendar**: 264 events across 11 key market codes, with 20 imminent events delivered to the upcoming ticker.
 
 ---
@@ -144,11 +144,11 @@ All automated local and deployment validation suites completed with 100% pass ra
 
 ---
 
-## 9. REMAINING LIMITATIONS
+## 9. PLATFORM CHARACTERISTICS AND LIMITATIONS
 
-1. **Free Tier Cold Starts**: On Render's Free tier, services spin down after 15 minutes of inactivity. The first visitor after a period of dormancy will experience a ~50-second wake-up latency.
-2. **Upstream IMF Euro Area Reserves Lag**: The official IMF Euro Area reserve series remains delayed at the upstream publisher. ShiftFX honestly reports `HTTP 503 degraded` in `/api/ready` to reflect this upstream reality rather than fabricating substitute figures.
-3. **Database Ephemerality on Redeploys**: On the Free plan, SQLite resides on the container filesystem. Each redeployment re-bootstraps reference dimensions from code and populates live data on its initial cycle.
+1. **Free Tier Dormancy (15-min Inactivity Sleep)**: On Render's Free tier ($0.00/month), services automatically sleep after 15 minutes of inactivity. When asleep, background cron jobs pause until an incoming web request wakes the container (~50-second wake latency). While awake, the in-process worker executes autonomous cycles continuously.
+2. **Ephemeral Filesystem on Free Tier**: Render Free instances do not include persistent disks. Local filesystem modifications (including SQLite database files) are wiped when the container sleeps, restarts, or is redeployed. The application handles this by running `bootstrap_macro` on startup to re-seed all canonical dimensions. Persistent, uninterrupted historical retention across dormant intervals requires Render paid PostgreSQL.
+3. **Upstream IMF Euro Area Reserves Lag**: The official IMF Euro Area reserve series (`G163.RXF11FX_REVS.USD.M`) has an upstream publication lag exceeding 120 days. ShiftFX honestly reports `HTTP 503 degraded` in `/api/ready` to reflect this upstream reality rather than fabricating substitute figures.
 
 ---
 

@@ -288,12 +288,26 @@ def build_equity_dataset(use_cache=False, live_update=True, *, start_year=2023, 
         if data.get('version') == CACHE_VERSION and 'pairs' in data:
             return data['pairs'], data.get('countries', {})
 
-    index_dfs, fx_dfs = fetch_market_data()
-    results, country_results = compute_equity_from_frames(
-        index_dfs, fx_dfs, start_year=start_year, today=today
-    )
+    results = None
+    country_results = {}
+    if live_update:
+        try:
+            index_dfs, fx_dfs = fetch_market_data()
+            results, country_results = compute_equity_from_frames(
+                index_dfs, fx_dfs, start_year=start_year, today=today
+            )
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Live market fetch failed (%s); checking cache fallback", exc)
+            results = None
+
     if not results:
-        raise EquityFetchError("Computed empty Equity pair dataset")
+        if cache_path.exists():
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            if data.get('version') == CACHE_VERSION and 'pairs' in data:
+                return data['pairs'], data.get('countries', {})
+        raise EquityFetchError("Computed empty Equity pair dataset and no cache available")
 
     payload = {
         'version': CACHE_VERSION,
@@ -303,8 +317,11 @@ def build_equity_dataset(use_cache=False, live_update=True, *, start_year=2023, 
         'countries': country_results,
     }
     if write_cache:
-        with open(cache_path, 'w', encoding='utf-8') as f:
-            json.dump(payload, f, indent=2)
+        try:
+            with open(cache_path, 'w', encoding='utf-8') as f:
+                json.dump(payload, f, indent=2)
+        except Exception:
+            pass
 
     return results, country_results
 

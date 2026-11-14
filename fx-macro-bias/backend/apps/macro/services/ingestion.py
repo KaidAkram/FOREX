@@ -99,7 +99,8 @@ def sync_indicator(slug):
     indicator = MacroIndicator.objects.get(slug=slug)
     cfg = SystemSetting.objects.filter(key='scraper_settings').first()
     cfg = cfg.value if cfg else {}
-    options = {'timeout': max(5, min(60, int(cfg.get('timeoutSec', 20)))),
+    timeout_sec = int(cfg.get('timeoutSec', 35 if slug == 'ca_gdp' else 20))
+    options = {'timeout': max(10, min(60, timeout_sec)),
                'retries': max(0, min(3, int(cfg.get('retryAttempts', 2))))}
     results, saved, errors = {}, 0, []
     for country in Country.objects.filter(is_active=True):

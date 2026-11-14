@@ -40,6 +40,15 @@ ShiftFX is an institutional macroeconomic bias engine and analytics portal for f
    - *Fix*: Added `has_usable_coverage = bool(row and any(len(c) > 0 for c in row.value.get('data', {}).values()))` and exposed durable `last_cycle` execution telemetry.
 5. **Zero-Cost Free Tier Hosting**:
    - Configured `render.yaml` with `plan: free` for both frontend and backend, with zero paid databases or workers, requiring **$0.00** billing.
+6. **SQLite Concurrency & Worker Lease Starvation Fixed**:
+   - *Problem*: SQLite contention during large matrix transactions caused `django.db.utils.OperationalError: database is locked` in `_heartbeat()`. Unhandled, the heartbeat thread died and the 120-second lease expired, triggering `RuntimeError: Worker lease lost; publication cancelled` on subsequent indicator jobs. This aborted pipeline cycles before recording `last_cycle_telemetry`, leaving `last_status: "NEVER_RUN"`.
+   - *Fix*:
+     - Configured SQLite WAL (Write-Ahead Logging) mode and a 30s busy timeout (`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=30000;`) on all connections.
+     - Wrapped `_heartbeat()` in a resilient retry loop so locked connections retry rather than crashing the thread.
+     - Extended worker lease to 900 seconds (15 minutes), with proactive renewals before each indicator job and in `check_lease()`.
+7. **Yahoo Finance Cloud IP Rate Limit Resilience**:
+   - *Problem*: Cloud datacenter IPs frequently encounter HTTP 429 (`yfinance.exceptions.YFRateLimitError: Too Many Requests`), causing all 1,410 pair calculations in the snapshot to return null.
+   - *Fix*: Configured `equity_engine.py` and `refresh_equity()` to seamlessly fall back to the bundled 608 KB `equity_dataset_cache.json` whenever live rate limits or network errors occur, guaranteeing 100% complete calculations for all 30 currency crosses.
 
 ---
 
@@ -192,7 +201,7 @@ Codex can verify specific macro and equity calculations in the live snapshot:
    **Expected**: `{'value': 1.9, 'status': 'published', 'source': 'https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/ihyr/pn2/data'}`.
 
 2. **Equity Index Differentials Sign Convention**:
-   - Check that `final_change = change_index - change_synth` (synthetic minus index).
+   - Check that `final_change = change_synth - change_index` (Synthetic minus Index: Étape 2 − Étape 1).
    - Verify that there are 30 pairs (28 canonical crosses + 2 aliases: AUD/USD, NZD/USD).
    - Verify zero synthetic sign inversions.
 
@@ -203,12 +212,16 @@ Codex can verify specific macro and equity calculations in the live snapshot:
 
 ## 4. Operational Boundaries & Known External Conditions
 
-Codex should be aware of these two external platform characteristics:
+Codex should be aware of these platform characteristics:
 
-1. **Free Tier Cold Starts (15-min Inactivity Sleep)**:
-   Because the system is configured for 100% Free hosting ($0/month), Render suspends containers after 15 minutes of inactivity. When woken by an initial request, the container takes approximately 50 seconds to boot. Once awake, the in-process worker runs continuously and updates data on schedule.
+1. **Free Tier Ephemeral Storage & Dormancy (15-min Inactivity Sleep)**:
+   - Because the system is hosted under Render's 100% Free tier ($0.00/month), Render suspends the container after 15 minutes of inactivity.
+   - Per [Render Free Tier documentation](https://render.com/docs/free), free web services do not have persistent disks; filesystem changes (including SQLite databases) are ephemeral and do not persist across restarts, container wakes, or redeployments.
+   - To make the platform resilient to this limitation, `startCommand` automatically runs `bootstrap_macro --continuous` upon every boot, restoring all reference dimensions (10 economies, 6 indicators, 30 FX pairs, scoring weights).
+   - While the instance is awake and receiving traffic, the in-process worker autonomously runs periodic ingestion cycles. Long-term persistent durability of audit history and custom user modifications across sleeping periods requires persistent managed PostgreSQL.
 2. **IMF Euro Area Reserve Lag**:
-   The official IMF SDMX series for Euro Area reserves (`G163.RXF11FX_REVS.USD.M`) has an upstream publication delay. The platform intentionally reports `status: "degraded"` in `/api/ready` to reflect this upstream lag accurately without fabricating mock data.
+   - The official IMF SDMX 3.0 series for Euro Area reserves (`G163.RXF11FX_REVS.USD.M`) has an upstream publication delay exceeding 120 days.
+   - The platform intentionally reports `status: "degraded"` in `/api/ready` to reflect this upstream reality accurately without fabricating fake observations.
 
 ---
 

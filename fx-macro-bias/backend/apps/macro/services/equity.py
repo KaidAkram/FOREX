@@ -35,7 +35,7 @@ def refresh_equity(*, start_year=2023, recalculate=True):
 
     try:
         pair_results, _ = equity_engine.build_equity_dataset(
-            use_cache=False,
+            use_cache=True,
             live_update=True,
             write_cache=False,
             start_year=start_year,

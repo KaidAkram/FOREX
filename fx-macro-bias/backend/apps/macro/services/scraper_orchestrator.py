@@ -62,14 +62,21 @@ class ScraperOrchestrator:
         from apps.macro.services.snapshot import publish_snapshot
         from apps.macro.services.fx_reserves import refresh_fx_reserves
         from apps.macro.services.equity import refresh_equity
+        from apps.macro.services.fencing import worker_owner
         cycle_id = uuid.uuid4().hex[:12]
         started_at = django_timezone.now()
+        owner = worker_owner.get()
         results = {'cycle_id': cycle_id, 'started_at': started_at.isoformat(), 'indicators': {}, 'total_points_saved': 0}
         # Publish fast macro releases before the heavier full-history market calculation.
         jobs = [(s, lambda slug=s: sync_indicator(slug)) for s in ('gdp', 'cpi', 'interest_rate', 'ca_gdp')]
         jobs += [('fx_reserves', lambda: refresh_fx_reserves(recalculate=False)), ('equity', lambda: refresh_equity(recalculate=False))]
         errors = []
         for slug, job in jobs:
+            if owner:
+                now_tick = django_timezone.now()
+                WorkerLease.objects.filter(name='macro', owner=owner).update(
+                    heartbeat_at=now_tick, expires_at=now_tick + timedelta(seconds=900)
+                )
             try:
                 result = job()
                 missing = result.get('missing_countries', []) + result.get('missing_pairs', [])
@@ -81,7 +88,6 @@ class ScraperOrchestrator:
                 results['total_points_saved'] += result.get('points', result.get('points_saved', 0))
                 # Clients read an immutable snapshot: never a half-recalculated matrix.
                 with transaction.atomic():
-
                     check_lease()
                     results['records_recalculated'] = recalculate_full_matrix()
                     publish_snapshot()
@@ -89,8 +95,12 @@ class ScraperOrchestrator:
                 logger.exception('Indicator refresh failed: %s', slug)
                 results['indicators'][slug] = {'status': 'ERROR', 'error': str(exc)}
                 errors.append(f'{slug}: {exc}')
+        if owner:
+            now_tick = django_timezone.now()
+            WorkerLease.objects.filter(name='macro', owner=owner).update(
+                heartbeat_at=now_tick, expires_at=now_tick + timedelta(seconds=900)
+            )
         with transaction.atomic():
-
             check_lease()
             recalculate_full_matrix()
             publish_snapshot()

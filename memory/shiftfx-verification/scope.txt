@@ -1,0 +1,5 @@
+# User-authorized read-only operational verification, 2026-11-14.
+shiftfx-admin.onrender.com
+shiftfx-backend.onrender.com
+dashboard.render.com
+# No exploit testing, production mutations, or unrelated Render services.

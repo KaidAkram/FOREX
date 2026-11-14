@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 _stop_event = threading.Event()
 _scheduler_thread = None
 
+LEASE_DURATION_SECONDS = 900
+
 def queue_refresh(trigger_source='manual'):
     now = timezone.now().isoformat()
     SystemSetting.objects.update_or_create(key='refresh_request', defaults={'value': {'requested_at': now, 'source': trigger_source}})
@@ -22,22 +24,33 @@ def acquire_lease(owner):
     try:
         WorkerLease.objects.get_or_create(name='macro', defaults={'owner': '', 'expires_at': now, 'heartbeat_at': now})
         return WorkerLease.objects.filter(name='macro', expires_at__lte=now).update(
-            owner=owner, expires_at=now + timedelta(seconds=120), heartbeat_at=now) == 1
+            owner=owner, expires_at=now + timedelta(seconds=LEASE_DURATION_SECONDS), heartbeat_at=now) == 1
     except Exception as exc:
         logger.warning(f"Database not ready for worker lease: {exc}")
         return False
 
 def release_lease(owner):
-    WorkerLease.objects.filter(name='macro', owner=owner).update(owner='', expires_at=timezone.now())
+    try:
+        WorkerLease.objects.filter(name='macro', owner=owner).update(owner='', expires_at=timezone.now())
+    except Exception:
+        pass
 
 def _heartbeat(owner, stop):
     try:
         while not stop.wait(20):
-            close_old_connections()
-            now = timezone.now()
-            if not WorkerLease.objects.filter(name='macro', owner=owner).update(heartbeat_at=now, expires_at=now + timedelta(seconds=120)):
-                logger.error('Worker lease ownership lost')
-                return
+            try:
+                close_old_connections()
+                now = timezone.now()
+                updated = WorkerLease.objects.filter(name='macro', owner=owner).update(
+                    heartbeat_at=now, expires_at=now + timedelta(seconds=LEASE_DURATION_SECONDS)
+                )
+                if not updated:
+                    lease = WorkerLease.objects.filter(name='macro').first()
+                    if lease and lease.owner != owner:
+                        logger.error('Worker lease ownership lost to %s', lease.owner)
+                        return
+            except Exception as exc:
+                logger.warning('Worker lease heartbeat attempt failed: %s; retrying next tick', exc)
     finally:
         connections.close_all()
 

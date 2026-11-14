@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from typing import Optional
 from django.db import transaction
 from django.utils import timezone as django_timezone
-from apps.macro.models import SystemSetting, AuditLog
+from apps.macro.models import SystemSetting, AuditLog, WorkerLease
 from apps.macro.services.ingestion import sync_indicator, fetch_te
 
 logger = logging.getLogger(__name__)

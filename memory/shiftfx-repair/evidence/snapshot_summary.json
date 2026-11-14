@@ -1,0 +1,317 @@
+{
+  "version": "9f338c66282956dacb10865e5ebbdb637ee7b0aeea0c8b91da2c50a327724cf0",
+  "published_at": "2026-11-14T13:07:04.015130+00:00",
+  "bytes": 1221558,
+  "indicators": [
+    "GDP",
+    "CPI",
+    "Interest Rate",
+    "Current Account",
+    "FX Reserves",
+    "Equity"
+  ],
+  "uk_gdp_2026_09": {
+    "value": 1.9,
+    "status": "published",
+    "source": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/ihyr/pn2/data"
+  },
+  "uk_ca_2026_06": {},
+  "ea_ca_2026_06": {},
+  "equity_pairs_count": 30,
+  "differentials_count": 30,
+  "scores_count": 30,
+  "freshness": {
+    "feed:ca_gdp:AUD": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "last_attempt_at": "2026-11-14T13:03:24.168642+00:00",
+      "latest_period": null,
+      "source": null
+    },
+    "feed:ca_gdp:CAD": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "last_attempt_at": "2026-11-14T13:03:24.656542+00:00",
+      "latest_period": null,
+      "source": null
+    },
+    "feed:ca_gdp:CHF": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "last_attempt_at": "2026-11-14T13:03:27.638600+00:00",
+      "latest_period": null,
+      "source": null
+    },
+    "feed:ca_gdp:EUR": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "last_attempt_at": "2026-11-14T13:03:24.869760+00:00",
+      "latest_period": null,
+      "source": null
+    },
+    "feed:ca_gdp:GBP": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "last_attempt_at": "2026-11-14T13:03:28.090333+00:00",
+      "latest_period": null,
+      "source": null
+    },
+    "feed:ca_gdp:JPY": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "last_attempt_at": "2026-11-14T13:03:25.353419+00:00",
+      "latest_period": null,
+      "source": null
+    },
+    "feed:ca_gdp:NOK": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "last_attempt_at": "2026-11-14T13:03:26.716441+00:00",
+      "latest_period": null,
+      "source": null
+    },
+    "feed:ca_gdp:NZD": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "last_attempt_at": "2026-11-14T13:03:26.231203+00:00",
+      "latest_period": null,
+      "source": null
+    },
+    "feed:ca_gdp:SEK": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "last_attempt_at": "2026-11-14T13:03:27.154021+00:00",
+      "latest_period": null,
+      "source": null
+    },
+    "feed:ca_gdp:USD": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "last_attempt_at": "2026-11-14T13:03:28.605483+00:00",
+      "latest_period": null,
+      "source": null
+    },
+    "feed:cpi:AUD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:05:59.458873+00:00",
+      "last_attempt_at": "2026-11-14T13:05:59.458888+00:00",
+      "latest_period": "2026-09",
+      "source": "https://tradingeconomics.com/australia/inflation-cpi"
+    },
+    "feed:cpi:CAD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:05:59.557082+00:00",
+      "last_attempt_at": "2026-11-14T13:05:59.557103+00:00",
+      "latest_period": "2026-09",
+      "source": "https://tradingeconomics.com/canada/inflation-cpi"
+    },
+    "feed:cpi:CHF": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:06:00.244817+00:00",
+      "last_attempt_at": "2026-11-14T13:06:00.244839+00:00",
+      "latest_period": "2026-10",
+      "source": "https://tradingeconomics.com/switzerland/inflation-cpi"
+    },
+    "feed:cpi:EUR": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:05:59.687412+00:00",
+      "last_attempt_at": "2026-11-14T13:05:59.687433+00:00",
+      "latest_period": "2026-10",
+      "source": "https://tradingeconomics.com/euro-area/inflation-cpi"
+    },
+    "feed:cpi:GBP": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:06:00.604081+00:00",
+      "last_attempt_at": "2026-11-14T13:06:00.604099+00:00",
+      "latest_period": "2026-09",
+      "source": "https://tradingeconomics.com/united-kingdom/inflation-cpi"
+    },
+    "feed:cpi:JPY": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:05:59.814667+00:00",
+      "last_attempt_at": "2026-11-14T13:05:59.814689+00:00",
+      "latest_period": "2026-09",
+      "source": "https://tradingeconomics.com/japan/inflation-cpi"
+    },
+    "feed:cpi:NOK": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:06:00.027617+00:00",
+      "last_attempt_at": "2026-11-14T13:06:00.027636+00:00",
+      "latest_period": "2026-10",
+      "source": "https://tradingeconomics.com/norway/inflation-cpi"
+    },
+    "feed:cpi:NZD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:05:59.923810+00:00",
+      "last_attempt_at": "2026-11-14T13:05:59.923829+00:00",
+      "latest_period": "2026-09",
+      "source": "https://tradingeconomics.com/new-zealand/inflation-cpi"
+    },
+    "feed:cpi:SEK": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:06:00.154928+00:00",
+      "last_attempt_at": "2026-11-14T13:06:00.154943+00:00",
+      "latest_period": "2026-10",
+      "source": "https://tradingeconomics.com/sweden/inflation-cpi"
+    },
+    "feed:cpi:USD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:06:00.687611+00:00",
+      "last_attempt_at": "2026-11-14T13:06:00.687627+00:00",
+      "latest_period": "2026-09",
+      "source": "https://tradingeconomics.com/united-states/inflation-cpi"
+    },
+    "feed:gdp:AUD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:04:55.287182+00:00",
+      "last_attempt_at": "2026-11-14T13:04:55.287202+00:00",
+      "latest_period": "2026-06",
+      "source": "https://tradingeconomics.com/australia/gdp-growth-annual"
+    },
+    "feed:gdp:CAD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:04:55.402917+00:00",
+      "last_attempt_at": "2026-11-14T13:04:55.402937+00:00",
+      "latest_period": "2026-06",
+      "source": "https://tradingeconomics.com/canada/gdp-growth-annual"
+    },
+    "feed:gdp:CHF": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:04:56.140638+00:00",
+      "last_attempt_at": "2026-11-14T13:04:56.140651+00:00",
+      "latest_period": "2026-06",
+      "source": "https://tradingeconomics.com/switzerland/gdp-growth-annual"
+    },
+    "feed:gdp:EUR": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:04:55.570645+00:00",
+      "last_attempt_at": "2026-11-14T13:04:55.570665+00:00",
+      "latest_period": "2026-09",
+      "source": "https://tradingeconomics.com/euro-area/gdp-growth-annual"
+    },
+    "feed:gdp:GBP": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:04:56.355022+00:00",
+      "last_attempt_at": "2026-11-14T13:04:56.355041+00:00",
+      "latest_period": "2026-09",
+      "source": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/ihyr/pn2/data"
+    },
+    "feed:gdp:JPY": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:04:55.712406+00:00",
+      "last_attempt_at": "2026-11-14T13:04:55.712436+00:00",
+      "latest_period": "2026-06",
+      "source": "https://tradingeconomics.com/japan/gdp-growth-annual"
+    },
+    "feed:gdp:NOK": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:04:55.925219+00:00",
+      "last_attempt_at": "2026-11-14T13:04:55.925240+00:00",
+      "latest_period": "2026-06",
+      "source": "https://tradingeconomics.com/norway/gdp-growth-annual"
+    },
+    "feed:gdp:NZD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:04:55.814345+00:00",
+      "last_attempt_at": "2026-11-14T13:04:55.814368+00:00",
+      "latest_period": "2026-06",
+      "source": "https://tradingeconomics.com/new-zealand/gdp-growth-annual"
+    },
+    "feed:gdp:SEK": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:04:56.040542+00:00",
+      "last_attempt_at": "2026-11-14T13:04:56.040560+00:00",
+      "latest_period": "2026-09",
+      "source": "https://tradingeconomics.com/sweden/gdp-growth-annual"
+    },
+    "feed:gdp:USD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:04:56.504030+00:00",
+      "last_attempt_at": "2026-11-14T13:04:56.504049+00:00",
+      "latest_period": "2026-09",
+      "source": "https://tradingeconomics.com/united-states/gdp-growth-annual"
+    },
+    "feed:interest_rate:AUD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:02:11.724863+00:00",
+      "last_attempt_at": "2026-11-14T13:02:11.724873+00:00",
+      "latest_period": "2026-11",
+      "source": "https://tradingeconomics.com/australia/interest-rate"
+    },
+    "feed:interest_rate:CAD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:02:12.728286+00:00",
+      "last_attempt_at": "2026-11-14T13:02:12.728314+00:00",
+      "latest_period": "2026-10",
+      "source": "https://tradingeconomics.com/canada/interest-rate"
+    },
+    "feed:interest_rate:CHF": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:02:17.424581+00:00",
+      "last_attempt_at": "2026-11-14T13:02:17.424594+00:00",
+      "latest_period": "2026-10",
+      "source": "https://tradingeconomics.com/switzerland/interest-rate"
+    },
+    "feed:interest_rate:EUR": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:02:13.627895+00:00",
+      "last_attempt_at": "2026-11-14T13:02:13.627908+00:00",
+      "latest_period": "2026-10",
+      "source": "https://tradingeconomics.com/euro-area/interest-rate"
+    },
+    "feed:interest_rate:GBP": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:02:18.030810+00:00",
+      "last_attempt_at": "2026-11-14T13:02:18.030827+00:00",
+      "latest_period": "2026-11",
+      "source": "https://tradingeconomics.com/united-kingdom/interest-rate"
+    },
+    "feed:interest_rate:JPY": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:02:14.330197+00:00",
+      "last_attempt_at": "2026-11-14T13:02:14.330213+00:00",
+      "latest_period": "2026-10",
+      "source": "https://tradingeconomics.com/japan/interest-rate"
+    },
+    "feed:interest_rate:NOK": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:02:15.919704+00:00",
+      "last_attempt_at": "2026-11-14T13:02:15.919716+00:00",
+      "latest_period": "2026-11",
+      "source": "https://tradingeconomics.com/norway/interest-rate"
+    },
+    "feed:interest_rate:NZD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:02:15.221213+00:00",
+      "last_attempt_at": "2026-11-14T13:02:15.221226+00:00",
+      "latest_period": "2026-10",
+      "source": "https://tradingeconomics.com/new-zealand/interest-rate"
+    },
+    "feed:interest_rate:SEK": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:02:16.721399+00:00",
+      "last_attempt_at": "2026-11-14T13:02:16.721416+00:00",
+      "latest_period": "2026-11",
+      "source": "https://tradingeconomics.com/sweden/interest-rate"
+    },
+    "feed:interest_rate:USD": {
+      "status": "SUCCESS",
+      "last_success_at": "2026-11-14T13:02:18.731107+00:00",
+      "last_attempt_at": "2026-11-14T13:02:18.731119+00:00",
+      "latest_period": "2026-10",
+      "source": "https://tradingeconomics.com/united-states/interest-rate"
+    },
+    "fx_reserves_refresh": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "latest_by_country": null,
+      "latest_month": null
+    },
+    "equity_refresh": {
+      "status": "ERROR",
+      "last_success_at": null,
+      "latest_by_country": null,
+      "latest_month": null
+    }
+  }
+}

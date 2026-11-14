@@ -1,0 +1,33 @@
+{
+  "label": "frontend-ready",
+  "url": "https://shiftfx-admin.onrender.com/api/ready",
+  "request_headers": {},
+  "started_at": "2026-11-14T13:09:14.685289+00:00",
+  "completed_at": "2026-11-14T13:09:15.289288+00:00",
+  "seconds": 0.604,
+  "status": 503,
+  "response_headers": {
+    "Date": "Sat, 14 Nov 2026 13:09:16 GMT",
+    "Content-Type": "application/json",
+    "Transfer-Encoding": "chunked",
+    "Connection": "close",
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "Cache-Control": "no-store, no-cache, must-revalidate, private",
+    "cf-cache-status": "DYNAMIC",
+    "cross-origin-opener-policy": "same-origin",
+    "cross-origin-resource-policy": "same-site",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "pragma": "no-cache",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "rndr-id": "46058fe6-70f0-4d7f",
+    "Server": "cloudflare",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "vary": "origin, Accept-Encoding",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "x-render-origin-server": "cloudflare",
+    "CF-RAY": "a5a63fe7d95e12e4-ORN"
+  },
+  "bytes": 143,
+  "error": null
+}

@@ -1,0 +1,33 @@
+{
+  "label": "frontend-conditional-weak",
+  "url": "https://shiftfx-admin.onrender.com/api/live/snapshot",
+  "request_headers": {
+    "If-None-Match": "W/\"9f338c66282956dacb10865e5ebbdb637ee7b0aeea0c8b91da2c50a327724cf0\""
+  },
+  "started_at": "2026-11-14T13:09:18.797518+00:00",
+  "completed_at": "2026-11-14T13:09:19.186405+00:00",
+  "seconds": 0.389,
+  "status": 304,
+  "response_headers": {
+    "Date": "Sat, 14 Nov 2026 13:09:20 GMT",
+    "Connection": "close",
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "cf-cache-status": "DYNAMIC",
+    "x-render-origin-server": "cloudflare",
+    "cross-origin-opener-policy": "same-origin",
+    "cross-origin-resource-policy": "same-site",
+    "etag": "\"9f338c66282956dacb10865e5ebbdb637ee7b0aeea0c8b91da2c50a327724cf0\"",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "rndr-id": "7e6c03ae-0b2c-42d7",
+    "Server": "cloudflare",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "vary": "origin",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "CF-RAY": "a5a64001ad3da4a9-ORN"
+  },
+  "bytes": 0,
+  "error": null
+}

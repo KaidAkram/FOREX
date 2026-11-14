@@ -1,0 +1,32 @@
+{
+  "label": "frontend-calendar",
+  "url": "https://shiftfx-admin.onrender.com/api/calendar",
+  "request_headers": {},
+  "started_at": "2026-11-14T13:09:19.188242+00:00",
+  "completed_at": "2026-11-14T13:09:20.402112+00:00",
+  "seconds": 1.214,
+  "status": 200,
+  "response_headers": {
+    "Date": "Sat, 14 Nov 2026 13:09:21 GMT",
+    "Content-Type": "application/json",
+    "Transfer-Encoding": "chunked",
+    "Connection": "close",
+    "cf-cache-status": "DYNAMIC",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://api.fontshare.com; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com; font-src 'self' https://cdn.fontshare.com https://fonts.gstatic.com data:; img-src 'self' data: blob: https://hatscripts.github.io; connect-src 'self' http://localhost:8001 http://127.0.0.1:8001 http://localhost:3000 http://localhost:3001 http://localhost:3002 https://*.onrender.com https://api.imf.org https://stats.oecd.org https://api.worldbank.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "rndr-id": "d88af6f6-9e5a-48cf",
+    "Server": "cloudflare",
+    "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+    "vary": "Accept-Encoding",
+    "x-content-type-options": "nosniff",
+    "x-dns-prefetch-control": "on",
+    "x-frame-options": "DENY",
+    "x-render-origin-server": "Render",
+    "x-xss-protection": "1; mode=block",
+    "CF-RAY": "a5a640040e209370-ORN",
+    "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "bytes": 116460,
+  "error": null
+}

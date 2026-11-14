@@ -1,8 +1,9 @@
+# Render Blueprint for ShiftFX (100% Free Tier, Zero Cost)
 services:
   - type: web
     name: shiftfx-admin
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: cd fx-macro-bias/frontend && npm ci --include=dev && npm run build
     startCommand: cd fx-macro-bias/frontend && npm start
     healthCheckPath: /login
@@ -12,18 +13,14 @@ services:
       - key: NEXT_PUBLIC_API_URL
         value: /api
       - key: BACKEND_INTERNAL_URL
-        fromService:
-          type: web
-          name: shiftfx-backend
-          property: hostport
+        value: https://shiftfx-backend.onrender.com
 
   - type: web
     name: shiftfx-backend
     runtime: python
-    plan: starter
+    plan: free
     buildCommand: cd fx-macro-bias/backend && pip install -r requirements.txt && python manage.py collectstatic --noinput
-    preDeployCommand: cd fx-macro-bias/backend && python manage.py migrate --noinput && python manage.py bootstrap_macro --continuous
-    startCommand: cd fx-macro-bias/backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60
+    startCommand: cd fx-macro-bias/backend && python manage.py migrate --noinput && python manage.py bootstrap_macro --continuous && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
@@ -32,17 +29,8 @@ services:
         value: config.settings.production
       - key: SECRET_KEY
         generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: shiftfx-data
-          property: connectionString
-      - key: INTERNAL_SERVICE_HOST
-        fromService:
-          type: web
-          name: shiftfx-backend
-          property: host
       - key: ENABLE_IN_PROCESS_SCHEDULER
-        value: "false"
+        value: "true"
       - key: SECURE_SSL_REDIRECT
         value: "false"
       - key: ALLOWED_HOSTS
@@ -51,32 +39,3 @@ services:
         value: https://shiftfx.io,https://terminal.shiftfx.io,https://admin.shiftfx.io
       - key: CSRF_TRUSTED_ORIGINS
         value: https://*.onrender.com,https://shiftfx.io,https://terminal.shiftfx.io,https://admin.shiftfx.io
-
-  - type: worker
-    name: shiftfx-ingestion
-    runtime: python
-    plan: standard
-    buildCommand: cd fx-macro-bias/backend && pip install -r requirements.txt
-    startCommand: cd fx-macro-bias/backend && python manage.py run_scraper_cron --daemon
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.0
-      - key: DJANGO_SETTINGS_MODULE
-        value: config.settings.production
-      - key: SECRET_KEY
-        generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: shiftfx-data
-          property: connectionString
-      - key: ALERT_WEBHOOK_URL
-        sync: false
-      - key: DB_CONN_MAX_AGE
-        value: '0'
-
-databases:
-  - name: shiftfx-data
-    plan: basic-256mb
-    databaseName: shiftfx
-    user: shiftfx
-    ipAllowList: []

@@ -91,6 +91,8 @@ def notify_failure(result):
         logger.exception('Could not deliver worker alert')
 
 def _worker_loop():
+    # Allow web server 30 seconds to boot, bind $PORT and pass Render health checks
+    _stop_event.wait(30)
     while not _stop_event.is_set():
         try:
             close_old_connections()

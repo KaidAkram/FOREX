@@ -110,7 +110,10 @@ def _worker_loop():
     while not _stop_event.is_set():
         try:
             close_old_connections()
-            SystemSetting.objects.update_or_create(key='worker_heartbeat', defaults={'value': {'at': timezone.now().isoformat()}})
+            try:
+                SystemSetting.objects.update_or_create(key='worker_heartbeat', defaults={'value': {'at': timezone.now().isoformat()}})
+            except Exception as hb_err:
+                logger.warning('Worker heartbeat write skipped: %s', hb_err)
             has_snapshot = SystemSetting.objects.filter(key='public_macro_snapshot').exists()
             run_once(force=not has_snapshot)
         except Exception:

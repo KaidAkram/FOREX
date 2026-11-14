@@ -10,12 +10,17 @@ def check_lease():
     owner = worker_owner.get()
     if owner is None:
         return
-    lease = WorkerLease.objects.filter(name='macro').first()
-    if not lease or lease.owner != owner:
-        raise RuntimeError('Worker lease lost; publication cancelled')
-    now = timezone.now()
-    if lease.expires_at <= now:
-        # Renew lease if still owned by this active worker to prevent SQLite lock starvation
-        WorkerLease.objects.filter(name='macro', owner=owner).update(
-            heartbeat_at=now, expires_at=now + timedelta(seconds=900)
-        )
+    try:
+        lease = WorkerLease.objects.filter(name='macro').first()
+        if not lease or lease.owner != owner:
+            raise RuntimeError('Worker lease lost; publication cancelled')
+        now = timezone.now()
+        if lease.expires_at <= now:
+            # Renew lease if still owned by this active worker to prevent SQLite lock starvation
+            WorkerLease.objects.filter(name='macro', owner=owner).update(
+                heartbeat_at=now, expires_at=now + timedelta(seconds=900)
+            )
+    except RuntimeError:
+        raise
+    except Exception:
+        pass

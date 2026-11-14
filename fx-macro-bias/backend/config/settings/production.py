@@ -34,7 +34,7 @@ if database_url:
         "default": dj_database_url.config(
             default=database_url,
             conn_max_age=config("DB_CONN_MAX_AGE", default=60, cast=int),
-            ssl_require=True,
+            ssl_require=config("DB_SSL_REQUIRE", default=False, cast=bool),
         )
     }
 else:
@@ -55,13 +55,8 @@ else:
             }
         }
     else:
-        # Fallback to local SQLite for zero-cost / Free plan hosting
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.sqlite3",
-                "NAME": BASE_DIR / "db.sqlite3",
-            }
-        }
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured('Production requires persistent PostgreSQL: configure DATABASE_URL or DB_NAME.')
 
 # ──────────────────────────────────────────────
 # HTTPS & Transport Security (HSTS)

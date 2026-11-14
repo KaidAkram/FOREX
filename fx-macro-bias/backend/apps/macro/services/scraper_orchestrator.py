@@ -1,6 +1,7 @@
 from apps.macro.services.fencing import check_lease
 """Scheduled ingestion and atomic publication of client snapshots."""
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from typing import Optional
@@ -61,7 +62,9 @@ class ScraperOrchestrator:
         from apps.macro.services.snapshot import publish_snapshot
         from apps.macro.services.fx_reserves import refresh_fx_reserves
         from apps.macro.services.equity import refresh_equity
-        results = {'started_at': django_timezone.now().isoformat(), 'indicators': {}, 'total_points_saved': 0}
+        cycle_id = uuid.uuid4().hex[:12]
+        started_at = django_timezone.now()
+        results = {'cycle_id': cycle_id, 'started_at': started_at.isoformat(), 'indicators': {}, 'total_points_saved': 0}
         # Publish fast macro releases before the heavier full-history market calculation.
         jobs = [(s, lambda slug=s: sync_indicator(slug)) for s in ('gdp', 'cpi', 'interest_rate', 'ca_gdp')]
         jobs += [('fx_reserves', lambda: refresh_fx_reserves(recalculate=False)), ('equity', lambda: refresh_equity(recalculate=False))]
@@ -113,5 +116,18 @@ class ScraperOrchestrator:
         SystemSetting.objects.update_or_create(key='pipeline_result', defaults={'value': results})
         AuditLog.objects.create(entity_type='ScraperExecution', entity_id=now.isoformat(), action=results['status'],
                                 after_value=results, user=trigger_source)
+        cycle_summary = {
+            'cycle_id': cycle_id,
+            'started_at': started_at.isoformat(),
+            'finished_at': now.isoformat(),
+            'duration_seconds': round((now - started_at).total_seconds(), 2),
+            'status': results['status'],
+            'trigger_source': trigger_source,
+            'records_recalculated': results.get('records_recalculated', 0),
+            'total_points_saved': results.get('total_points_saved', 0),
+            'has_skipped_prints': bool(errors),
+            'skipped_reasons': errors,
+        }
+        SystemSetting.objects.update_or_create(key='last_cycle_telemetry', defaults={'value': cycle_summary})
         results['next_scheduled_run'] = next_run.isoformat()
         return results

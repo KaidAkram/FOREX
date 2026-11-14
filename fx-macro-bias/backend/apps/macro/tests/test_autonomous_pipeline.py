@@ -87,6 +87,17 @@ class AutonomousPipelineTests(TestCase):
         response=self.client.get('/api/live/snapshot')
         self.assertEqual(response.status_code,200)
         self.assertEqual(self.client.get('/api/live/snapshot',HTTP_IF_NONE_MATCH=response['ETag']).status_code,304)
+        weak_etag = f'W/{response["ETag"]}'
+        self.assertEqual(self.client.get('/api/live/snapshot', HTTP_IF_NONE_MATCH=weak_etag).status_code, 304)
+        bare_tag = response['ETag'].strip('"')
+        self.assertEqual(self.client.get('/api/live/snapshot', HTTP_IF_NONE_MATCH=bare_tag).status_code, 304)
+
+    def test_readiness_checks_usable_coverage(self):
+        publish_snapshot()
+        res = self.client.get('/api/ready')
+        self.assertEqual(res.status_code, 503)
+        self.assertFalse(res.json()['has_usable_coverage'])
+        self.assertFalse(res.json()['has_snapshot'])
 
     @override_settings(DEBUG=False, DEV_MOCK_ADMIN=False)
     @patch('apps.macro.services.scraper_orchestrator.ScraperOrchestrator.run_full_pipeline')

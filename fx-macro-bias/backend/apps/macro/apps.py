@@ -11,7 +11,7 @@ class MacroConfig(AppConfig):
         
         # Avoid running worker thread during build/management commands
         is_management = any(cmd in sys.argv for cmd in ['check', 'migrate', 'collectstatic', 'makemigrations', 'test', 'shell', 'createsuperuser', 'bootstrap_macro'])
-        if not is_management and os.environ.get("ENABLE_IN_PROCESS_SCHEDULER", "true").lower() == "true":
+        if not is_management and os.environ.get("ENABLE_IN_PROCESS_SCHEDULER", "false").lower() == "true":
             try:
                 from apps.macro.services.scheduler import start_background_scheduler
                 start_background_scheduler()

@@ -5,6 +5,7 @@ import threading
 import uuid
 from datetime import timedelta, datetime
 from django.db import close_old_connections, connections
+from django.db.models import Q
 from django.utils import timezone
 from apps.macro.models import WorkerLease, SystemSetting
 
@@ -21,9 +22,12 @@ def queue_refresh(trigger_source='manual'):
 
 def acquire_lease(owner):
     now = timezone.now()
+    stale_threshold = now - timedelta(seconds=60)
     try:
         WorkerLease.objects.get_or_create(name='macro', defaults={'owner': '', 'expires_at': now, 'heartbeat_at': now})
-        return WorkerLease.objects.filter(name='macro', expires_at__lte=now).update(
+        return WorkerLease.objects.filter(name='macro').filter(
+            Q(expires_at__lte=now) | Q(owner='') | Q(heartbeat_at__lte=stale_threshold)
+        ).update(
             owner=owner, expires_at=now + timedelta(seconds=LEASE_DURATION_SECONDS), heartbeat_at=now) == 1
     except Exception as exc:
         logger.warning(f"Database not ready for worker lease: {exc}")

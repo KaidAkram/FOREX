@@ -58,7 +58,7 @@ def _heartbeat(owner, stop):
     finally:
         connections.close_all()
 
-def run_once(force=False):
+def run_once(force=False, trigger_source='worker'):
     from apps.macro.services.scraper_orchestrator import ScraperOrchestrator
     owner = uuid.uuid4().hex
     if not acquire_lease(owner):
@@ -79,7 +79,8 @@ def run_once(force=False):
         has_snapshot = SystemSetting.objects.filter(key='public_macro_snapshot').exists()
         if not force and not request and has_snapshot and (not cfg.get('cronActive', True) or next_run > timezone.now()):
             return {'status': 'IDLE'}
-        result = ScraperOrchestrator.run_full_pipeline(request.value.get('source', 'worker') if request else 'worker')
+        effective_source = request.value.get('source', trigger_source) if request else trigger_source
+        result = ScraperOrchestrator.run_full_pipeline(effective_source)
         if request:
             SystemSetting.objects.filter(pk=request.pk, updated_at=request.updated_at).delete()
         notify_failure(result)
@@ -137,7 +138,7 @@ def stop_background_scheduler():
     _stop_event.set()
 
 def force_trigger_now(trigger_source='manual'):
-    return run_once(force=True)
+    return run_once(force=True, trigger_source=trigger_source)
 
 def get_scheduler_telemetry():
     row = SystemSetting.objects.filter(key='scraper_settings').first()

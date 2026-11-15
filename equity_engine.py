@@ -280,12 +280,24 @@ def compute_equity_from_frames(index_dfs, fx_dfs, *, start_year=2023, today=None
     return results, country_results
 
 
+LAST_DATASET_META = {
+    'is_fallback': False,
+    'fetched_at': None,
+    'source': 'Yahoo Finance Daily OHLC (Equity Indicator2.pdf)',
+}
+
+def get_last_dataset_meta():
+    return dict(LAST_DATASET_META)
+
 def build_equity_dataset(use_cache=False, live_update=True, *, start_year=2023, today=None, write_cache=True):
     cache_path = Path(__file__).resolve().parent / 'equity_dataset_cache.json'
     if use_cache and not live_update and cache_path.exists():
         with open(cache_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         if data.get('version') == CACHE_VERSION and 'pairs' in data:
+            LAST_DATASET_META['is_fallback'] = True
+            LAST_DATASET_META['fetched_at'] = data.get('fetched_at')
+            LAST_DATASET_META['source'] = 'Fallback: Bundled Equity Dataset Cache'
             return data['pairs'], data.get('countries', {})
 
     results = None
@@ -306,12 +318,20 @@ def build_equity_dataset(use_cache=False, live_update=True, *, start_year=2023, 
             with open(cache_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             if data.get('version') == CACHE_VERSION and 'pairs' in data:
+                LAST_DATASET_META['is_fallback'] = True
+                LAST_DATASET_META['fetched_at'] = data.get('fetched_at')
+                LAST_DATASET_META['source'] = 'Fallback: Bundled Equity Dataset Cache'
                 return data['pairs'], data.get('countries', {})
         raise EquityFetchError("Computed empty Equity pair dataset and no cache available")
 
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    LAST_DATASET_META['is_fallback'] = False
+    LAST_DATASET_META['fetched_at'] = now_iso
+    LAST_DATASET_META['source'] = 'Yahoo Finance Daily OHLC (Equity Indicator2.pdf)'
+
     payload = {
         'version': CACHE_VERSION,
-        'fetched_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'fetched_at': now_iso,
         'latest_month': max((max(m) for m in results.values() if m), default=None),
         'pairs': results,
         'countries': country_results,

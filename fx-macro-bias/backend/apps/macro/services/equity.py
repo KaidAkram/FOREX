@@ -37,9 +37,11 @@ def refresh_equity(*, start_year=2023, recalculate=True):
         pair_results, _ = equity_engine.build_equity_dataset(
             use_cache=True,
             live_update=True,
-            write_cache=False,
+            write_cache=True,
             start_year=start_year,
         )
+        meta = getattr(equity_engine, 'get_last_dataset_meta', lambda: {})()
+        is_fallback = meta.get('is_fallback', False)
         indicator = MacroIndicator.objects.get(slug="equity")
         active_pairs = list(
             FXPair.objects.filter(is_active=True).select_related("base_currency", "quote_currency")
@@ -57,6 +59,12 @@ def refresh_equity(*, start_year=2023, recalculate=True):
             # so remove legacy country-level MacroDataPoints and copied future months.
             MacroDataPoint.objects.filter(indicator=indicator).delete()
 
+            existing_diffs = {
+                (d.pair_id, d.month): d
+                for d in Differential.objects.filter(indicator=indicator)
+            }
+            existing_details = (SystemSetting.objects.filter(key='equity_details').first() or SystemSetting()).value or {}
+
             valid_months_by_pair = {}
             for pair in active_pairs:
                 pair_sym = pair.symbol
@@ -73,6 +81,17 @@ def refresh_equity(*, start_year=2023, recalculate=True):
                     month_dates.append(dt)
                     if latest_month is None or ym > latest_month:
                         latest_month = ym
+
+                    # Prevent regression: if fallback cache is older than already saved live calculation
+                    existing_d = existing_diffs.get((pair.pk, dt))
+                    if is_fallback and existing_d and existing_d.is_complete:
+                        existing_pt = existing_details.get(pair_sym, {}).get(ym, {})
+                        if existing_pt.get('as_of_date') and pt.get('as_of_date') and existing_pt['as_of_date'] > pt['as_of_date']:
+                            # Keep newer live calculation
+                            p_data[ym] = existing_pt
+                            saved += 1
+                            continue
+
                     diff, _ = Differential.objects.update_or_create(
                         pair=pair,
                         indicator=indicator,
@@ -118,18 +137,23 @@ def refresh_equity(*, start_year=2023, recalculate=True):
 
             SystemSetting.objects.update_or_create(key='equity_details', defaults={'value': pair_results})
             fetched_at = timezone.now().isoformat()
+            source_label = meta.get('source') or "Yahoo Finance Daily OHLC (Equity Indicator2.pdf)"
+            status_label = "PARTIAL" if (is_fallback or missing_pairs) else "SUCCESS"
+            last_success = (metadata.get('last_success_at') if is_fallback else fetched_at) or meta.get('fetched_at') or fetched_at
+            err_msg = "Using bundled equity dataset cache fallback due to live market provider rate-limit." if is_fallback else None
+
             metadata = {
                 **metadata,
-                "source": "Yahoo Finance Daily OHLC (Equity Indicator2.pdf)",
-                "status": "SUCCESS",
+                "source": source_label,
+                "status": status_label,
                 "fetched_at": fetched_at,
                 "last_attempt_at": attempted_at,
-                "last_success_at": fetched_at,
+                "last_success_at": last_success,
                 "latest_month": latest_month,
                 "points_saved": saved,
                 "records_recalculated": count,
                 "missing_pairs": sorted(missing_pairs),
-                "error": None,
+                "error": err_msg,
             }
             SystemSetting.objects.update_or_create(key=REFRESH_KEY, defaults={"value": metadata})
             if recalculate:

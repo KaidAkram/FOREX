@@ -16,6 +16,8 @@ def check_lease():
     now = timezone.now()
     if lease.expires_at <= now:
         # Renew lease if still owned by this active worker to prevent SQLite lock starvation
-        WorkerLease.objects.filter(name='macro', owner=owner).update(
+        updated = WorkerLease.objects.filter(name='macro', owner=owner).update(
             heartbeat_at=now, expires_at=now + timedelta(seconds=900)
         )
+        if not updated:
+            raise RuntimeError('Worker lease lost; publication cancelled')

@@ -33,14 +33,16 @@ def health(request):
 
 @require_GET
 def readiness(request):
-    if request.GET.get('refresh') in ('1', 'true') or request.GET.get('force') in ('1', 'true'):
-        from apps.macro.services.scheduler import force_trigger_now
-        force_trigger_now()
     telemetry = get_scheduler_telemetry()
     from datetime import datetime, timedelta
     from django.utils import timezone
     row = SystemSetting.objects.filter(key='public_macro_snapshot').first()
-    has_usable_coverage = bool(row and any(len(c) > 0 for c in row.value.get('data', {}).values()))
+    data = row.value.get('data', {}) if row and isinstance(row.value, dict) else {}
+    equity = row.value.get('equity', {}) if row and isinstance(row.value, dict) else {}
+    core_indicators = ['GDP', 'CPI', 'Interest Rate', 'Current Account', 'FX Reserves']
+    has_macro = all(len(data.get(k, {})) > 0 for k in core_indicators)
+    has_equity = bool(equity and any(pt.get('final_change') is not None for ms in equity.values() for pt in ms.values()))
+    has_usable_coverage = bool(has_macro and has_equity)
     has_snapshot = bool(row and has_usable_coverage)
     recent = bool(row and timezone.now() - datetime.fromisoformat(row.value['published_at']) < timedelta(minutes=20))
     healthy = telemetry['scheduler_alive'] and recent and telemetry['last_status'] == 'SUCCESS' and has_usable_coverage
